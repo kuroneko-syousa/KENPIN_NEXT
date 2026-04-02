@@ -1,0 +1,14 @@
+.next/
+node_modules/
+.env.local
+.dev.log
+.dev.err.log
+.start.log
+.start.err.log
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+prisma/dev.db
+prisma/dev.db-journal
