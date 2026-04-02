@@ -1,16 +1,16 @@
-# Kenpin Studio
+# KENPIN_NEXT
 
-画像系 AI モデルの作成管理を想定した Next.js + TypeScript の Web アプリです。
+画像系 AI モデルの作成と管理を行う Next.js ベースの Web アプリです。
 
-## 現在の構成
+## 主な機能
 
-- `NextAuth.js` の credentials 認証
-- `Prisma 7 + SQLite` によるユーザーDB土台
-- ログイン後のみアクセスできる `/dashboard`
-- サイドバーから移動できる詳細編集画面
-- ワークスペース、モデル、画像DB、ジョブの管理 UI
+- NextAuth.js によるログイン認証
+- Prisma 7 + SQLite によるユーザー / ワークスペース管理
+- 画像 DB 選択と閲覧 UI
+- ワークスペース作成と管理 UI
+- 画像前処理、アノテーション、YOLO 学習へつながる管理導線
 
-## 起動方法
+## セットアップ
 
 ```bash
 npm install
@@ -19,28 +19,27 @@ npm run prisma:push
 npm run dev
 ```
 
-ブラウザで `http://localhost:3000` を開くと確認できます。
+ブラウザで `http://localhost:3000` を開いて確認できます。
 
-## ユーザーDB
+## 開発用ログイン
 
-- DB ファイル: `prisma/dev.db`
-- Prisma 設定: `prisma/schema.prisma`, `prisma.config.ts`
-- Prisma Client: `generated/prisma`
+- Email: `admin@kenpin.ai`
+- Password: `demo1234`
 
-初期ユーザーを入れる場合:
+## データベース
+
+- Prisma schema: `prisma/schema.prisma`
+- Prisma config: `prisma.config.ts`
+- SQLite DB: `prisma/dev.db`
+
+初期ユーザーを投入する場合:
 
 ```bash
 npm run prisma:seed-users
 ```
 
-## デモログイン
+## 今後の拡張候補
 
-- Email: `admin@kenpin.ai`
-- Password: `demo1234`
-
-## 次に広げやすい機能
-
-- NextAuth と Prisma User の接続
-- ワークスペースの DB 永続化
-- ユーザー権限管理
-- 前処理、アノテーション、YOLO 学習ジョブの永続化
+- NextAuth と Prisma User の本格連携
+- ワークスペース設定の永続化拡張
+- 画像処理 / アノテーション / 学習ジョブの実処理接続
