@@ -10,12 +10,12 @@
 "use client";
 
 import {
-  imageDatabases,
   teamUsers,
   type WorkspacePipeline,
   type WorkflowStepStatus,
 } from "@/lib/dashboard-data";
-import { useMemo, useState } from "react";
+import type { ImageDatabaseConnectionRecord } from "@/lib/image-database";
+import { useEffect, useMemo, useState } from "react";
 
 type WorkspaceFormState = {
   name: string;
@@ -182,21 +182,21 @@ function getModelsForTarget(targetId: string) {
   return modelSuggestions[targetId] ?? modelSuggestions["object-detection"];
 }
 
-function getTargetsByType(type: string) {
-  return registeredMountTargets.filter((target) => target.type === type);
+function getTargetsByType(type: string, targets: RegisteredMountTarget[] = registeredMountTargets) {
+  return targets.filter((target) => target.type === type);
 }
 
 function getDefaultDatabaseType() {
   return databaseTypeOptions[0].id;
 }
 
-function getDefaultMountTarget(type: string) {
-  return getTargetsByType(type)[0] ?? null;
+function getDefaultMountTarget(type: string, targets: RegisteredMountTarget[] = registeredMountTargets) {
+  return getTargetsByType(type, targets)[0] ?? null;
 }
 
-function createInitialForm(): WorkspaceFormState {
+function createInitialForm(targets: RegisteredMountTarget[] = registeredMountTargets): WorkspaceFormState {
   const defaultType = getDefaultDatabaseType();
-  const defaultTarget = getDefaultMountTarget(defaultType);
+  const defaultTarget = getDefaultMountTarget(defaultType, targets);
 
   return {
     name: "",
@@ -214,15 +214,21 @@ function normalizeTarget(rawTarget: string) {
   return "object-detection";
 }
 
-function getDatabaseTypeFromDatabaseId(databaseId: string) {
-  return registeredMountTargets.find((target) => target.databaseId === databaseId)?.type ?? getDefaultDatabaseType();
+function getDatabaseTypeFromDatabaseId(
+  databaseId: string,
+  targets: RegisteredMountTarget[] = registeredMountTargets,
+) {
+  return targets.find((target) => target.databaseId === databaseId)?.type ?? getDefaultDatabaseType();
 }
 
-function toEditableForm(workspace: WorkspacePipeline | null): WorkspaceFormState {
-  if (!workspace) return createInitialForm();
+function toEditableForm(
+  workspace: WorkspacePipeline | null,
+  targets: RegisteredMountTarget[] = registeredMountTargets,
+): WorkspaceFormState {
+  if (!workspace) return createInitialForm(targets);
 
-  const databaseType = getDatabaseTypeFromDatabaseId(workspace.databaseId);
-  const mountTarget = registeredMountTargets.find((target) => target.databaseId === workspace.databaseId);
+  const databaseType = workspace.databaseType || getDatabaseTypeFromDatabaseId(workspace.databaseId, targets);
+  const mountTarget = targets.find((target) => target.databaseId === workspace.databaseId);
 
   return {
     name: workspace.name,
@@ -283,6 +289,7 @@ export function WorkspacesWorkspace({
   currentUserName,
   initialWorkspaces,
 }: WorkspacesWorkspaceProps) {
+  const [registeredConnections, setRegisteredConnections] = useState<ImageDatabaseConnectionRecord[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspacePipeline[]>(initialWorkspaces);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(initialWorkspaces[0]?.id ?? "");
   const [activeStepId, setActiveStepId] = useState<PageStep>("model");
@@ -290,9 +297,32 @@ export function WorkspacesWorkspace({
   const [isEditing, setIsEditing] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
-  const [draftForm, setDraftForm] = useState<WorkspaceFormState>(createInitialForm());
+  const [draftForm, setDraftForm] = useState<WorkspaceFormState>(createInitialForm(registeredMountTargets));
   const [createFieldIndex, setCreateFieldIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadConnections = async () => {
+      try {
+        const response = await fetch("/api/image-databases", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as ImageDatabaseConnectionRecord[];
+        if (!isCancelled) {
+          setRegisteredConnections(data);
+        }
+      } catch {
+        // 接続取得失敗時は静的候補をそのまま利用
+      }
+    };
+
+    loadConnections();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const currentUser = useMemo(() => {
     return (
@@ -309,16 +339,32 @@ export function WorkspacesWorkspace({
   const selectedWorkspace =
     workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? workspaces[0] ?? null;
 
-  const effectiveForm = isCreating ? draftForm : toEditableForm(selectedWorkspace);
+  const dynamicMountTargets: RegisteredMountTarget[] = useMemo(() => {
+    return registeredConnections.map((connection) => ({
+      id: `mount-${connection.id}`,
+      databaseId: connection.id,
+      name: connection.name,
+      type:
+        connection.connectionType === "nas"
+          ? "nas-mounted"
+          : connection.connectionType === "cloud"
+            ? "cloud-mounted"
+            : "local-mounted",
+      mountPath: connection.mountPath,
+    }));
+  }, [registeredConnections]);
+
+  const allMountTargets = dynamicMountTargets.length > 0 ? dynamicMountTargets : registeredMountTargets;
+
+  const effectiveForm = isCreating ? draftForm : toEditableForm(selectedWorkspace, allMountTargets);
   const suggestedModels = getModelsForTarget(effectiveForm.target);
   const selectedTarget = targetOptions.find((option) => option.id === effectiveForm.target) ?? targetOptions[0];
-  const mountTargets = getTargetsByType(effectiveForm.databaseType);
+  const mountTargets = allMountTargets.filter((target) => target.type === effectiveForm.databaseType);
   const selectedMountTarget =
     mountTargets.find((target) => target.databaseId === effectiveForm.databaseId) ?? mountTargets[0] ?? null;
   const selectedMountType =
     databaseTypeOptions.find((option) => option.id === effectiveForm.databaseType) ?? databaseTypeOptions[0];
-  const selectedDatabase =
-    imageDatabases.find((database) => database.id === effectiveForm.databaseId) ?? null;
+  const selectedDatabaseName = selectedMountTarget?.name ?? "未選択";
 
   const stepCards = pageSteps.map((step) => ({
     ...step,
@@ -361,7 +407,7 @@ export function WorkspacesWorkspace({
       }
 
       if (field === "databaseType") {
-        const nextTarget = getDefaultMountTarget(value);
+        const nextTarget = allMountTargets.find((target) => target.type === value) ?? null;
         return {
           ...current,
           databaseType: value,
@@ -371,7 +417,7 @@ export function WorkspacesWorkspace({
       }
 
       if (field === "databaseId") {
-        const nextTarget = registeredMountTargets.find((target) => target.databaseId === value);
+        const nextTarget = allMountTargets.find((target) => target.databaseId === value);
         return {
           ...current,
           databaseId: value,
@@ -409,7 +455,7 @@ export function WorkspacesWorkspace({
         }
 
         if (field === "databaseType") {
-          const nextTarget = getDefaultMountTarget(value);
+          const nextTarget = allMountTargets.find((target) => target.type === value) ?? null;
           return {
             ...workspace,
             databaseId: nextTarget?.databaseId ?? workspace.databaseId,
@@ -418,7 +464,7 @@ export function WorkspacesWorkspace({
         }
 
         if (field === "databaseId") {
-          const nextTarget = registeredMountTargets.find((target) => target.databaseId === value);
+          const nextTarget = allMountTargets.find((target) => target.databaseId === value);
           return {
             ...workspace,
             databaseId: value,
@@ -442,7 +488,7 @@ export function WorkspacesWorkspace({
 
   const beginCreateWorkspace = () => {
     setIsCreating(true);
-    setDraftForm(createInitialForm());
+    setDraftForm(createInitialForm(allMountTargets));
     setActiveStepId("model");
     setCreateFieldIndex(0);
     // 作成カードが見えるように自動スクロール
@@ -460,7 +506,7 @@ export function WorkspacesWorkspace({
       setIsCreating(false);
       setIsEditing(false);
       setIsAnimatingOut(false);
-      setDraftForm(createInitialForm());
+      setDraftForm(createInitialForm(allMountTargets));
       setActiveStepId("model");
       setCreateFieldIndex(0);
     }, 300); // アニメーション時間に合わせる
@@ -471,7 +517,7 @@ export function WorkspacesWorkspace({
     if (workspace) {
       setIsEditing(true);
       setSelectedWorkspaceId(workspaceId);
-      setDraftForm(toEditableForm(workspace));
+      setDraftForm(toEditableForm(workspace, allMountTargets));
       setActiveStepId("model");
       setCreateFieldIndex(0);
       // 編集カードが見えるように自動スクロール
@@ -582,7 +628,7 @@ export function WorkspacesWorkspace({
         setIsAnimatingOut(false);
         setActiveStepId("model");
         setCreateFieldIndex(0);
-        setDraftForm(createInitialForm());
+        setDraftForm(createInitialForm(allMountTargets));
       }, 300);
     } finally {
       setIsSaving(false);
@@ -624,7 +670,7 @@ export function WorkspacesWorkspace({
         setIsAnimatingOut(false);
         setActiveStepId("model");
         setCreateFieldIndex(0);
-        setDraftForm(createInitialForm());
+        setDraftForm(createInitialForm(allMountTargets));
       }, 300);
     } catch (error) {
       alert('ワークスペースの更新に失敗しました。');
@@ -771,7 +817,7 @@ export function WorkspacesWorkspace({
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#f7f8fc' }}>
                         <div><strong>手法:</strong> {targetLabel}</div>
                         <div><strong>モデル:</strong> {workspace.selectedModel || "未選択"}</div>
-                        <div><strong>接続先:</strong> {imageDatabases.find((database) => database.id === workspace.databaseId)?.name ?? "未設定"}</div>
+                        <div><strong>接続先:</strong> {allMountTargets.find((target) => target.databaseId === workspace.databaseId)?.name ?? workspace.databaseId ?? "未設定"}</div>
                         <div><strong>マウント先:</strong> {workspace.imageFolder || "未設定"}</div>
                         <div><strong>仮保存先:</strong> {workspace.datasetFolder || "未設定"}</div>
                       </div>
@@ -878,7 +924,7 @@ export function WorkspacesWorkspace({
                     DB接続タイプ: <code>{selectedMountType.label}</code>
                   </span>
                   <span>
-                    マウント対象: <code>{selectedDatabase?.name ?? "未選択"}</code>
+                    マウント対象: <code>{selectedDatabaseName}</code>
                   </span>
                   <span>
                     マウント先: <code>{selectedMountTarget?.mountPath ?? "未設定"}</code>

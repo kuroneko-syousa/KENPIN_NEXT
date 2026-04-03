@@ -1,45 +1,250 @@
-/**
- * 画像DB管理ページ
- * 
- * 機能:
- * - 画像DB接続一覧をそート（ドロップダウン）で選択
- * - 画像検索機能（画像名、タグ、データセットをキーワード検索）
- * - 画像グリッド表示（サムネイル一覧）
- * - 画像インスペクタで蘋備挿開情報を控毯
- */
 "use client";
 
-import { imageDatabases } from "@/lib/dashboard-data";
-import { useMemo, useState } from "react";
+import {
+  connectionTypeLabel,
+  connectionTypeOptions,
+  type ConnectionType,
+  type ImageDatabaseConnectionPayload,
+  type ImageDatabaseConnectionRecord,
+} from "@/lib/image-database";
+import { useEffect, useMemo, useState } from "react";
+
+type GenreOption = {
+  id: string;
+  label: string;
+  summary: string;
+};
+
+type AccessMethod = {
+  id: string;
+  label: string;
+  storageEngine: string;
+};
+
+type DiscoveryCandidate = {
+  id: string;
+  name: string;
+  mountName: string;
+  mountPath: string;
+  endpoint: string;
+  imageCount: number;
+};
+
+const genreOptions: GenreOption[] = [
+  {
+    id: "product-photo",
+    label: "製品画像",
+    summary: "型番別の製品外観や検査前後の記録画像を扱います。",
+  },
+  {
+    id: "defect-sample",
+    label: "不良サンプル",
+    summary: "異常検知学習に使う欠陥・不良サンプルを管理します。",
+  },
+  {
+    id: "training-material",
+    label: "学習素材",
+    summary: "アノテーション済みの学習用セットや検証セットを扱います。",
+  },
+];
+
+const accessMethodsByType: Record<ConnectionType, AccessMethod[]> = {
+  local: [
+    { id: "direct-folder", label: "ローカルフォルダ直接指定", storageEngine: "NTFS/Folder" },
+    { id: "watch-folder", label: "監視フォルダ連携", storageEngine: "NTFS/Watcher" },
+  ],
+  nas: [
+    { id: "smb", label: "SMB共有", storageEngine: "SMB" },
+    { id: "nfs", label: "NFSマウント", storageEngine: "NFS" },
+  ],
+  cloud: [
+    { id: "s3", label: "S3バケット", storageEngine: "S3" },
+    { id: "blob", label: "Azure Blob", storageEngine: "Blob" },
+  ],
+};
+
+function generateCandidates(
+  genre: GenreOption,
+  type: ConnectionType,
+  method: AccessMethod,
+): DiscoveryCandidate[] {
+  const stems = ["primary", "backup", "archive", "review", "staging"];
+
+  return stems.map((stem, index) => {
+    const safeGenre = genre.id.replace(/[^a-z0-9-]/g, "");
+    const mountName = `${safeGenre}-${stem}`;
+    const mountPath =
+      type === "local"
+        ? `D:\\vision\\${safeGenre}\\${stem}`
+        : type === "nas"
+          ? `\\\\NAS-SERVER\\vision\\${safeGenre}\\${stem}`
+          : `/${safeGenre}/${stem}`;
+    const endpoint =
+      type === "local"
+        ? "localhost"
+        : type === "nas"
+          ? "nas.kenpin.local"
+          : `storage.${safeGenre}.example.com`;
+
+    return {
+      id: `${type}-${method.id}-${safeGenre}-${stem}`,
+      name: `${genre.label} ${stem.toUpperCase()}`,
+      mountName,
+      mountPath,
+      endpoint,
+      imageCount: 1500 + index * 720,
+    };
+  });
+}
 
 export function ImageDatabaseWorkspace() {
-  const [databaseId, setDatabaseId] = useState(imageDatabases[0].id);
-  const [query, setQuery] = useState("");
+  const [connections, setConnections] = useState<ImageDatabaseConnectionRecord[]>([]);
+  const [isLoadingConnections, setIsLoadingConnections] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const selectedDatabase =
-    imageDatabases.find((database) => database.id === databaseId) ?? imageDatabases[0];
+  const [selectedGenreId, setSelectedGenreId] = useState(genreOptions[0].id);
+  const [selectedConnectionType, setSelectedConnectionType] = useState<ConnectionType>("local");
+  const [selectedMethodId, setSelectedMethodId] = useState(accessMethodsByType.local[0].id);
+  const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [deletingConnectionId, setDeletingConnectionId] = useState<string | null>(null);
 
-  const visibleImages = useMemo(() => {
-    return selectedDatabase.images.filter((image) => {
-      const lowerQuery = query.toLowerCase();
-      return (
-        image.name.toLowerCase().includes(lowerQuery) ||
-        image.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)) ||
-        image.dataset.toLowerCase().includes(lowerQuery)
-      );
-    });
-  }, [query, selectedDatabase]);
+  const selectedGenre = useMemo(
+    () => genreOptions.find((option) => option.id === selectedGenreId) ?? genreOptions[0],
+    [selectedGenreId],
+  );
 
-  const selectedImage = visibleImages[0] ?? selectedDatabase.images[0];
+  const availableMethods = accessMethodsByType[selectedConnectionType];
+  const selectedMethod =
+    availableMethods.find((method) => method.id === selectedMethodId) ?? availableMethods[0];
+  const selectedCandidate =
+    candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
+
+  const fetchConnections = async () => {
+    setIsLoadingConnections(true);
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/image-databases", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("接続情報の取得に失敗しました。");
+      }
+      const data = (await response.json()) as ImageDatabaseConnectionRecord[];
+      setConnections(data);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "接続情報の取得に失敗しました。");
+    } finally {
+      setIsLoadingConnections(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConnections();
+  }, []);
+
+  useEffect(() => {
+    setSelectedMethodId(accessMethodsByType[selectedConnectionType][0].id);
+  }, [selectedConnectionType]);
+
+  useEffect(() => {
+    setIsDiscovering(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const timer = setTimeout(() => {
+      const discovered = generateCandidates(selectedGenre, selectedConnectionType, selectedMethod);
+      setCandidates(discovered);
+      setSelectedCandidateId(discovered[0]?.id ?? "");
+      setIsDiscovering(false);
+    }, 650);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [selectedGenre, selectedConnectionType, selectedMethod]);
+
+  const registerSelectedCandidate = async () => {
+    if (!selectedCandidate) return;
+
+    setIsRegistering(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const payload: ImageDatabaseConnectionPayload = {
+      name: `${selectedCandidate.name} 接続`,
+      connectionType: selectedConnectionType,
+      mountName: selectedCandidate.mountName,
+      mountPath: selectedCandidate.mountPath,
+      storageEngine: selectedMethod.storageEngine,
+      endpoint: selectedCandidate.endpoint,
+      accessMode: "read-write",
+      status: "Connected",
+      purpose: `${selectedGenre.label} のワークスペース用リソース`,
+      notes: `method=${selectedMethod.label}`,
+      imageCount: selectedCandidate.imageCount,
+    };
+
+    try {
+      const response = await fetch("/api/image-databases", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "接続先の登録に失敗しました。");
+      }
+
+      setSuccessMessage("接続先を登録しました。ワークスペース作成で選択できます。");
+      await fetchConnections();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "接続先の登録に失敗しました。");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const deleteConnection = async (connectionId: string) => {
+    if (!confirm("この保存先を削除しますか？ワークスペースで使用中の場合は削除できません。")) {
+      return;
+    }
+
+    setDeletingConnectionId(connectionId);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/image-databases/${connectionId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "接続先の削除に失敗しました。");
+      }
+
+      setSuccessMessage("保存先を削除しました。");
+      await fetchConnections();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "接続先の削除に失敗しました。");
+    } finally {
+      setDeletingConnectionId(null);
+    }
+  };
 
   return (
     <div className="workspace-content">
       <section className="workspace-header">
         <div>
-          <p className="eyebrow">イメージリソースアクセス</p>
-          <h2>データベースを選択して画像を閲覧</h2>
+          <p className="eyebrow">リソースアクセス</p>
+          <h2>ジャンル別に接続先をセットアップ</h2>
           <p className="muted">
-            ドロップダウンから接続を選び、保存されている画像とメタデータを確認できます。
+            ジャンルと接続方式を選ぶと候補を自動検索し、選択した接続先をワークスペース作成の材料として登録できます。
           </p>
         </div>
       </section>
@@ -47,142 +252,161 @@ export function ImageDatabaseWorkspace() {
       <section className="panel db-toolbar-panel">
         <div className="db-toolbar">
           <label className="db-control">
-            データベース接続
-            <select value={databaseId} onChange={(event) => setDatabaseId(event.target.value)}>
-              {imageDatabases.map((database) => (
-                <option key={database.id} value={database.id}>
-                  {database.name} ({database.status})
+            ジャンル
+            <select value={selectedGenreId} onChange={(event) => setSelectedGenreId(event.target.value)}>
+              {genreOptions.map((genre) => (
+                <option key={genre.id} value={genre.id}>
+                  {genre.label}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="db-control">
-            画像を検索
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="画像名、タグ、またはデータセットで検索"
-            />
+            接続タイプ
+            <select
+              value={selectedConnectionType}
+              onChange={(event) => setSelectedConnectionType(event.target.value as ConnectionType)}
+            >
+              {connectionTypeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="db-control">
+            接続方法
+            <select value={selectedMethod.id} onChange={(event) => setSelectedMethodId(event.target.value)}>
+              {availableMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
+
+        <p className="muted" style={{ marginTop: "0.9rem" }}>
+          {selectedGenre.summary}
+        </p>
       </section>
 
-      <section className="detail-grid">
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Connection</p>
-              <h3>{selectedDatabase.name}</h3>
-            </div>
-            <span
-              className={
-                selectedDatabase.status === "Connected"
-                  ? "status ready"
-                  : selectedDatabase.status === "Read Only"
-                    ? "status draft"
-                    : "status error"
-              }
-            >
-              {selectedDatabase.status}
-            </span>
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">自動サーチ</p>
+            <h3>接続候補一覧</h3>
           </div>
+          <span className={isDiscovering ? "status training" : "status ready"}>
+            {isDiscovering ? "検索中..." : `${candidates.length} 件`}
+          </span>
+        </div>
 
-          <div className="metric-stack">
-            <div className="metric-row">
-              <strong>{selectedDatabase.engine}</strong>
-              <span>エンジン</span>
-            </div>
-            <div className="metric-row">
-              <strong>{selectedDatabase.region}</strong>
-              <span>地域</span>
-            </div>
-            <div className="metric-row">
-              <strong>{selectedDatabase.imageCount.toLocaleString()}</strong>
-              <span>保存済みの画像</span>
-            </div>
-            <div className="metric-row">
-              <strong>{selectedDatabase.updatedAt}</strong>
-              <span>最後の同期</span>
-            </div>
+        {isDiscovering ? (
+          <div className="empty-state">
+            <strong>候補を検索しています</strong>
+            <span>選択したジャンルと接続方法に応じて候補を収集中です。</span>
           </div>
-
-          <p className="muted block-copy">{selectedDatabase.description}</p>
-        </article>
-
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">ブラウザ</p>
-              <h3>画像ブラウザ</h3>
-            </div>
-            <span>{visibleImages.length} 件</span>
+        ) : (
+          <div className="selection-list">
+            {candidates.map((candidate) => (
+              <div
+                key={candidate.id}
+                className={
+                  selectedCandidateId === candidate.id
+                    ? "selection-card workspace-selection-card active"
+                    : "selection-card workspace-selection-card"
+                }
+                style={{ padding: "0.55rem 0.9rem" }}
+                onClick={() => setSelectedCandidateId(candidate.id)}
+              >
+                <strong>{candidate.name}</strong>
+                <span style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                  <span>{candidate.mountPath}</span>
+                  <span style={{ opacity: 0.65 }}>|</span>
+                  <span>{candidate.endpoint}</span>
+                  <span style={{ opacity: 0.65 }}>|</span>
+                  <span>{candidate.imageCount.toLocaleString()} 枚</span>
+                </span>
+              </div>
+            ))}
           </div>
+        )}
 
-          {visibleImages.length > 0 ? (
-            <div className="image-grid">
-              {visibleImages.map((image) => (
-                <div key={image.id} className="image-card">
-                  <img src={image.preview} alt={image.name} className="image-preview" />
-                  <div className="image-meta">
-                    <strong>{image.name}</strong>
-                    <span>{image.resolution}</span>
-                    <span>{image.tags.join(", ")}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <strong>一致する画像がありません</strong>
-              <span>別の検索クエリを試すか、別のデータベースに切り替えてください。</span>
-            </div>
-          )}
-        </article>
+        <div className="workflow-actions" style={{ marginTop: "1rem" }}>
+          <button type="button" onClick={registerSelectedCandidate} disabled={!selectedCandidate || isRegistering}>
+            {isRegistering ? "登録中..." : "この候補を接続先として登録"}
+          </button>
+          <span className="muted">
+            登録後はワークスペース作成画面で {connectionTypeLabel[selectedConnectionType]} 接続として選択できます。
+          </span>
+        </div>
+
+        {errorMessage ? (
+          <p className="form-error" style={{ marginTop: "0.8rem" }}>
+            {errorMessage}
+          </p>
+        ) : null}
+        {successMessage ? <p style={{ marginTop: "0.8rem", color: "#7cf0ba" }}>{successMessage}</p> : null}
       </section>
 
-      {selectedImage ? (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">インスペクタ</p>
-              <h3>{selectedImage.name}</h3>
-            </div>
-            <span className="status ready">{selectedImage.format}</span>
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">登録済み</p>
+            <h3>ワークスペースで利用可能な接続先</h3>
           </div>
+          <span>{isLoadingConnections ? "読み込み中..." : `${connections.length} 件`}</span>
+        </div>
 
-          <div className="inspector-layout">
-            <img src={selectedImage.preview} alt={selectedImage.name} className="inspector-preview" />
-
-            <div className="editor-form inspector-form">
-              <label>
-                画像ID
-                <input defaultValue={selectedImage.id} />
-              </label>
-              <label>
-                データセット
-                <input defaultValue={selectedImage.dataset} />
-              </label>
-              <label>
-                解像度
-                <input defaultValue={selectedImage.resolution} />
-              </label>
-              <label>
-                作成日時
-                <input defaultValue={selectedImage.createdAt} />
-              </label>
-              <label className="full-span">
-                タグ
-                <input defaultValue={selectedImage.tags.join(", ")} />
-              </label>
-              <label className="full-span">
-                プロンプト
-                <textarea defaultValue={selectedImage.prompt} rows={5} />
-              </label>
-            </div>
+        {isLoadingConnections ? (
+          <div className="empty-state">
+            <strong>接続先を読み込み中です</strong>
           </div>
-        </section>
-      ) : null}
+        ) : connections.length === 0 ? (
+          <div className="empty-state">
+            <strong>登録済み接続先はありません</strong>
+            <span>上の候補から接続先を選び、登録してください。</span>
+          </div>
+        ) : (
+          <div className="selection-list">
+            {connections.map((connection) => (
+              <div
+                key={connection.id}
+                className="selection-card workspace-selection-card"
+                style={{ position: "relative", padding: "0.55rem 0.9rem", paddingRight: "7rem" }}
+              >
+                <strong>{connection.name}</strong>
+                <span style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                  <span>{connectionTypeLabel[connection.connectionType as ConnectionType]} / {connection.storageEngine}</span>
+                  <span style={{ opacity: 0.65 }}>|</span>
+                  <span>{connection.mountPath}</span>
+                  <span style={{ opacity: 0.65 }}>|</span>
+                  <span>{connection.imageCount.toLocaleString()} 枚</span>
+                </span>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  style={{
+                    position: "absolute",
+                    top: "0.5rem",
+                    right: "0.75rem",
+                    fontSize: "0.75rem",
+                    padding: "0.2rem 0.5rem",
+                    color: "#ef4444",
+                  }}
+                  onClick={() => deleteConnection(connection.id)}
+                  disabled={deletingConnectionId === connection.id}
+                >
+                  {deletingConnectionId === connection.id ? "削除中..." : "保存先を削除"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

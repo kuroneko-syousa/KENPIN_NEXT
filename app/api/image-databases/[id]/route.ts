@@ -55,8 +55,19 @@ async function getCurrentUser() {
     return null;
   }
 
-  return prisma.user.findUnique({
+  return prisma.user.upsert({
     where: { email: session.user.email },
+    update: {
+      name: session.user.name ?? "Workspace User",
+      role: "Admin",
+      team: "Workspace Team",
+    },
+    create: {
+      name: session.user.name ?? "Workspace User",
+      email: session.user.email,
+      role: "Admin",
+      team: "Workspace Team",
+    },
   });
 }
 
