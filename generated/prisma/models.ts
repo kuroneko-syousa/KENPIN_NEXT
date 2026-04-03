@@ -11,4 +11,7 @@
 export type * from './models/User'
 export type * from './models/Workspace'
 export type * from './models/ImageDatabaseConnection'
+export type * from './models/Account'
+export type * from './models/Session'
+export type * from './models/VerificationToken'
 export type * from './commonInputTypes'

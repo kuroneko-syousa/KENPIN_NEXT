@@ -36,7 +36,7 @@ export function ImageDatabaseWorkspace() {
     <div className="workspace-content">
       <section className="workspace-header">
         <div>
-          <p className="eyebrow">画像DB</p>
+          <p className="eyebrow">イメージリソースアクセス</p>
           <h2>データベースを選択して画像を閲覧</h2>
           <p className="muted">
             ドロップダウンから接続を選び、保存されている画像とメタデータを確認できます。

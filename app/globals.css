@@ -65,6 +65,7 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.08);
   width: 100%;
   min-width: 0;
+  caret-color: #f7f8fc;
 }
 
 select option {
@@ -484,7 +485,7 @@ p {
 
 h1 {
   font-size: 2.2rem;
-  line-height: 0.55;
+  line-height: 1.2;
 }
 
 h2 {
@@ -504,8 +505,23 @@ h2 {
   align-items: center; 
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.9rem 1.2rem;
-  border-radius: 20px;
+  padding: 1.5rem 2rem;
+  border-radius: 24px;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  opacity: 0.5;
+  z-index: -1;
 }
 
 .hero-stats {
@@ -518,7 +534,20 @@ h2 {
 .stat-chip {
   padding: 1rem;
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  transition: all 0.3s ease;
+  cursor: default;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.stat-chip:hover {
+  transform: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .detail-grid {
@@ -1151,5 +1180,96 @@ a, button, div {
 
   h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* アニメーション定義 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.slide-out-down {
+  animation: slideOutDown 0.3s ease-in;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .login-hero,
+  .login-panel {
+    padding: 1.5rem;
+  }
+
+  .login-highlights {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .login-copy {
+    font-size: 0.95rem;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-hero,
+  .login-panel {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    line-height: 1.4;
+  }
+
+  .login-copy {
+    font-size: 0.9rem;
+  }
+
+  .highlight-card {
+    padding: 0.75rem;
   }
 }

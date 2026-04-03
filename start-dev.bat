@@ -9,4 +9,8 @@ if exist "C:\Program Files\nodejs\npm.cmd" (
   call npm run dev
 )
 
+timeout /t 10 /nobreak > nul
+
+rundll32 url.dll,FileProtocolHandler http://localhost:3000
+
 endlocal

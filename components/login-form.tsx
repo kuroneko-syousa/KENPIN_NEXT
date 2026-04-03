@@ -22,7 +22,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("admin@kenpin.ai");
   const [password, setPassword] = useState("demo1234");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 

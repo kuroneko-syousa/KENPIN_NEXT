@@ -287,6 +287,9 @@ export function WorkspacesWorkspace({
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(initialWorkspaces[0]?.id ?? "");
   const [activeStepId, setActiveStepId] = useState<PageStep>("model");
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const [deletingWorkspaceId, setDeletingWorkspaceId] = useState<string | null>(null);
   const [draftForm, setDraftForm] = useState<WorkspaceFormState>(createInitialForm());
   const [createFieldIndex, setCreateFieldIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -442,6 +445,71 @@ export function WorkspacesWorkspace({
     setDraftForm(createInitialForm());
     setActiveStepId("model");
     setCreateFieldIndex(0);
+    // 作成カードが見えるように自動スクロール
+    setTimeout(() => {
+      const createSection = document.querySelector('.panel:has(.workflow-tabs)');
+      if (createSection) {
+        createSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const cancelCreateWorkspace = () => {
+    setIsAnimatingOut(true);
+    setTimeout(() => {
+      setIsCreating(false);
+      setIsEditing(false);
+      setIsAnimatingOut(false);
+      setDraftForm(createInitialForm());
+      setActiveStepId("model");
+      setCreateFieldIndex(0);
+    }, 300); // アニメーション時間に合わせる
+  };
+
+  const beginEditWorkspace = (workspaceId: string) => {
+    const workspace = workspaces.find(w => w.id === workspaceId);
+    if (workspace) {
+      setIsEditing(true);
+      setSelectedWorkspaceId(workspaceId);
+      setDraftForm(toEditableForm(workspace));
+      setActiveStepId("model");
+      setCreateFieldIndex(0);
+      // 編集カードが見えるように自動スクロール
+      setTimeout(() => {
+        const editSection = document.querySelector('.panel:has(.workflow-tabs)');
+        if (editSection) {
+          editSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  };
+
+  const deleteWorkspace = async (workspaceId: string) => {
+    if (!confirm('このワークスペースを削除しますか？この操作は取り消せません。')) return;
+
+    setDeletingWorkspaceId(workspaceId);
+
+    try {
+      const response = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Workspace delete failed");
+      }
+
+      // アニメーション後に削除
+      setTimeout(() => {
+        setWorkspaces((current) => current.filter(w => w.id !== workspaceId));
+        if (selectedWorkspaceId === workspaceId) {
+          setSelectedWorkspaceId(workspaces.find(w => w.id !== workspaceId)?.id ?? "");
+        }
+        setDeletingWorkspaceId(null);
+      }, 500); // fade-out アニメーション時間
+    } catch (error) {
+      alert('ワークスペースの削除に失敗しました。');
+      setDeletingWorkspaceId(null);
+    }
   };
 
   const selectWorkspace = (workspaceId: string) => {
@@ -508,10 +576,58 @@ export function WorkspacesWorkspace({
 
       setWorkspaces((current) => [nextWorkspace, ...current]);
       setSelectedWorkspaceId(nextWorkspace.id);
-      setIsCreating(false);
-      setActiveStepId("model");
-      setCreateFieldIndex(0);
-      setDraftForm(createInitialForm());
+      setIsAnimatingOut(true);
+      setTimeout(() => {
+        setIsCreating(false);
+        setIsAnimatingOut(false);
+        setActiveStepId("model");
+        setCreateFieldIndex(0);
+        setDraftForm(createInitialForm());
+      }, 300);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const commitEditWorkspace = async () => {
+    if (!canCreateWorkspace || !selectedWorkspaceId) return;
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch(`/api/workspaces/${selectedWorkspaceId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: draftForm.name,
+          target: draftForm.target,
+          selectedModel: draftForm.selectedModel,
+          imageFolder: draftForm.imageFolder,
+          datasetFolder: getOutputFolderPath(draftForm.name || "new-workspace"),
+          databaseId: draftForm.databaseId,
+          databaseType: draftForm.databaseType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Workspace update failed");
+      }
+
+      const updatedWorkspace = (await response.json()) as WorkspacePipeline;
+
+      setWorkspaces((current) => current.map(w => w.id === selectedWorkspaceId ? updatedWorkspace : w));
+      setIsAnimatingOut(true);
+      setTimeout(() => {
+        setIsEditing(false);
+        setIsAnimatingOut(false);
+        setActiveStepId("model");
+        setCreateFieldIndex(0);
+        setDraftForm(createInitialForm());
+      }, 300);
+    } catch (error) {
+      alert('ワークスペースの更新に失敗しました。');
     } finally {
       setIsSaving(false);
     }
@@ -606,16 +722,16 @@ export function WorkspacesWorkspace({
 
         <div className="hero-stats">
           <div className="stat-chip">
-            <span>ログインユーザー</span>
+            <span>👤 ログインユーザー</span>
             <strong>{currentUser.name}</strong>
           </div>
           <div className="stat-chip">
-            <span>ワークスペース数</span>
+            <span>📁 ワークスペース数</span>
             <strong>{workspaces.length}</strong>
           </div>
           <div className="stat-chip">
-            <span>現在の状態</span>
-            <strong>{isCreating ? "作成中" : "一覧表示"}</strong>
+            <span>⚡ 現在の状態</span>
+            <strong>{isCreating ? "作成中" : isEditing ? "編集中" : "一覧表示"}</strong>
           </div>
         </div>
       </section>
@@ -639,25 +755,53 @@ export function WorkspacesWorkspace({
                 workspace.target;
 
               return (
-                <button
+                <div
                   key={workspace.id}
-                  type="button"
                   className={
-                    !isCreating && selectedWorkspace?.id === workspace.id
+                    (!isCreating && !isEditing && selectedWorkspace?.id === workspace.id
                       ? "selection-card workspace-selection-card active"
-                      : "selection-card workspace-selection-card"
+                      : "selection-card workspace-selection-card") +
+                    (deletingWorkspaceId === workspace.id ? " fade-out" : "")
                   }
                   onClick={() => selectWorkspace(workspace.id)}
                 >
-                  <strong>{workspace.name}</strong>
-                  <span>手法: {targetLabel} / モデル: {workspace.selectedModel || "未選択"}</span>
-                  <span>
-                    接続先: {imageDatabases.find((database) => database.id === workspace.databaseId)?.name ?? "未設定"}
-                  </span>
-                  <span>
-                    マウント先: {workspace.imageFolder || "未設定"} / 仮保存先: {workspace.datasetFolder || "未設定"}
-                  </span>
-                </button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <strong>{workspace.name}</strong>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#f7f8fc' }}>
+                        <div><strong>手法:</strong> {targetLabel}</div>
+                        <div><strong>モデル:</strong> {workspace.selectedModel || "未選択"}</div>
+                        <div><strong>接続先:</strong> {imageDatabases.find((database) => database.id === workspace.databaseId)?.name ?? "未設定"}</div>
+                        <div><strong>マウント先:</strong> {workspace.imageFolder || "未設定"}</div>
+                        <div><strong>仮保存先:</strong> {workspace.datasetFolder || "未設定"}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          beginEditWorkspace(workspace.id);
+                        }}
+                        style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteWorkspace(workspace.id);
+                        }}
+                        style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', color: '#ef4444' }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -669,13 +813,21 @@ export function WorkspacesWorkspace({
         )}
       </section>
 
-      {isCreating ? (
-        <section className="panel">
-          <div className="panel-heading">
+      {(isCreating || isEditing) || isAnimatingOut ? (
+        <section className={`panel ${isAnimatingOut ? 'slide-out-down' : 'slide-in-up'}`}>
+          <div className="panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p className="eyebrow">Pipeline</p>
-              <h3>ワークスペース作成フロー</h3>
+              <h3>{isEditing ? 'ワークスペース編集' : 'ワークスペース作成フロー'}</h3>
             </div>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={cancelCreateWorkspace}
+              style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+            >
+              キャンセル
+            </button>
           </div>
 
           <div className="workflow-tabs" role="tablist" aria-label="作成フロー工程">
@@ -777,8 +929,8 @@ export function WorkspacesWorkspace({
                     </button>
 
                     {activeStep.id === "folder" && createFieldIndex === activeFields.length - 1 ? (
-                      <button type="button" onClick={commitDraftWorkspace} disabled={!canCreateWorkspace || isSaving}>
-                        {isSaving ? "保存中..." : "ワークスペースを作成"}
+                      <button type="button" onClick={isEditing ? commitEditWorkspace : commitDraftWorkspace} disabled={!canCreateWorkspace || isSaving}>
+                        {isSaving ? "保存中..." : isEditing ? "ワークスペースを更新" : "ワークスペースを作成"}
                       </button>
                     ) : (
                       <button

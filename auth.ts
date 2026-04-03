@@ -19,6 +19,19 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
+  // ブラウザを閉じたらセッションを失うようにクッキー設定
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        // maxAge を設定しないことでセッションクッキーになる
+      },
+    },
+  },
   // ログインが必要な場合はホームページ（/）にリダイレクト
   pages: {
     signIn: "/",

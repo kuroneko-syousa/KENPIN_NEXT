@@ -1,5 +1,6 @@
 import { authOptions } from "@/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PageTransition } from "@/components/page-transition";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -19,7 +20,7 @@ export default async function DashboardLayout({
       userName={session.user.name ?? "Kenpin Admin"}
       userEmail={session.user.email ?? "admin@kenpin.ai"}
     >
-      {children}
+      <PageTransition>{children}</PageTransition>
     </DashboardShell>
   );
 }
