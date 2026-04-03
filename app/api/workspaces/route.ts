@@ -1,3 +1,16 @@
+/**
+ * ワークスペース管理 API エンドポイント (POST)
+ * 
+ * 機能:
+ * - 新しいワークスペースを作成
+ * - NextAuth セッション検証
+ * - リクエストボディの検証
+ * - Prisma を通じてデータベースに保存
+ * 
+ * エンドポイント: POST /api/workspaces
+ * 必須フィールド: name, target, selectedModel など
+ * レスポンス: { id: string, name: string, ... } (201 Created)
+ */
 import { authOptions } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";

@@ -1,3 +1,11 @@
+/**
+ * 設定ページ
+ * 
+ * 機能:
+ * - ワークスペース全体の基本設定を管理
+ * - デフォルト設定（モデル、解像度、最大同時ジョブ数）
+ * - ストレージポリシー、セキュリティメモを編集
+ */
 "use client";
 
 import { workspaceSettings } from "@/lib/dashboard-data";
@@ -19,36 +27,36 @@ export function SettingsWorkspace() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Workspace Defaults</p>
+              <p className="eyebrow">ワークスペース既定値</p>
               <h3>既定値の編集</h3>
             </div>
           </div>
 
           <form className="editor-form">
             <label>
-              Default Base Model
+              デフォルトベースモデル
               <input defaultValue={workspaceSettings.defaultBaseModel} />
             </label>
             <label>
-              Default Resolution
+              デフォルト解像度
               <input defaultValue={workspaceSettings.defaultResolution} />
             </label>
             <label>
-              Max Concurrent Jobs
+              最大同時ジョブ数
               <input defaultValue={workspaceSettings.maxConcurrentJobs} />
             </label>
             <label>
-              Auto Review
-              <input defaultValue={workspaceSettings.autoReview ? "Enabled" : "Disabled"} />
+              自動レビュー
+              <input defaultValue={workspaceSettings.autoReview ? "有効" : "無効"} />
             </label>
             <label className="full-span">
-              Storage Policy
+              ストレージポリシー
               <textarea defaultValue={workspaceSettings.storagePolicy} rows={5} />
             </label>
             <label className="full-span">
-              Security Notes
+              セキュリティメモ
               <textarea
-                defaultValue="Credentials login is currently using a demo admin account. Replace with a real user store and hashed passwords before production."
+                defaultValue="認証ログインは現在デモ管理者アカウントを使用しています。本番環境では実ユーザーストアとハッシュ化されたパスワードに置き換えてください。"
                 rows={5}
               />
             </label>

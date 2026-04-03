@@ -1,3 +1,12 @@
+/**
+ * 画像DB管理ページ
+ * 
+ * 機能:
+ * - 画像DB接続一覧をそート（ドロップダウン）で選択
+ * - 画像検索機能（画像名、タグ、データセットをキーワード検索）
+ * - 画像グリッド表示（サムネイル一覧）
+ * - 画像インスペクタで蘋備挿開情報を控毯
+ */
 "use client";
 
 import { imageDatabases } from "@/lib/dashboard-data";
@@ -27,10 +36,10 @@ export function ImageDatabaseWorkspace() {
     <div className="workspace-content">
       <section className="workspace-header">
         <div>
-          <p className="eyebrow">Image DB</p>
-          <h2>Select a database and browse images</h2>
+          <p className="eyebrow">画像DB</p>
+          <h2>データベースを選択して画像を閲覧</h2>
           <p className="muted">
-            Pick a connection from the dropdown, then review the stored images and their metadata.
+            ドロップダウンから接続を選び、保存されている画像とメタデータを確認できます。
           </p>
         </div>
       </section>
@@ -38,7 +47,7 @@ export function ImageDatabaseWorkspace() {
       <section className="panel db-toolbar-panel">
         <div className="db-toolbar">
           <label className="db-control">
-            Database connection
+            データベース接続
             <select value={databaseId} onChange={(event) => setDatabaseId(event.target.value)}>
               {imageDatabases.map((database) => (
                 <option key={database.id} value={database.id}>
@@ -49,11 +58,11 @@ export function ImageDatabaseWorkspace() {
           </label>
 
           <label className="db-control">
-            Search images
+            画像を検索
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by image name, tag, or dataset"
+              placeholder="画像名、タグ、またはデータセットで検索"
             />
           </label>
         </div>
@@ -82,19 +91,19 @@ export function ImageDatabaseWorkspace() {
           <div className="metric-stack">
             <div className="metric-row">
               <strong>{selectedDatabase.engine}</strong>
-              <span>Engine</span>
+              <span>エンジン</span>
             </div>
             <div className="metric-row">
               <strong>{selectedDatabase.region}</strong>
-              <span>Region</span>
+              <span>地域</span>
             </div>
             <div className="metric-row">
               <strong>{selectedDatabase.imageCount.toLocaleString()}</strong>
-              <span>Stored images</span>
+              <span>保存済みの画像</span>
             </div>
             <div className="metric-row">
               <strong>{selectedDatabase.updatedAt}</strong>
-              <span>Last sync</span>
+              <span>最後の同期</span>
             </div>
           </div>
 
@@ -104,10 +113,10 @@ export function ImageDatabaseWorkspace() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Browser</p>
-              <h3>Image browser</h3>
+              <p className="eyebrow">ブラウザ</p>
+              <h3>画像ブラウザ</h3>
             </div>
-            <span>{visibleImages.length} items</span>
+            <span>{visibleImages.length} 件</span>
           </div>
 
           {visibleImages.length > 0 ? (
@@ -125,8 +134,8 @@ export function ImageDatabaseWorkspace() {
             </div>
           ) : (
             <div className="empty-state">
-              <strong>No matching images</strong>
-              <span>Try a different search query or switch to another database.</span>
+              <strong>一致する画像がありません</strong>
+              <span>別の検索クエリを試すか、別のデータベースに切り替えてください。</span>
             </div>
           )}
         </article>
@@ -136,7 +145,7 @@ export function ImageDatabaseWorkspace() {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Inspector</p>
+              <p className="eyebrow">インスペクタ</p>
               <h3>{selectedImage.name}</h3>
             </div>
             <span className="status ready">{selectedImage.format}</span>
@@ -147,27 +156,27 @@ export function ImageDatabaseWorkspace() {
 
             <div className="editor-form inspector-form">
               <label>
-                Image ID
+                画像ID
                 <input defaultValue={selectedImage.id} />
               </label>
               <label>
-                Dataset
+                データセット
                 <input defaultValue={selectedImage.dataset} />
               </label>
               <label>
-                Resolution
+                解像度
                 <input defaultValue={selectedImage.resolution} />
               </label>
               <label>
-                Created At
+                作成日時
                 <input defaultValue={selectedImage.createdAt} />
               </label>
               <label className="full-span">
-                Tags
+                タグ
                 <input defaultValue={selectedImage.tags.join(", ")} />
               </label>
               <label className="full-span">
-                Prompt
+                プロンプト
                 <textarea defaultValue={selectedImage.prompt} rows={5} />
               </label>
             </div>

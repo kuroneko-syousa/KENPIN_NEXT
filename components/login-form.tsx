@@ -1,3 +1,12 @@
+/**
+ * ログインフォーム コンポーネント
+ * 
+ * 機能:
+ * - ユーザーのメール・パスワード入力を受け取る
+ * - NextAuth.js経由でサーバーに認証リクエストを送信
+ * - 認証成功後、ダッシュボード画面へリダイレクト
+ * - エラーメッセージを表示
+ */
 "use client";
 
 import { signIn } from "next-auth/react";
@@ -17,12 +26,15 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // フォーム送信時のハンドラー（ログイン処理）
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError("");
+    event.preventDefault(); // ページリロードを防ぐ
+    setIsSubmitting(true); // ボタンをディセーブル
+    setError(""); // 前のエラーをクリア
 
+    // try-catch でエラーハンドリング
     try {
+      // NextAuth.js の signIn() で認証リクエストを送信
       const result = await signIn("credentials", {
         email,
         password,
@@ -47,7 +59,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <label>
-        Email
+        メール
         <input
           type="email"
           value={email}
@@ -58,7 +70,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       </label>
 
       <label>
-        Password
+        パスワード
         <input
           type="password"
           value={password}

@@ -1,3 +1,17 @@
+/**
+ * ダッシュボードデータ定義
+ * 
+ * 機能:
+ * - ナビゲーション項目、ユーザー情報、モデル情報、ダータセット情報を定義
+ * - 各キaージで共有できる統況データ（モデル一覧、ダタセット一覧など）
+ * - 型定義（TypeScript）で首尾一貫したデータ構造を実現
+ * 
+ * 執体的な使用例:
+ * - app/dashboard/page.tsx で使用
+ * - components/* で使用
+ */
+
+// ナビゲーション項目の統伏を設定
 const makePreview = (title: string, toneA: string, toneB: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
@@ -14,6 +28,7 @@ const makePreview = (title: string, toneA: string, toneB: string) =>
     </svg>
   `)}`;
 
+// ナビゲーション項目の統一型定義
 export type NavItem = {
   href: string;
   icon: string;
@@ -133,7 +148,7 @@ export const navItems: NavItem[] = [
     label: "ワークスペース",
     description: "作成と実行フロー管理",
   },
-  { href: "/dashboard/models", icon: "models", label: "モデル", description: "モデル管理と学習設定" },
+  { href: "/dashboard/image-db", icon: "image-db", label: "画像DB", description: "接続先と画像閲覧" },
   {
     href: "/dashboard/datasets",
     icon: "datasets",
@@ -141,7 +156,6 @@ export const navItems: NavItem[] = [
     description: "学習データと品質確認",
   },
   { href: "/dashboard/jobs", icon: "jobs", label: "ジョブ", description: "キューと進捗の確認" },
-  { href: "/dashboard/image-db", icon: "image-db", label: "画像DB", description: "接続先と画像閲覧" },
   { href: "/dashboard/settings", icon: "settings", label: "設定", description: "全体設定" },
 ];
 

@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id         String      @id @default(cuid())
-  name       String
-  email      String      @unique
-  role       String
-  team       String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  workspaces Workspace[]
+  id              String                   @id @default(cuid())
+  name            String
+  email           String                   @unique
+  role            String
+  team            String
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  workspaces      Workspace[]
+  imageDatabases  ImageDatabaseConnection[]
 }
 
 model Workspace {
@@ -32,4 +33,23 @@ model Workspace {
   updatedAt     DateTime @updatedAt
   ownerId       String
   owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model ImageDatabaseConnection {
+  id             String   @id @default(cuid())
+  name           String
+  connectionType String
+  mountName      String
+  mountPath      String
+  storageEngine  String
+  endpoint       String
+  accessMode     String
+  status         String   @default("Connected")
+  purpose        String
+  notes          String   @default("")
+  imageCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ownerId        String
+  owner          User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

@@ -1,14 +1,15 @@
 # KENPIN_NEXT
 
-画像系 AI モデルの作成と管理を行う Next.js ベースの Web アプリです。
+**Kenpin Studio** — 画像系 AI モデルの運用管理を安全にチームで行うための Web アプリケーションです。
 
 ## 主な機能
 
-- NextAuth.js によるログイン認証
-- Prisma 7 + SQLite によるユーザー / ワークスペース管理
-- 画像 DB 選択と閲覧 UI
-- ワークスペース作成と管理 UI
-- 画像前処理、アノテーション、YOLO 学習へつながる管理導線
+- **Model Registry** — LoRA / fine-tune / 推論向けモデルを整理・管理
+- **Job Tracking** — GPU キュー、進捗、レビュー待ちを継続監視
+- **Team Access** — NextAuth.js によるセキュアな認証・アクセス制御
+- **Dataset Management** — データセット品質チェックと一元管理
+- **Image Database** — 複数の画像DB接続と管理
+- **Workspace Organization** — ユーザー / ワークスペース単位での管理（Prisma 7 + SQLite）
 
 ## セットアップ
 

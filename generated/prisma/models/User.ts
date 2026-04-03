@@ -199,6 +199,7 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   workspaces?: Prisma.WorkspaceListRelationFilter
+  imageDatabases?: Prisma.ImageDatabaseConnectionListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -210,6 +211,7 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   workspaces?: Prisma.WorkspaceOrderByRelationAggregateInput
+  imageDatabases?: Prisma.ImageDatabaseConnectionOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -224,6 +226,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   workspaces?: Prisma.WorkspaceListRelationFilter
+  imageDatabases?: Prisma.ImageDatabaseConnectionListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -261,6 +264,7 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   workspaces?: Prisma.WorkspaceCreateNestedManyWithoutOwnerInput
+  imageDatabases?: Prisma.ImageDatabaseConnectionCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -272,6 +276,7 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   workspaces?: Prisma.WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
+  imageDatabases?: Prisma.ImageDatabaseConnectionUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUpdateInput = {
@@ -283,6 +288,7 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspaces?: Prisma.WorkspaceUpdateManyWithoutOwnerNestedInput
+  imageDatabases?: Prisma.ImageDatabaseConnectionUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -294,6 +300,7 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspaces?: Prisma.WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
+  imageDatabases?: Prisma.ImageDatabaseConnectionUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -383,6 +390,20 @@ export type UserUpdateOneRequiredWithoutWorkspacesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutWorkspacesInput, Prisma.UserUpdateWithoutWorkspacesInput>, Prisma.UserUncheckedUpdateWithoutWorkspacesInput>
 }
 
+export type UserCreateNestedOneWithoutImageDatabasesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImageDatabasesInput, Prisma.UserUncheckedCreateWithoutImageDatabasesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImageDatabasesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutImageDatabasesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutImageDatabasesInput, Prisma.UserUncheckedCreateWithoutImageDatabasesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutImageDatabasesInput
+  upsert?: Prisma.UserUpsertWithoutImageDatabasesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutImageDatabasesInput, Prisma.UserUpdateWithoutImageDatabasesInput>, Prisma.UserUncheckedUpdateWithoutImageDatabasesInput>
+}
+
 export type UserCreateWithoutWorkspacesInput = {
   id?: string
   name: string
@@ -391,6 +412,7 @@ export type UserCreateWithoutWorkspacesInput = {
   team: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  imageDatabases?: Prisma.ImageDatabaseConnectionCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutWorkspacesInput = {
@@ -401,6 +423,7 @@ export type UserUncheckedCreateWithoutWorkspacesInput = {
   team: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  imageDatabases?: Prisma.ImageDatabaseConnectionUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutWorkspacesInput = {
@@ -427,6 +450,7 @@ export type UserUpdateWithoutWorkspacesInput = {
   team?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageDatabases?: Prisma.ImageDatabaseConnectionUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWorkspacesInput = {
@@ -437,6 +461,67 @@ export type UserUncheckedUpdateWithoutWorkspacesInput = {
   team?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  imageDatabases?: Prisma.ImageDatabaseConnectionUncheckedUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserCreateWithoutImageDatabasesInput = {
+  id?: string
+  name: string
+  email: string
+  role: string
+  team: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspaces?: Prisma.WorkspaceCreateNestedManyWithoutOwnerInput
+}
+
+export type UserUncheckedCreateWithoutImageDatabasesInput = {
+  id?: string
+  name: string
+  email: string
+  role: string
+  team: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspaces?: Prisma.WorkspaceUncheckedCreateNestedManyWithoutOwnerInput
+}
+
+export type UserCreateOrConnectWithoutImageDatabasesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutImageDatabasesInput, Prisma.UserUncheckedCreateWithoutImageDatabasesInput>
+}
+
+export type UserUpsertWithoutImageDatabasesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutImageDatabasesInput, Prisma.UserUncheckedUpdateWithoutImageDatabasesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutImageDatabasesInput, Prisma.UserUncheckedCreateWithoutImageDatabasesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutImageDatabasesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutImageDatabasesInput, Prisma.UserUncheckedUpdateWithoutImageDatabasesInput>
+}
+
+export type UserUpdateWithoutImageDatabasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  team?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspaces?: Prisma.WorkspaceUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutImageDatabasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  team?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspaces?: Prisma.WorkspaceUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 
@@ -446,10 +531,12 @@ export type UserUncheckedUpdateWithoutWorkspacesInput = {
 
 export type UserCountOutputType = {
   workspaces: number
+  imageDatabases: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspaces?: boolean | UserCountOutputTypeCountWorkspacesArgs
+  imageDatabases?: boolean | UserCountOutputTypeCountImageDatabasesArgs
 }
 
 /**
@@ -469,6 +556,13 @@ export type UserCountOutputTypeCountWorkspacesArgs<ExtArgs extends runtime.Types
   where?: Prisma.WorkspaceWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountImageDatabasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ImageDatabaseConnectionWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -479,6 +573,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   workspaces?: boolean | Prisma.User$workspacesArgs<ExtArgs>
+  imageDatabases?: boolean | Prisma.User$imageDatabasesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -515,6 +610,7 @@ export type UserSelectScalar = {
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "role" | "team" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspaces?: boolean | Prisma.User$workspacesArgs<ExtArgs>
+  imageDatabases?: boolean | Prisma.User$imageDatabasesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -524,6 +620,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "User"
   objects: {
     workspaces: Prisma.$WorkspacePayload<ExtArgs>[]
+    imageDatabases: Prisma.$ImageDatabaseConnectionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -928,6 +1025,7 @@ readonly fields: UserFieldRefs;
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   workspaces<T extends Prisma.User$workspacesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$workspacesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  imageDatabases<T extends Prisma.User$imageDatabasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$imageDatabasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImageDatabaseConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1376,6 +1474,30 @@ export type User$workspacesArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.WorkspaceScalarFieldEnum | Prisma.WorkspaceScalarFieldEnum[]
+}
+
+/**
+ * User.imageDatabases
+ */
+export type User$imageDatabasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ImageDatabaseConnection
+   */
+  select?: Prisma.ImageDatabaseConnectionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ImageDatabaseConnection
+   */
+  omit?: Prisma.ImageDatabaseConnectionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ImageDatabaseConnectionInclude<ExtArgs> | null
+  where?: Prisma.ImageDatabaseConnectionWhereInput
+  orderBy?: Prisma.ImageDatabaseConnectionOrderByWithRelationInput | Prisma.ImageDatabaseConnectionOrderByWithRelationInput[]
+  cursor?: Prisma.ImageDatabaseConnectionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ImageDatabaseConnectionScalarFieldEnum | Prisma.ImageDatabaseConnectionScalarFieldEnum[]
 }
 
 /**

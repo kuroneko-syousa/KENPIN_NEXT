@@ -52,7 +52,8 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Workspace: 'Workspace'
+  Workspace: 'Workspace',
+  ImageDatabaseConnection: 'ImageDatabaseConnection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -97,6 +98,27 @@ export const WorkspaceScalarFieldEnum = {
 } as const
 
 export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
+
+
+export const ImageDatabaseConnectionScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  connectionType: 'connectionType',
+  mountName: 'mountName',
+  mountPath: 'mountPath',
+  storageEngine: 'storageEngine',
+  endpoint: 'endpoint',
+  accessMode: 'accessMode',
+  status: 'status',
+  purpose: 'purpose',
+  notes: 'notes',
+  imageCount: 'imageCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  ownerId: 'ownerId'
+} as const
+
+export type ImageDatabaseConnectionScalarFieldEnum = (typeof ImageDatabaseConnectionScalarFieldEnum)[keyof typeof ImageDatabaseConnectionScalarFieldEnum]
 
 
 export const SortOrder = {

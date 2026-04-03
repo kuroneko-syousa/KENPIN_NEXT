@@ -1,3 +1,11 @@
+/**
+ * データセット管理ページ
+ * 
+ * 機能:
+ * - データセット一覧を表示
+ * - 一つを選択して詳詳情報、会議銀、锦辰を設定・編集
+ * - テータセットを保存または検診ジョブを実行できる
+ */
 "use client";
 
 import { useState } from "react";
@@ -48,29 +56,29 @@ export function DatasetsWorkspace() {
 
           <form className="editor-form">
             <label>
-              Dataset Name
+              データセット名
               <input defaultValue={selectedDataset.name} />
             </label>
             <label>
-              Owner
+              所有者
               <input defaultValue={selectedDataset.owner} />
             </label>
             <label>
-              Image Count
+              画像数
               <input defaultValue={selectedDataset.images} />
             </label>
             <label>
-              Split Ratio
+              分割比率
               <input defaultValue={selectedDataset.split} />
             </label>
             <label className="full-span">
-              Caption Policy
+              キャプション方針
               <textarea defaultValue={selectedDataset.captionPolicy} rows={4} />
             </label>
             <label className="full-span">
-              Quality Notes
+              品質ノート
               <textarea
-                defaultValue={`Quality tier: ${selectedDataset.quality}\nReview cadence: weekly`}
+                defaultValue={`品質レベル: ${selectedDataset.quality}\u3000定期レビュー: 週次`}
                 rows={5}
               />
             </label>

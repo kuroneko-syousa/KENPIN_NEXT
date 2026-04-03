@@ -1,3 +1,11 @@
+/**
+ * ダッシュボード概要ページ
+ * 
+ * 機能:
+ * - 算数演算を使って控詰統計を計算（モデル数、珖習ジョブ数、DB接続数、画像総数）
+ * - 全体的な運用状況゗複数をダッシュバルで厳示
+ * - 画像を控測しる主要ダッシュボード
+ */
 import { datasets, imageDatabases, jobs, models } from "@/lib/dashboard-data";
 
 export function DashboardOverview() {
@@ -10,24 +18,24 @@ export function DashboardOverview() {
     <div className="workspace-content">
       <section className="hero-card">
         <div>
-          <p className="eyebrow">Overview</p>
-          <h2>Workspace status</h2>
+          <p className="eyebrow">概要</p>
+          <h2>ワークスペース ステータス</h2>
           <p className="muted">
-            Review model activity, image database connectivity, and current training pressure from one place.
+            モデル活動、画像DB接続状態、現在の学習負荷を一つの画面で確認できます。
           </p>
         </div>
 
         <div className="hero-stats">
           <div className="stat-chip">
-            <span>Registered Models</span>
+            <span>登録済みモデル</span>
             <strong>{models.length}</strong>
           </div>
           <div className="stat-chip">
-            <span>Training Jobs</span>
+            <span>学習ジョブ</span>
             <strong>{trainingCount}</strong>
           </div>
           <div className="stat-chip">
-            <span>Connected DBs</span>
+            <span>接続済みDB</span>
             <strong>{connectedDbCount}</strong>
           </div>
         </div>
@@ -37,22 +45,22 @@ export function DashboardOverview() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">At A Glance</p>
-              <h3>Operational snapshot</h3>
+              <p className="eyebrow">一目でわかる</p>
+              <h3>運用スナップショット</h3>
             </div>
           </div>
           <div className="metric-stack">
             <div className="metric-row">
               <strong>{totalImages.toLocaleString()}</strong>
-              <span>Total dataset images</span>
+              <span>合計データセット画像数</span>
             </div>
             <div className="metric-row">
               <strong>{jobs[0].gpu}</strong>
-              <span>Top active GPU allocation</span>
+              <span>アクティブなGPU割り当て</span>
             </div>
             <div className="metric-row">
               <strong>{readyCount}</strong>
-              <span>Models ready for deployment</span>
+              <span>デプロイ可能なモデル</span>
             </div>
           </div>
         </article>
@@ -60,8 +68,8 @@ export function DashboardOverview() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Database</p>
-              <h3>Image DB connectivity</h3>
+              <p className="eyebrow">データベース</p>
+              <h3>画像DB接続状態</h3>
             </div>
           </div>
           <div className="selection-list">

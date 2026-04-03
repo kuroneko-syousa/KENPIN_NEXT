@@ -1,3 +1,12 @@
+/**
+ * モデル管理ページ
+ * 
+ * 機能:
+ * - 組み辞めモデル一覧を表示
+ * - 会拡張をクリックして㖮_承試策を設定・編集
+ * - モデル名、ベースモデル、学習率、タグなどを会議可能
+ * - 【適】 一方へ送り挏ボタンで学習ジョブを开始
+ */
 "use client";
 
 import { useState } from "react";
@@ -54,39 +63,39 @@ export function ModelsWorkspace() {
 
           <form className="editor-form">
             <label>
-              Model Name
+              モデル名
               <input defaultValue={selectedModel.name} />
             </label>
             <label>
-              Owner
+              所有者
               <input defaultValue={selectedModel.owner} />
             </label>
             <label>
-              Base Model
+              ベースモデル
               <input defaultValue={selectedModel.baseModel} />
             </label>
             <label>
-              Dataset
+              データセット
               <input defaultValue={selectedModel.dataset} />
             </label>
             <label>
-              Resolution
+              解像度
               <input defaultValue={selectedModel.resolution} />
             </label>
             <label>
-              Learning Rate
+              学習率
               <input defaultValue={selectedModel.learningRate} />
             </label>
             <label>
-              Training Steps
+              学習ステップ数
               <input defaultValue={selectedModel.steps} />
             </label>
             <label className="full-span">
-              Prompt Bias
+              プロンプトバイアス
               <textarea defaultValue={selectedModel.promptBias} rows={5} />
             </label>
             <label className="full-span">
-              Tags
+              タグ
               <input defaultValue={selectedModel.tags.join(", ")} />
             </label>
             <div className="form-actions full-span">

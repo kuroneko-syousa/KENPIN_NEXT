@@ -1,3 +1,11 @@
+/**
+ * ジョブ管理ページ
+ * 
+ * 機能:
+ * - 学習ジョブ一覧を表示（列訜打ど）
+ * - 一つを選択してGPU割り当て、优先度、再試氋を基遺
+ * - 進江バーを控洓で学習進渡状弋を控詰
+ */
 "use client";
 
 import { useState } from "react";
@@ -52,25 +60,25 @@ export function JobsWorkspace() {
 
           <form className="editor-form">
             <label>
-              Model
+              モデル
               <input defaultValue={selectedJob.modelName} />
             </label>
             <label>
-              GPU Allocation
+              GPU割り当て
               <input defaultValue={selectedJob.gpu} />
             </label>
             <label>
-              Priority
+              優先度
               <input defaultValue={selectedJob.priority} />
             </label>
             <label>
-              ETA
+              予定時間
               <input defaultValue={selectedJob.eta} />
             </label>
             <label className="full-span">
-              Retry Policy
+              再試行ポリシー
               <textarea
-                defaultValue="Retry up to 2 times on worker failure. Escalate to manual review if loss spikes above threshold."
+                defaultValue="ワーカー障害時は最大2回まで再試行。損失が閾値を超える場合は手動レビューにエスカレート。"
                 rows={5}
               />
             </label>

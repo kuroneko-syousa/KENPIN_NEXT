@@ -385,7 +385,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
-  Workspace: 'Workspace'
+  Workspace: 'Workspace',
+  ImageDatabaseConnection: 'ImageDatabaseConnection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -401,7 +402,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "workspace"
+    modelProps: "user" | "workspace" | "imageDatabaseConnection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -553,6 +554,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ImageDatabaseConnection: {
+      payload: Prisma.$ImageDatabaseConnectionPayload<ExtArgs>
+      fields: Prisma.ImageDatabaseConnectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ImageDatabaseConnectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ImageDatabaseConnectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        findFirst: {
+          args: Prisma.ImageDatabaseConnectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ImageDatabaseConnectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        findMany: {
+          args: Prisma.ImageDatabaseConnectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>[]
+        }
+        create: {
+          args: Prisma.ImageDatabaseConnectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        createMany: {
+          args: Prisma.ImageDatabaseConnectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ImageDatabaseConnectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>[]
+        }
+        delete: {
+          args: Prisma.ImageDatabaseConnectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        update: {
+          args: Prisma.ImageDatabaseConnectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ImageDatabaseConnectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ImageDatabaseConnectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ImageDatabaseConnectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ImageDatabaseConnectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ImageDatabaseConnectionPayload>
+        }
+        aggregate: {
+          args: Prisma.ImageDatabaseConnectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateImageDatabaseConnection>
+        }
+        groupBy: {
+          args: Prisma.ImageDatabaseConnectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageDatabaseConnectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ImageDatabaseConnectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ImageDatabaseConnectionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -620,6 +695,27 @@ export const WorkspaceScalarFieldEnum = {
 export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
 
 
+export const ImageDatabaseConnectionScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  connectionType: 'connectionType',
+  mountName: 'mountName',
+  mountPath: 'mountPath',
+  storageEngine: 'storageEngine',
+  endpoint: 'endpoint',
+  accessMode: 'accessMode',
+  status: 'status',
+  purpose: 'purpose',
+  notes: 'notes',
+  imageCount: 'imageCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  ownerId: 'ownerId'
+} as const
+
+export type ImageDatabaseConnectionScalarFieldEnum = (typeof ImageDatabaseConnectionScalarFieldEnum)[keyof typeof ImageDatabaseConnectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -652,6 +748,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 /**
@@ -751,6 +854,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   workspace?: Prisma.WorkspaceOmit
+  imageDatabaseConnection?: Prisma.ImageDatabaseConnectionOmit
 }
 
 /* Types for Logging */

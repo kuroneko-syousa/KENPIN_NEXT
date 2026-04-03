@@ -1,6 +1,14 @@
+/**
+ * ダッシュボードサイドバー
+ * 
+ * 機能:
+ * - キeャクユリアックス機能（概要、ワークスペース、画像DB など）
+ * - サイドバーの開閉を制御
+ * - 現会ページを強調表示（ナビゲーション active 状況）
+ * - サイドバー収納時はアイコンのみ表示
+ */
 "use client";
 
-import { SignOutButton } from "@/components/sign-out-button";
 import { navItems } from "@/lib/dashboard-data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,8 +16,6 @@ import { usePathname } from "next/navigation";
 type DashboardSidebarProps = {
   collapsed: boolean;
   onToggle: () => void;
-  userName: string;
-  userEmail: string;
 };
 
 function NavGlyph({ icon }: { icon: string }) {
@@ -93,8 +99,6 @@ function NavGlyph({ icon }: { icon: string }) {
 export function DashboardSidebar({
   collapsed,
   onToggle,
-  userName,
-  userEmail,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
 
@@ -122,10 +126,10 @@ export function DashboardSidebar({
       </div>
 
       <div className="sidebar-brand">
-        <p className="eyebrow">Kenpin Studio</p>
-        <h1>運用管理</h1>
+        <p className="eyebrow">AI スタジオ</p>
+        <h1>KENPIN_NEXT</h1>
         <p className="muted">
-          モデル、データセット、ジョブ、画像DBをまとめて管理するワークスペースです。
+          KENPIN NEXTは、画像AIの構築から学習、運用管理までを一貫して支える統合ワークスペースです。
         </p>
       </div>
 
@@ -151,12 +155,6 @@ export function DashboardSidebar({
         })}
       </nav>
 
-      <div className="sidebar-card user-card">
-        <p className="card-label">ログイン中</p>
-        <strong>{userName}</strong>
-        <p>{userEmail}</p>
-        <SignOutButton />
-      </div>
     </aside>
   );
 }

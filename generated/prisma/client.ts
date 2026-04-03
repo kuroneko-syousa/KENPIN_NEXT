@@ -51,3 +51,8 @@ export type User = Prisma.UserModel
  * 
  */
 export type Workspace = Prisma.WorkspaceModel
+/**
+ * Model ImageDatabaseConnection
+ * 
+ */
+export type ImageDatabaseConnection = Prisma.ImageDatabaseConnectionModel

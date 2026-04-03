@@ -1,3 +1,11 @@
+/**
+ * ログアウトボタンコンポーネント
+ * 
+ * 機能:
+ * - NextAuth.js の signOut() を呼ぶボタン
+ * - クリック時にホームページをリダイレクト
+ * - ゴーストボタンスタイルを適用
+ */
 "use client";
 
 import { signOut } from "next-auth/react";

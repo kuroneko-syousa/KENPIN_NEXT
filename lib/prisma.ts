@@ -1,3 +1,12 @@
+/**
+ * Prisma ORM クライアント設定
+ * 
+ * 機能:
+ * - SQLite データベースを控出
+ * - BetterSQLite3 アダプターを使用（高速データベース接続）
+ * - 開発環境ではエラー、警告ログを表示
+ * - Singleton パターンを使用（複数の PrismaClient を防ぐ）
+ */
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
 
