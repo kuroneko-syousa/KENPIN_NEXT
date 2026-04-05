@@ -177,6 +177,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [restoreInfo, setRestoreInfo] = useState<string | null>(null);
+  const [importSourceLabel, setImportSourceLabel] = useState<string>(workspace.imageFolder || "未選択");
 
   /* DBから保存済みアノテーションを復元 */
   useEffect(() => {
@@ -224,29 +225,60 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     }
   };
 
-  /* 画像ファイル選択 → DataURL に変換 */
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    const readers = files.map(
+  const isImageFile = (file: File) => {
+    if (file.type.startsWith("image/")) return true;
+    return /\.(png|jpe?g|webp|bmp|gif|tiff?|avif)$/i.test(file.name);
+  };
+
+  const getImportName = (file: File) => {
+    const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+    return rel && rel.trim() ? rel : file.name;
+  };
+
+  const importFiles = (files: File[], sourceLabel: string) => {
+    const imgFiles = files.filter(isImageFile);
+    if (imgFiles.length === 0) return;
+
+    const sorted = [...imgFiles].sort((a, b) => getImportName(a).localeCompare(getImportName(b)));
+    const readers = sorted.map(
       (file) =>
         new Promise<AnnotateImage>((resolve) => {
+          const name = getImportName(file);
           const reader = new FileReader();
           reader.onload = () => {
-            // 既存のアノテーションが同名ファイルにあれば引き継ぐ
-            const existing = images.find((img) => img.name === file.name);
+            // 既存のアノテーションが同名（相対パス含む）なら引き継ぐ
+            const existing = images.find((img) => img.name === name);
             resolve({
               src: reader.result as string,
-              name: file.name,
+              name,
               regions: existing?.regions ?? [],
             });
           };
           reader.readAsDataURL(file);
         })
     );
+
     Promise.all(readers).then((imgs) => {
       setImages(imgs);
       setAnnotatorOpen(false);
+      setImportSourceLabel(sourceLabel);
     });
+  };
+
+  /* 画像ファイル選択 → DataURL に変換 */
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    importFiles(files, `${files.length} 枚をファイル選択から取り込み`);
+    e.target.value = "";
+  };
+
+  /* 画像フォルダ選択 → DataURL に変換 */
+  const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const firstRel = (files[0] as File & { webkitRelativePath?: string } | undefined)?.webkitRelativePath;
+    const root = firstRel?.split("/")[0] || "選択フォルダ";
+    importFiles(files, `${root} (${files.length} ファイル)`);
+    e.target.value = "";
   };
 
   /* クラスラベル管理 */  const addClassLabel = () => {
@@ -259,6 +291,11 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
 
   /* YOLO フォーマット (.txt) をダウンロード */
   const exportYOLO = () => {
+    const labelFileName = (name: string) => {
+      const base = name.split(/[\\/]/).pop() ?? name;
+      return base.replace(/\.[^.]+$/, ".txt");
+    };
+
     images.forEach((img) => {
       const regions = img.regions;
       const lines = regions
@@ -284,7 +321,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
 
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([lines], { type: "text/plain" }));
-      a.download = img.name.replace(/\.[^.]+$/, ".txt");
+      a.download = labelFileName(img.name);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -374,18 +411,35 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
         <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>画像を読み込む</p>
         <div className="annotation-upload-zone">
           <p className="muted" style={{ margin: "0 0 0.75rem" }}>
-            アノテーションしたい画像ファイルを選択してください（複数可）
+            ワークスペースの画像ソースに合わせて、ファイル単位またはフォルダ単位で取り込みできます。
           </p>
-          <label className="annotation-upload-label">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleImageUpload}
-            />
-            📂 画像を選択
-          </label>
+          <p className="muted" style={{ margin: "0 0 0.75rem", fontSize: "0.78rem" }}>
+            現在のソース: {importSourceLabel}
+          </p>
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            <label className="annotation-upload-label">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleImageUpload}
+              />
+              📂 画像を選択
+            </label>
+            <label className="annotation-upload-label">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                style={{ display: "none" }}
+                // @ts-expect-error - webkitdirectory は非標準属性
+                webkitdirectory=""
+                onChange={handleFolderUpload}
+              />
+              🗂 フォルダを選択
+            </label>
+          </div>
         </div>
 
         {images.length > 0 && (

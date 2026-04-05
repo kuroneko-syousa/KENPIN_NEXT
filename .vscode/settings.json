@@ -1,3 +1,9 @@
 {
-    "terminal.integrated.accessibleViewFocusOnCommandExecution": false
+    "terminal.integrated.accessibleViewFocusOnCommandExecution": false,
+    "chat.tools.terminal.autoApprove": {
+        "/^cmd /c npm ls react-reconciler scheduler$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
 }

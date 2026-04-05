@@ -18,12 +18,13 @@
     "@prisma/client": "^7.6.0",
     "dotenv": "^17.3.1",
     "framer-motion": "^12.38.0",
+    "konva": "^10.2.3",
     "next": "^15.0.0",
     "next-auth": "^4.24.13",
     "prisma": "^7.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-image-annotate": "^1.8.0"
+    "react-konva": "^18.2.14"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
