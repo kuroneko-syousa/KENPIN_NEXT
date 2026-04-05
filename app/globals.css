@@ -1,3 +1,6 @@
+/* react-image-annotate が推奨するフォント (https://rsms.me/inter/) */
+@import url("https://rsms.me/inter/inter.css");
+
 :root {
   color-scheme: light;
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
@@ -1271,5 +1274,753 @@ a, button, div {
 
   .highlight-card {
     padding: 0.75rem;
+  }
+}
+
+/* ─── ワークスペーススタジオ ─── */
+
+.studio-tab-nav {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.studio-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f7f8fc;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.studio-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.studio-tab-btn.active {
+  border-color: rgba(255, 215, 131, 0.55);
+  background: rgba(255, 215, 131, 0.12);
+  color: #ffd783;
+}
+
+.studio-tab-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 215, 131, 0.14);
+  color: #ffd783;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.studio-tab-btn.active .studio-tab-index {
+  background: rgba(255, 215, 131, 0.28);
+}
+
+.studio-tab-content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.studio-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.studio-section-header h3 {
+  margin-bottom: 0;
+}
+
+.studio-info-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.studio-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.studio-checkboxes {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.studio-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.studio-metric-chip strong {
+  font-size: 1.3rem;
+  color: #ffd783;
+}
+
+.studio-table-header,
+.studio-table-row {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(5, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  align-items: center;
+  border-radius: 10px;
+}
+
+.studio-table-row {
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.88rem;
+}
+
+.studio-back-link {
+  color: rgba(237, 241, 250, 0.65);
+  font-size: 0.82rem;
+  transition: color 150ms ease;
+}
+
+.studio-back-link:hover {
+  color: #ffd783;
+}
+
+/* ─── Label Studio 連携 (後方互換 / 共有スタイル) ─── */
+
+.ls-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 18px;
+}
+
+.ls-open-icon {
+  font-size: 1.1rem;
+}
+
+/* ─── 組み込みアノテーター ─── */
+
+/* ─── アノテーターフルスクリーンラッパー ─── */
+
+.annotator-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ─── Konva アノテーター: ルートレイアウト ─── */
+
+.kanno-root {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-inter, "Inter", system-ui, sans-serif);
+}
+
+/* ─── 左サイドバー ─── */
+
+.kanno-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: #0e0e20;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+}
+
+.kanno-sidebar-section {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.kanno-sidebar-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(237, 241, 250, 0.35);
+  margin: 0 0 0.45rem 0.1rem;
+}
+
+/* ツールボタン (サイドバー) */
+
+.kanno-side-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: rgba(237, 241, 250, 0.75);
+  font-size: 0.82rem;
+  padding: 0.42rem 0.6rem;
+  cursor: pointer;
+  margin-bottom: 0.22rem;
+  text-align: left;
+  position: relative;
+}
+
+.kanno-side-btn:last-child {
+  margin-bottom: 0;
+}
+
+.kanno-side-btn.active {
+  background: rgba(124, 240, 186, 0.12);
+  border-color: rgba(124, 240, 186, 0.45);
+  color: #7cf0ba;
+}
+
+.kanno-side-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.kanno-side-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kanno-side-shortcut {
+  font-size: 0.68rem;
+  opacity: 0.38;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* クラスボタン (サイドバー) */
+
+.kanno-cls-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: rgba(237, 241, 250, 0.75);
+  font-size: 0.8rem;
+  padding: 0.38rem 0.6rem;
+  cursor: pointer;
+  margin-bottom: 0.2rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kanno-cls-btn:last-child {
+  margin-bottom: 0;
+}
+
+.kanno-cls-btn.active {
+  background: color-mix(in srgb, var(--cls-color, #3498db) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cls-color, #3498db) 55%, transparent);
+  color: var(--cls-color, #3498db);
+}
+
+.kanno-cls-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cls-color, #3498db);
+  flex-shrink: 0;
+}
+
+/* リージョン一覧 */
+
+.kanno-region-list-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kanno-region-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
+.kanno-region-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.36rem 0.5rem;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: rgba(237, 241, 250, 0.7);
+  margin-bottom: 0.18rem;
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+
+.kanno-region-item.active {
+  background: color-mix(in srgb, var(--cls-color, #3498db) 12%, transparent);
+  border-color: color-mix(in srgb, var(--cls-color, #3498db) 40%, transparent);
+  color: var(--cls-color, #3498db);
+}
+
+.kanno-region-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cls-color, #3498db);
+  flex-shrink: 0;
+}
+
+.kanno-region-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kanno-region-type {
+  font-size: 0.66rem;
+  opacity: 0.45;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* 削除ボタン */
+
+.kanno-delete-btn {
+  margin: 0.5rem 0.75rem;
+  background: rgba(231, 76, 60, 0.14);
+  border: 1px solid rgba(231, 76, 60, 0.38);
+  color: #e74c3c;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: calc(100% - 1.5rem);
+  text-align: center;
+}
+
+.kanno-delete-btn:hover {
+  background: rgba(231, 76, 60, 0.26);
+}
+
+/* ─── メインエリア ─── */
+
+.kanno-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+/* トップバー */
+
+.kanno-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.85rem;
+  background: #12122a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  height: 46px;
+  gap: 0.75rem;
+}
+
+.kanno-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.kanno-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.kanno-img-name {
+  font-size: 0.82rem;
+  color: rgba(237, 241, 250, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+/* キャンバスラッパー */
+
+.kanno-canvas-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.kanno-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(237, 241, 250, 0.45);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+/* ナビゲーションボタン */
+
+.kanno-nav-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  color: rgba(237, 241, 250, 0.82);
+  border-radius: 8px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  height: 30px;
+}
+
+.kanno-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.kanno-nav-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+/* 保存ボタン */
+
+.kanno-save-btn {
+  background: rgba(124, 240, 186, 0.14);
+  border: 1px solid rgba(124, 240, 186, 0.4);
+  color: #7cf0ba;
+  border-radius: 8px;
+  padding: 0.3rem 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  height: 30px;
+  font-weight: 600;
+}
+
+.kanno-save-btn:hover {
+  background: rgba(124, 240, 186, 0.25);
+}
+
+/* 閉じるボタン */
+
+.kanno-close-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: rgba(237, 241, 250, 0.65);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kanno-close-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #edf1fa;
+}
+
+/* ステータスバー */
+
+.kanno-statusbar {
+  flex-shrink: 0;
+  padding: 0.3rem 1rem;
+  background: #12122a;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.75rem;
+  color: rgba(237, 241, 250, 0.5);
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.annotation-restore-banner {
+  background: rgba(124, 240, 186, 0.1);
+  border: 1px solid rgba(124, 240, 186, 0.3);
+  color: #7cf0ba;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.annotation-upload-panel {
+  padding: 1.25rem;
+}
+
+.annotation-upload-zone {
+  border: 1.5px dashed rgba(237, 241, 250, 0.25);
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.annotation-upload-label {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  background: rgba(255, 215, 131, 0.12);
+  border: 1px solid rgba(255, 215, 131, 0.5);
+  border-radius: 6px;
+  color: #ffd783;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.annotation-upload-label:hover {
+  background: rgba(255, 215, 131, 0.22);
+}
+
+.annotation-image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.annotation-preview-thumb {
+  position: relative;
+  width: 80px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(237, 241, 250, 0.18);
+}
+
+.annotation-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.annotation-preview-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ffd783;
+  color: #1a1e2e;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+}
+
+.annotation-preview-more {
+  width: 80px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(237, 241, 250, 0.18);
+  border-radius: 4px;
+  color: rgba(237, 241, 250, 0.5);
+  font-size: 0.85rem;
+}
+
+.annotation-class-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.annotation-class-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 215, 131, 0.1);
+  border: 1px solid rgba(255, 215, 131, 0.35);
+  color: #ffd783;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem 0.2rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.annotation-class-remove {
+  background: none;
+  border: none;
+  color: rgba(255, 215, 131, 0.55);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.annotation-class-remove:hover {
+  color: #ffd783;
+}
+
+/* ─── ローカルフォルダ参照行 ─── */
+
+.local-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.local-folder-row input[type="text"] {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.local-browse-btn {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* ─── ダッシュボード概要ページ専用スタイル ─── */
+
+.overview-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.overview-greeting h2 {
+  margin-bottom: 0.35rem;
+}
+
+.overview-role-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 215, 131, 0.15);
+  color: #ffd783;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.overview-stats {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.overview-stat-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 120px;
+}
+
+.overview-stat-chip span {
+  font-size: 0.75rem;
+  color: rgba(237, 241, 250, 0.65);
+}
+
+.overview-stat-chip strong {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffd783;
+  line-height: 1;
+}
+
+.overview-card-stack {
+  margin-top: 1.1rem;
+}
+
+.overview-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.overview-meta-row span {
+  font-size: 0.8rem;
+  color: rgba(237, 241, 250, 0.65);
+}
+
+.overview-db-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1180px) {
+  .overview-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .overview-stats {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .overview-stats {
+    flex-wrap: wrap;
+  }
+
+  .overview-stat-chip {
+    flex: 1 1 calc(50% - 0.375rem);
   }
 }

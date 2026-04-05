@@ -15,6 +15,7 @@ import {
   type WorkflowStepStatus,
 } from "@/lib/dashboard-data";
 import type { ImageDatabaseConnectionRecord } from "@/lib/image-database";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type WorkspaceFormState = {
@@ -822,7 +823,23 @@ export function WorkspacesWorkspace({
                         <div><strong>仮保存先:</strong> {workspace.datasetFolder || "未設定"}</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                      <Link
+                        href={`/dashboard/workspaces/${workspace.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '0.8rem',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '12px',
+                          background: 'linear-gradient(135deg, #ffd783 0%, #ff9a59 100%)',
+                          color: '#0f1728',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        スタジオを開く
+                      </Link>
                       <button
                         type="button"
                         className="ghost-button"

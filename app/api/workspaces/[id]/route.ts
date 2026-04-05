@@ -84,6 +84,43 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const params = await context.params;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = (await request.json()) as {
+    annotationExportPath?: string;
+    annotationData?: string;
+  };
+
+  const updateData: { annotationExportPath?: string; annotationData?: string } = {};
+  if (body.annotationExportPath !== undefined)
+    updateData.annotationExportPath = body.annotationExportPath.trim();
+  if (body.annotationData !== undefined)
+    updateData.annotationData = body.annotationData;
+
+  try {
+    const workspace = await prisma.workspace.update({
+      where: { id: params.id },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      annotationExportPath: workspace.annotationExportPath,
+      annotationData: workspace.annotationData,
+    });
+  } catch {
+    return NextResponse.json({ error: "Workspace not found or update failed" }, { status: 404 });
+  }
+}
+
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> }

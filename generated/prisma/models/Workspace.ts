@@ -33,6 +33,8 @@ export type WorkspaceMinAggregateOutputType = {
   datasetFolder: string | null
   databaseId: string | null
   databaseType: string | null
+  annotationExportPath: string | null
+  annotationData: string | null
   status: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -48,6 +50,8 @@ export type WorkspaceMaxAggregateOutputType = {
   datasetFolder: string | null
   databaseId: string | null
   databaseType: string | null
+  annotationExportPath: string | null
+  annotationData: string | null
   status: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -63,6 +67,8 @@ export type WorkspaceCountAggregateOutputType = {
   datasetFolder: number
   databaseId: number
   databaseType: number
+  annotationExportPath: number
+  annotationData: number
   status: number
   createdAt: number
   updatedAt: number
@@ -80,6 +86,8 @@ export type WorkspaceMinAggregateInputType = {
   datasetFolder?: true
   databaseId?: true
   databaseType?: true
+  annotationExportPath?: true
+  annotationData?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -95,6 +103,8 @@ export type WorkspaceMaxAggregateInputType = {
   datasetFolder?: true
   databaseId?: true
   databaseType?: true
+  annotationExportPath?: true
+  annotationData?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -110,6 +120,8 @@ export type WorkspaceCountAggregateInputType = {
   datasetFolder?: true
   databaseId?: true
   databaseType?: true
+  annotationExportPath?: true
+  annotationData?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -198,6 +210,8 @@ export type WorkspaceGroupByOutputType = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath: string
+  annotationData: string
   status: string
   createdAt: Date
   updatedAt: Date
@@ -234,6 +248,8 @@ export type WorkspaceWhereInput = {
   datasetFolder?: Prisma.StringFilter<"Workspace"> | string
   databaseId?: Prisma.StringFilter<"Workspace"> | string
   databaseType?: Prisma.StringFilter<"Workspace"> | string
+  annotationExportPath?: Prisma.StringFilter<"Workspace"> | string
+  annotationData?: Prisma.StringFilter<"Workspace"> | string
   status?: Prisma.StringFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
@@ -250,6 +266,8 @@ export type WorkspaceOrderByWithRelationInput = {
   datasetFolder?: Prisma.SortOrder
   databaseId?: Prisma.SortOrder
   databaseType?: Prisma.SortOrder
+  annotationExportPath?: Prisma.SortOrder
+  annotationData?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -269,6 +287,8 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   datasetFolder?: Prisma.StringFilter<"Workspace"> | string
   databaseId?: Prisma.StringFilter<"Workspace"> | string
   databaseType?: Prisma.StringFilter<"Workspace"> | string
+  annotationExportPath?: Prisma.StringFilter<"Workspace"> | string
+  annotationData?: Prisma.StringFilter<"Workspace"> | string
   status?: Prisma.StringFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
@@ -285,6 +305,8 @@ export type WorkspaceOrderByWithAggregationInput = {
   datasetFolder?: Prisma.SortOrder
   databaseId?: Prisma.SortOrder
   databaseType?: Prisma.SortOrder
+  annotationExportPath?: Prisma.SortOrder
+  annotationData?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -306,6 +328,8 @@ export type WorkspaceScalarWhereWithAggregatesInput = {
   datasetFolder?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   databaseId?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   databaseType?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
+  annotationExportPath?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
+  annotationData?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   status?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Workspace"> | Date | string
@@ -321,6 +345,8 @@ export type WorkspaceCreateInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -336,6 +362,8 @@ export type WorkspaceUncheckedCreateInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -351,6 +379,8 @@ export type WorkspaceUpdateInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -366,6 +396,8 @@ export type WorkspaceUncheckedUpdateInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -381,6 +413,8 @@ export type WorkspaceCreateManyInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -396,6 +430,8 @@ export type WorkspaceUpdateManyMutationInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -410,6 +446,8 @@ export type WorkspaceUncheckedUpdateManyInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -435,6 +473,8 @@ export type WorkspaceCountOrderByAggregateInput = {
   datasetFolder?: Prisma.SortOrder
   databaseId?: Prisma.SortOrder
   databaseType?: Prisma.SortOrder
+  annotationExportPath?: Prisma.SortOrder
+  annotationData?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -450,6 +490,8 @@ export type WorkspaceMaxOrderByAggregateInput = {
   datasetFolder?: Prisma.SortOrder
   databaseId?: Prisma.SortOrder
   databaseType?: Prisma.SortOrder
+  annotationExportPath?: Prisma.SortOrder
+  annotationData?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -465,6 +507,8 @@ export type WorkspaceMinOrderByAggregateInput = {
   datasetFolder?: Prisma.SortOrder
   databaseId?: Prisma.SortOrder
   databaseType?: Prisma.SortOrder
+  annotationExportPath?: Prisma.SortOrder
+  annotationData?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -522,6 +566,8 @@ export type WorkspaceCreateWithoutOwnerInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -536,6 +582,8 @@ export type WorkspaceUncheckedCreateWithoutOwnerInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -578,6 +626,8 @@ export type WorkspaceScalarWhereInput = {
   datasetFolder?: Prisma.StringFilter<"Workspace"> | string
   databaseId?: Prisma.StringFilter<"Workspace"> | string
   databaseType?: Prisma.StringFilter<"Workspace"> | string
+  annotationExportPath?: Prisma.StringFilter<"Workspace"> | string
+  annotationData?: Prisma.StringFilter<"Workspace"> | string
   status?: Prisma.StringFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
@@ -593,6 +643,8 @@ export type WorkspaceCreateManyOwnerInput = {
   datasetFolder: string
   databaseId: string
   databaseType: string
+  annotationExportPath?: string
+  annotationData?: string
   status?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -607,6 +659,8 @@ export type WorkspaceUpdateWithoutOwnerInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -621,6 +675,8 @@ export type WorkspaceUncheckedUpdateWithoutOwnerInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -635,6 +691,8 @@ export type WorkspaceUncheckedUpdateManyWithoutOwnerInput = {
   datasetFolder?: Prisma.StringFieldUpdateOperationsInput | string
   databaseId?: Prisma.StringFieldUpdateOperationsInput | string
   databaseType?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationExportPath?: Prisma.StringFieldUpdateOperationsInput | string
+  annotationData?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -651,6 +709,8 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   datasetFolder?: boolean
   databaseId?: boolean
   databaseType?: boolean
+  annotationExportPath?: boolean
+  annotationData?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -667,6 +727,8 @@ export type WorkspaceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   datasetFolder?: boolean
   databaseId?: boolean
   databaseType?: boolean
+  annotationExportPath?: boolean
+  annotationData?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -683,6 +745,8 @@ export type WorkspaceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   datasetFolder?: boolean
   databaseId?: boolean
   databaseType?: boolean
+  annotationExportPath?: boolean
+  annotationData?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -699,13 +763,15 @@ export type WorkspaceSelectScalar = {
   datasetFolder?: boolean
   databaseId?: boolean
   databaseType?: boolean
+  annotationExportPath?: boolean
+  annotationData?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ownerId?: boolean
 }
 
-export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "target" | "selectedModel" | "imageFolder" | "datasetFolder" | "databaseId" | "databaseType" | "status" | "createdAt" | "updatedAt" | "ownerId", ExtArgs["result"]["workspace"]>
+export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "target" | "selectedModel" | "imageFolder" | "datasetFolder" | "databaseId" | "databaseType" | "annotationExportPath" | "annotationData" | "status" | "createdAt" | "updatedAt" | "ownerId", ExtArgs["result"]["workspace"]>
 export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -730,6 +796,8 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     datasetFolder: string
     databaseId: string
     databaseType: string
+    annotationExportPath: string
+    annotationData: string
     status: string
     createdAt: Date
     updatedAt: Date
@@ -1166,6 +1234,8 @@ export interface WorkspaceFieldRefs {
   readonly datasetFolder: Prisma.FieldRef<"Workspace", 'String'>
   readonly databaseId: Prisma.FieldRef<"Workspace", 'String'>
   readonly databaseType: Prisma.FieldRef<"Workspace", 'String'>
+  readonly annotationExportPath: Prisma.FieldRef<"Workspace", 'String'>
+  readonly annotationData: Prisma.FieldRef<"Workspace", 'String'>
   readonly status: Prisma.FieldRef<"Workspace", 'String'>
   readonly createdAt: Prisma.FieldRef<"Workspace", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Workspace", 'DateTime'>

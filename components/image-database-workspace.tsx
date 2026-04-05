@@ -7,7 +7,7 @@ import {
   type ImageDatabaseConnectionPayload,
   type ImageDatabaseConnectionRecord,
 } from "@/lib/image-database";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type GenreOption = {
   id: string;
@@ -28,6 +28,7 @@ type DiscoveryCandidate = {
   mountPath: string;
   endpoint: string;
   imageCount: number;
+  genreLabel: string;
 };
 
 const genreOptions: GenreOption[] = [
@@ -93,6 +94,7 @@ function generateCandidates(
       mountPath,
       endpoint,
       imageCount: 1500 + index * 720,
+      genreLabel: genre.label,
     };
   });
 }
@@ -106,11 +108,14 @@ export function ImageDatabaseWorkspace() {
   const [selectedGenreId, setSelectedGenreId] = useState(genreOptions[0].id);
   const [selectedConnectionType, setSelectedConnectionType] = useState<ConnectionType>("local");
   const [selectedMethodId, setSelectedMethodId] = useState(accessMethodsByType.local[0].id);
-  const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
+  const [discoveredCandidates, setDiscoveredCandidates] = useState<DiscoveryCandidate[]>([]);
+  const [customCandidates, setCustomCandidates] = useState<DiscoveryCandidate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [deletingConnectionId, setDeletingConnectionId] = useState<string | null>(null);
+  const [localFolderPath, setLocalFolderPath] = useState("");
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const selectedGenre = useMemo(
     () => genreOptions.find((option) => option.id === selectedGenreId) ?? genreOptions[0],
@@ -120,8 +125,53 @@ export function ImageDatabaseWorkspace() {
   const availableMethods = accessMethodsByType[selectedConnectionType];
   const selectedMethod =
     availableMethods.find((method) => method.id === selectedMethodId) ?? availableMethods[0];
+
+  const candidates = useMemo(
+    () => [...customCandidates, ...discoveredCandidates],
+    [customCandidates, discoveredCandidates],
+  );
+
   const selectedCandidate =
     candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
+
+  const browseLocalFolder = async () => {
+    if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
+      try {
+        const dirHandle = await (window as Window & { showDirectoryPicker: () => Promise<{ name: string }> }).showDirectoryPicker();
+        setLocalFolderPath(dirHandle.name);
+      } catch {
+        // ユーザーがキャンセル
+      }
+    } else {
+      folderInputRef.current?.click();
+    }
+  };
+
+  const handleFolderInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const rel = files[0].webkitRelativePath;
+      setLocalFolderPath(rel.split("/")[0] ?? "");
+    }
+  };
+
+  const addCustomLocalCandidate = () => {
+    const trimmed = localFolderPath.trim();
+    if (!trimmed) return;
+    const folderName = trimmed.replace(/[/\\]+$/, "").split(/[/\\]/).pop() ?? trimmed;
+    const custom: DiscoveryCandidate = {
+      id: `local-custom-${Date.now()}`,
+      name: `📁 ${folderName}`,
+      mountName: folderName.toLowerCase().replace(/\s+/g, "-"),
+      mountPath: trimmed,
+      endpoint: "localhost",
+      imageCount: 0,
+      genreLabel: selectedGenre.label,
+    };
+    setCustomCandidates((prev) => [custom, ...prev]);
+    setSelectedCandidateId(custom.id);
+    setLocalFolderPath("");
+  };
 
   const fetchConnections = async () => {
     setIsLoadingConnections(true);
@@ -155,8 +205,8 @@ export function ImageDatabaseWorkspace() {
 
     const timer = setTimeout(() => {
       const discovered = generateCandidates(selectedGenre, selectedConnectionType, selectedMethod);
-      setCandidates(discovered);
-      setSelectedCandidateId(discovered[0]?.id ?? "");
+      setDiscoveredCandidates(discovered);
+      setSelectedCandidateId((prev) => prev || (discovered[0]?.id ?? ""));
       setIsDiscovering(false);
     }, 650);
 
@@ -291,6 +341,41 @@ export function ImageDatabaseWorkspace() {
         <p className="muted" style={{ marginTop: "0.9rem" }}>
           {selectedGenre.summary}
         </p>
+
+        {selectedConnectionType === "local" && (
+          <div className="local-folder-row">
+            <input
+              type="text"
+              placeholder="例: D:\vision\images"
+              value={localFolderPath}
+              onChange={(e) => setLocalFolderPath(e.target.value)}
+            />
+            <button
+              type="button"
+              className="ghost-button local-browse-btn"
+              onClick={browseLocalFolder}
+              title="フォルダを参照"
+            >
+              📁 参照...
+            </button>
+            <button
+              type="button"
+              className="ghost-button local-browse-btn"
+              onClick={addCustomLocalCandidate}
+              disabled={!localFolderPath.trim()}
+            >
+              候補として追加
+            </button>
+            <input
+              ref={folderInputRef}
+              type="file"
+              style={{ display: "none" }}
+              // @ts-expect-error — webkitdirectory は非標準属性
+              webkitdirectory=""
+              onChange={handleFolderInput}
+            />
+          </div>
+        )}
       </section>
 
       <section className="panel">
@@ -319,17 +404,47 @@ export function ImageDatabaseWorkspace() {
                     ? "selection-card workspace-selection-card active"
                     : "selection-card workspace-selection-card"
                 }
-                style={{ padding: "0.55rem 0.9rem" }}
+                style={{ position: "relative", padding: "0.55rem 0.9rem", paddingRight: "5rem" }}
                 onClick={() => setSelectedCandidateId(candidate.id)}
               >
                 <strong>{candidate.name}</strong>
                 <span style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                  <span>{candidate.genreLabel}</span>
+                  <span style={{ opacity: 0.65 }}>|</span>
                   <span>{candidate.mountPath}</span>
                   <span style={{ opacity: 0.65 }}>|</span>
                   <span>{candidate.endpoint}</span>
                   <span style={{ opacity: 0.65 }}>|</span>
                   <span>{candidate.imageCount.toLocaleString()} 枚</span>
                 </span>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  style={{
+                    position: "absolute",
+                    top: "0.5rem",
+                    right: "0.6rem",
+                    fontSize: "0.75rem",
+                    padding: "0.2rem 0.5rem",
+                    borderRadius: "10px",
+                    color: "#ef4444",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (candidate.id.startsWith("local-custom-")) {
+                      setCustomCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+                    } else {
+                      setDiscoveredCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+                    }
+                    if (selectedCandidateId === candidate.id) {
+                      setSelectedCandidateId(
+                        candidates.find((c) => c.id !== candidate.id)?.id ?? "",
+                      );
+                    }
+                  }}
+                >
+                  削除
+                </button>
               </div>
             ))}
           </div>
