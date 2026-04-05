@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Stage, Layer, Image as KonvaImage, Rect, Circle, Line, Text, Group } from "react-konva";
-import type { KonvaEventObject } from "konva/lib/Node";
-import type { AnnotateImage, AnyRegion, DrawTool } from "../types/annotate";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import type { AnnotateImage, AnyRegion, BoxRegion, DrawTool } from "../types/annotate";
 export type { DrawTool } from "../types/annotate";
 
 export type KonvaAnnotatorProps = {
@@ -15,6 +13,9 @@ export type KonvaAnnotatorProps = {
   onSave: (updated: AnnotateImage[]) => void;
   onClose: () => void;
 };
+
+type Viewport = { x: number; y: number; w: number; h: number };
+type NormPoint = { x: number; y: number };
 
 const CLASS_COLORS = [
   "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
@@ -31,12 +32,34 @@ function generateId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-const TOOLS: { id: DrawTool; icon: string; label: string; shortcut: string }[] = [
-  { id: "select",  icon: "↖",  label: "選択",             shortcut: "S" },
-  { id: "box",     icon: "⬜",  label: "バウンディングボックス", shortcut: "B" },
-  { id: "polygon", icon: "🔷", label: "ポリゴン",           shortcut: "P" },
-  { id: "point",   icon: "⚬",  label: "ポイント",           shortcut: "D" },
-];
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+function isInViewport(px: number, py: number, vp: Viewport): boolean {
+  return px >= vp.x && py >= vp.y && px <= vp.x + vp.w && py <= vp.y + vp.h;
+}
+
+function toNorm(px: number, py: number, vp: Viewport): NormPoint {
+  return {
+    x: clamp01((px - vp.x) / vp.w),
+    y: clamp01((py - vp.y) / vp.h),
+  };
+}
+
+function toCanvas(nx: number, ny: number, vp: Viewport): NormPoint {
+  return {
+    x: vp.x + nx * vp.w,
+    y: vp.y + ny * vp.h,
+  };
+}
+
+// YOLO 拡張時はこの形式 (class cx cy w h) をそのまま使える。
+export function boxRegionToYoloLine(region: BoxRegion, classIndex: number): string {
+  const cx = region.x + region.w / 2;
+  const cy = region.y + region.h / 2;
+  return `${classIndex} ${cx.toFixed(6)} ${cy.toFixed(6)} ${region.w.toFixed(6)} ${region.h.toFixed(6)}`;
+}
 
 export default function KonvaAnnotator({
   images,
@@ -50,36 +73,91 @@ export default function KonvaAnnotator({
     images.map((img) => ({ ...img, regions: [...img.regions] }))
   );
   const [imgIdx, setImgIdx] = useState(currentIndex);
-  const [imgDir, setImgDir] = useState<1 | -1>(1); // スライド方向
-  const [tool, setTool] = useState<DrawTool>(defaultTool);
-  const [selectedCls, setSelectedCls] = useState<string>(regionClsList[0] ?? "");
+  const [tool, setTool] = useState<"select" | "box">(defaultTool === "select" ? "select" : "box");
+  const [selectedCls, setSelectedCls] = useState<string>(regionClsList[0] ?? "object");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [drawing, setDrawing] = useState(false);
-  const [draftBox, setDraftBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const [draftPoly, setDraftPoly] = useState<Array<[number, number]>>([]);
-  const [konvaImg, setKonvaImg] = useState<HTMLImageElement | null>(null);
-  const [imgNaturalSize, setImgNaturalSize] = useState({ w: 1, h: 1 });
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
-  const [flashId, setFlashId] = useState<string | null>(null); // 描画確定フラッシュ
-  const stageRef = useRef<import("konva/lib/Stage").Stage>(null);
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, w: 1, h: 1 });
+  const [konvaReady, setKonvaReady] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  // React と Konva の removeChild 競合を避けるため、Konva 専用ホストを使う。
+  const stageHostRef = useRef<HTMLDivElement>(null);
+  const konvaLibRef = useRef<any>(null);
+  const stageRef = useRef<any>(null);
+  const imageLayerRef = useRef<any>(null);
+  const boxLayerRef = useRef<any>(null);
+  const draftLayerRef = useRef<any>(null);
+  const draftRectRef = useRef<any>(null);
+  const toolRef = useRef<"select" | "box">("box");
+  const viewportRef = useRef<Viewport>({ x: 0, y: 0, w: 1, h: 1 });
+  const selectedClsRef = useRef("object");
+  const regionClsListRef = useRef<string[]>([]);
+  const updateRegionsRef = useRef<(fn: (prev: AnyRegion[]) => AnyRegion[]) => void>(() => {});
+
+  const drawingRef = useRef(false);
+  const drawStartRef = useRef<NormPoint | null>(null);
 
   const currentImg = allImages[imgIdx];
   const regions = currentImg?.regions ?? [];
 
-  const scale = useMemo(() => {
-    if (imgNaturalSize.w <= 1 || imgNaturalSize.h <= 1) return 1;
-    if (canvasSize.w <= 0 || canvasSize.h <= 0) return 1;
-    return Math.min(canvasSize.w / imgNaturalSize.w, canvasSize.h / imgNaturalSize.h, 1);
-  }, [canvasSize.w, canvasSize.h, imgNaturalSize.w, imgNaturalSize.h]);
+  const boxRegions = useMemo(
+    () => regions.filter((r): r is BoxRegion => r.type === "box"),
+    [regions]
+  );
 
-  /* コンテナサイズ */
+  const updateRegions = useCallback(
+    (fn: (prev: AnyRegion[]) => AnyRegion[]) => {
+      setAllImages((prev) =>
+        prev.map((img, i) => (i === imgIdx ? { ...img, regions: fn(img.regions) } : img))
+      );
+    },
+    [imgIdx]
+  );
+
+  useEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
+
+  useEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  useEffect(() => {
+    selectedClsRef.current = selectedCls;
+  }, [selectedCls]);
+
+  useEffect(() => {
+    regionClsListRef.current = regionClsList;
+  }, [regionClsList]);
+
+  useEffect(() => {
+    updateRegionsRef.current = updateRegions;
+  }, [updateRegions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("konva")
+      .then((mod: any) => {
+        if (cancelled) return;
+        konvaLibRef.current = mod.default ?? mod;
+        setKonvaReady(true);
+      })
+      .catch((err) => console.error("[KonvaAnnotator] konva load error:", err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const update = () => {
       const rect = el.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) setCanvasSize({ w: rect.width, h: rect.height });
+      if (rect.width > 0 && rect.height > 0) {
+        setCanvasSize({ w: rect.width, h: rect.height });
+      }
     };
     update();
     const ro = new ResizeObserver(update);
@@ -87,391 +165,302 @@ export default function KonvaAnnotator({
     return () => ro.disconnect();
   }, []);
 
-  /* 画像ロード */
   useEffect(() => {
-    if (!currentImg?.src) { setKonvaImg(null); setImgNaturalSize({ w: 1, h: 1 }); return; }
-    let cancelled = false;
+    const Konva = konvaLibRef.current;
+    const el = stageHostRef.current;
+    if (!Konva || !el || stageRef.current) return;
+
+    // Stage は一度だけ生成し、状態更新では再生成しない。
+    const stage = new Konva.Stage({ container: el, width: canvasSize.w, height: canvasSize.h });
+    stageRef.current = stage;
+
+    imageLayerRef.current = new Konva.Layer();
+    boxLayerRef.current = new Konva.Layer();
+    draftLayerRef.current = new Konva.Layer();
+
+    stage.add(imageLayerRef.current);
+    stage.add(boxLayerRef.current);
+    stage.add(draftLayerRef.current);
+
+    const onMouseDown = () => {
+      if (toolRef.current !== "box") return;
+      const pos = stage.getPointerPosition();
+      if (!pos || !isInViewport(pos.x, pos.y, viewportRef.current)) return;
+      drawingRef.current = true;
+      drawStartRef.current = toNorm(pos.x, pos.y, viewportRef.current);
+      const p = toCanvas(drawStartRef.current.x, drawStartRef.current.y, viewportRef.current);
+      const color = getColor(selectedClsRef.current, regionClsListRef.current);
+
+      if (!draftRectRef.current) {
+        draftRectRef.current = new Konva.Rect({ strokeWidth: 1.5, dash: [6, 4], fillEnabled: true });
+        draftLayerRef.current.add(draftRectRef.current);
+      }
+      draftRectRef.current.setAttrs({ x: p.x, y: p.y, width: 0, height: 0, stroke: color, fill: `${color}22` });
+      draftLayerRef.current.batchDraw();
+    };
+
+    const onMouseMove = () => {
+      if (!drawingRef.current || !drawStartRef.current || !draftRectRef.current) return;
+      const pos = stage.getPointerPosition();
+      if (!pos) return;
+      const end = toNorm(pos.x, pos.y, viewportRef.current);
+      const sx = Math.min(drawStartRef.current.x, end.x);
+      const sy = Math.min(drawStartRef.current.y, end.y);
+      const ex = Math.max(drawStartRef.current.x, end.x);
+      const ey = Math.max(drawStartRef.current.y, end.y);
+      const p1 = toCanvas(sx, sy, viewportRef.current);
+      const p2 = toCanvas(ex, ey, viewportRef.current);
+      draftRectRef.current.setAttrs({ x: p1.x, y: p1.y, width: p2.x - p1.x, height: p2.y - p1.y });
+      draftLayerRef.current.batchDraw();
+    };
+
+    const onMouseUp = () => {
+      if (!drawingRef.current || !drawStartRef.current) return;
+      drawingRef.current = false;
+      const pos = stage.getPointerPosition();
+      const end = pos ? toNorm(pos.x, pos.y, viewportRef.current) : drawStartRef.current;
+      const x = Math.min(drawStartRef.current.x, end.x);
+      const y = Math.min(drawStartRef.current.y, end.y);
+      const w = Math.abs(end.x - drawStartRef.current.x);
+      const h = Math.abs(end.y - drawStartRef.current.y);
+
+      drawStartRef.current = null;
+      if (draftRectRef.current) {
+        draftRectRef.current.destroy();
+        draftRectRef.current = null;
+        draftLayerRef.current.batchDraw();
+      }
+
+      if (w < 0.005 || h < 0.005) return;
+      const id = generateId();
+      const next: BoxRegion = { type: "box", id, cls: selectedClsRef.current, x, y, w, h };
+      updateRegionsRef.current((prev) => [...prev, next]);
+      setSelectedId(id);
+    };
+
+    stage.on("mousedown touchstart", onMouseDown);
+    stage.on("mousemove touchmove", onMouseMove);
+    stage.on("mouseup touchend", onMouseUp);
+
+    return () => {
+      stage.off("mousedown touchstart", onMouseDown);
+      stage.off("mousemove touchmove", onMouseMove);
+      stage.off("mouseup touchend", onMouseUp);
+      stage.destroy();
+      stageRef.current = null;
+      imageLayerRef.current = null;
+      boxLayerRef.current = null;
+      draftLayerRef.current = null;
+      draftRectRef.current = null;
+    };
+  }, [konvaReady]);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    stage.size({ width: canvasSize.w, height: canvasSize.h });
+    stage.batchDraw();
+  }, [canvasSize.w, canvasSize.h]);
+
+  useEffect(() => {
+    const Konva = konvaLibRef.current;
+    // 画像描画は Layer 準備後に行う。先に走ると画像が表示されない。
+    if (!konvaReady || !Konva || !imageLayerRef.current || !currentImg?.src) return;
+
     const img = new window.Image();
+    let cancelled = false;
     img.onload = () => {
       if (cancelled) return;
-      setKonvaImg(img);
-      setImgNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+      const maxW = canvasSize.w;
+      const maxH = canvasSize.h;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      const x = (maxW - w) / 2;
+      const y = (maxH - h) / 2;
+
+      setViewport({ x, y, w, h });
+
+      imageLayerRef.current.destroyChildren();
+      imageLayerRef.current.add(new Konva.Image({ image: img, x, y, width: w, height: h }));
+      imageLayerRef.current.batchDraw();
     };
-    img.onerror = () => { if (!cancelled) console.error("[KonvaAnnotator] load error:", currentImg.name); };
+    img.onerror = () => console.error("[KonvaAnnotator] image load error:", currentImg.name);
     img.src = currentImg.src;
-    return () => { cancelled = true; img.onload = null; img.onerror = null; };
-  }, [currentImg?.src]);
 
-  const toNorm = useCallback(
-    (px: number, py: number) => ({ nx: px / (imgNaturalSize.w * scale), ny: py / (imgNaturalSize.h * scale) }),
-    [imgNaturalSize, scale]
-  );
-  const toCanvas = useCallback(
-    (nx: number, ny: number) => ({ cx: nx * imgNaturalSize.w * scale, cy: ny * imgNaturalSize.h * scale }),
-    [imgNaturalSize, scale]
-  );
-
-  const updateRegions = useCallback(
-    (fn: (prev: AnyRegion[]) => AnyRegion[]) => {
-      setAllImages((prev) => prev.map((img, i) => i === imgIdx ? { ...img, regions: fn(img.regions) } : img));
-    },
-    [imgIdx]
-  );
-
-  const flash = (id: string) => { setFlashId(id); setTimeout(() => setFlashId(null), 350); };
-
-  /* 画像移動 */
-  const goTo = (next: number) => {
-    setImgDir(next > imgIdx ? 1 : -1);
-    setImgIdx(next);
-    setSelectedId(null);
-    setKonvaImg(null);
-  };
-
-  /* マウスイベント */
-  const getPointer = (e: KonvaEventObject<MouseEvent>) => {
-    const pos = stageRef.current?.getPointerPosition();
-    return pos ?? { x: 0, y: 0 };
-  };
-
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
-    if (tool === "select") {
-      if (e.target === e.target.getStage() || e.target.getClassName() === "Image") setSelectedId(null);
-      return;
-    }
-    const { x, y } = getPointer(e);
-    if (tool === "box") { setDrawing(true); setDraftBox({ x, y, w: 0, h: 0 }); }
-    else if (tool === "point") {
-      const { nx, ny } = toNorm(x, y);
-      const id = generateId();
-      updateRegions((prev) => [...prev, { type: "point", id, cls: selectedCls, x: nx, y: ny } as AnyRegion]);
-      flash(id);
-    }
-    else if (tool === "polygon") setDraftPoly((prev) => [...prev, [x, y]]);
-  };
-
-  const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    if (tool === "box" && drawing && draftBox) {
-      const { x, y } = getPointer(e);
-      setDraftBox((prev) => prev && { ...prev, w: x - prev.x, h: y - prev.y });
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (tool === "box" && drawing && draftBox) {
-      setDrawing(false);
-      const { x, y, w, h } = draftBox;
-      if (Math.abs(w) < 5 || Math.abs(h) < 5) { setDraftBox(null); return; }
-      const rx = w < 0 ? x + w : x; const ry = h < 0 ? y + h : y;
-      const { nx: nx1, ny: ny1 } = toNorm(rx, ry);
-      const { nx: nx2, ny: ny2 } = toNorm(rx + Math.abs(w), ry + Math.abs(h));
-      const id = generateId();
-      updateRegions((prev) => [...prev, { type: "box", id, cls: selectedCls, x: nx1, y: ny1, w: nx2 - nx1, h: ny2 - ny1 } as AnyRegion]);
-      setDraftBox(null);
-      flash(id);
-    }
-  };
-
-  const handleDblClick = () => {
-    if (tool === "polygon" && draftPoly.length >= 3) {
-      const norm = draftPoly.map(([px, py]) => { const { nx, ny } = toNorm(px, py); return [nx, ny] as [number, number]; });
-      const id = generateId();
-      updateRegions((prev) => [...prev, { type: "polygon", id, cls: selectedCls, points: norm } as AnyRegion]);
-      setDraftPoly([]);
-      flash(id);
-    }
-  };
-
-  const deleteSelected = useCallback(() => {
-    if (!selectedId) return;
-    updateRegions((prev) => prev.filter((r) => r.id !== selectedId));
-    setSelectedId(null);
-  }, [selectedId, updateRegions]);
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [canvasSize.h, canvasSize.w, currentImg?.name, currentImg?.src, konvaReady]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const Konva = konvaLibRef.current;
+    const layer = boxLayerRef.current;
+    if (!Konva || !layer) return;
+
+    layer.destroyChildren();
+
+    for (const region of boxRegions) {
+      const p = toCanvas(region.x, region.y, viewport);
+      const w = region.w * viewport.w;
+      const h = region.h * viewport.h;
+      const color = getColor(region.cls, regionClsList);
+      const isSelected = selectedId === region.id;
+
+      const rect = new Konva.Rect({
+        x: p.x,
+        y: p.y,
+        width: w,
+        height: h,
+        stroke: color,
+        strokeWidth: isSelected ? 2.6 : 1.6,
+        fill: `${color}${isSelected ? "66" : "22"}`,
+      });
+
+      rect.on("click tap", () => setSelectedId(region.id));
+      layer.add(rect);
+
+      if (region.cls) {
+        layer.add(
+          new Konva.Text({
+            x: p.x + 4,
+            y: p.y + 4,
+            text: region.cls,
+            fill: color,
+            fontStyle: "bold",
+            fontSize: 12,
+          })
+        );
+      }
+    }
+
+    layer.batchDraw();
+  }, [boxRegions, regionClsList, selectedId, viewport]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
-      if (e.key === "Delete" || e.key === "Backspace") deleteSelected();
-      if (e.key === "Escape") { setDraftPoly([]); setDrawing(false); setDraftBox(null); }
-      if (e.key === "s" || e.key === "S") { setTool("select"); setDraftPoly([]); }
-      if (e.key === "b" || e.key === "B") { setTool("box"); setDraftPoly([]); }
-      if (e.key === "p" || e.key === "P") { setTool("polygon"); setDraftPoly([]); }
-      if (e.key === "d" || e.key === "D") { setTool("point"); setDraftPoly([]); }
-      if (e.key === "ArrowRight" && imgIdx < allImages.length - 1) goTo(imgIdx + 1);
-      if (e.key === "ArrowLeft"  && imgIdx > 0)                    goTo(imgIdx - 1);
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (!selectedId) return;
+        updateRegions((prev) => prev.filter((r) => r.id !== selectedId));
+        setSelectedId(null);
+      }
+      if (e.key === "b" || e.key === "B") setTool("box");
+      if (e.key === "s" || e.key === "S") setTool("select");
+      if (e.key === "ArrowRight" && imgIdx < allImages.length - 1) {
+        setImgIdx((v) => Math.min(v + 1, allImages.length - 1));
+        setSelectedId(null);
+      }
+      if (e.key === "ArrowLeft" && imgIdx > 0) {
+        setImgIdx((v) => Math.max(v - 1, 0));
+        setSelectedId(null);
+      }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [deleteSelected, imgIdx, allImages.length]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [allImages.length, imgIdx, selectedId, updateRegions]);
 
-  const imgW = imgNaturalSize.w * scale;
-  const imgH = imgNaturalSize.h * scale;
-  const slideVariants = {
-    enter: (dir: number) => ({ x: dir * 60, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit:  (dir: number) => ({ x: dir * -60, opacity: 0 }),
-  };
+  if (!currentImg) {
+    return (
+      <div className="kanno-root">
+        <div className="kanno-loading" style={{ margin: "1.5rem" }}>画像がありません。</div>
+      </div>
+    );
+  }
 
   return (
     <div className="kanno-root">
-
-      {/* ─── 左サイドバー ─── */}
       <div className="kanno-sidebar">
-        {/* ツール */}
         <div className="kanno-sidebar-section">
           <p className="kanno-sidebar-label">ツール</p>
-          {TOOLS.map((t) => (
-            <motion.button
-              key={t.id}
-              type="button"
-              className={`kanno-side-btn${tool === t.id ? " active" : ""}`}
-              title={`${t.label} (${t.shortcut})`}
-              onClick={() => { setTool(t.id); setDraftPoly([]); setDraftBox(null); }}
-              whileHover={{ scale: 1.08, x: 3 }}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >
-              <span className="kanno-side-icon">{t.icon}</span>
-              <span className="kanno-side-text">{t.label}</span>
-              <span className="kanno-side-shortcut">{t.shortcut}</span>
-            </motion.button>
-          ))}
+          <button type="button" className={`kanno-side-btn${tool === "select" ? " active" : ""}`} onClick={() => setTool("select")}>
+            <span className="kanno-side-icon">↖</span><span className="kanno-side-text">選択</span><span className="kanno-side-shortcut">S</span>
+          </button>
+          <button type="button" className={`kanno-side-btn${tool === "box" ? " active" : ""}`} onClick={() => setTool("box")}>
+            <span className="kanno-side-icon">⬜</span><span className="kanno-side-text">BBox</span><span className="kanno-side-shortcut">B</span>
+          </button>
         </div>
 
-        {/* クラス */}
         <div className="kanno-sidebar-section">
           <p className="kanno-sidebar-label">クラス</p>
           {regionClsList.map((c, i) => (
-            <motion.button
+            <button
               key={c}
               type="button"
               className={`kanno-cls-btn${selectedCls === c ? " active" : ""}`}
               style={{ "--cls-color": CLASS_COLORS[i % CLASS_COLORS.length] } as React.CSSProperties}
               onClick={() => setSelectedCls(c)}
-              whileHover={{ scale: 1.05, x: 3 }}
-              whileTap={{ scale: 0.93 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
             >
               <span className="kanno-cls-dot" />
               {c}
-            </motion.button>
+            </button>
           ))}
         </div>
 
-        {/* リージョン一覧 */}
         <div className="kanno-sidebar-section kanno-region-list-wrap">
-          <p className="kanno-sidebar-label">リージョン ({regions.length})</p>
+          <p className="kanno-sidebar-label">BOX ({boxRegions.length})</p>
           <div className="kanno-region-list">
-            <AnimatePresence initial={false}>
-              {regions.map((r, idx) => (
-                <motion.div
-                  key={r.id}
-                  className={`kanno-region-item${selectedId === r.id ? " active" : ""}`}
-                  style={{ "--cls-color": getColor(r.cls, regionClsList) } as React.CSSProperties}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12, height: 0, marginBottom: 0, padding: 0 }}
-                  transition={{ duration: 0.18 }}
-                  onClick={() => { setTool("select"); setSelectedId(r.id); }}
-                >
-                  <span className="kanno-region-dot" />
-                  <span className="kanno-region-name">{r.cls ?? "—"} #{idx + 1}</span>
-                  <span className="kanno-region-type">{r.type}</span>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {boxRegions.map((r, idx) => (
+              <div
+                key={r.id}
+                className={`kanno-region-item${selectedId === r.id ? " active" : ""}`}
+                style={{ "--cls-color": getColor(r.cls, regionClsList) } as React.CSSProperties}
+                onClick={() => setSelectedId(r.id)}
+              >
+                <span className="kanno-region-dot" />
+                <span className="kanno-region-name">{r.cls ?? "-"} #{idx + 1}</span>
+                <span className="kanno-region-type">box</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* 選択削除 */}
-        <AnimatePresence>
-          {selectedId && (
-            <motion.button
-              type="button"
-              className="kanno-delete-btn"
-              onClick={deleteSelected}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.94 }}
-              transition={{ type: "spring", stiffness: 380, damping: 22 }}
-            >
-              🗑 選択を削除 (Del)
-            </motion.button>
-          )}
-        </AnimatePresence>
+        {selectedId && (
+          <button
+            type="button"
+            className="kanno-delete-btn"
+            onClick={() => {
+              updateRegions((prev) => prev.filter((r) => r.id !== selectedId));
+              setSelectedId(null);
+            }}
+          >
+            選択を削除 (Del)
+          </button>
+        )}
       </div>
 
-      {/* ─── メインエリア ─── */}
       <div className="kanno-main">
-
-        {/* トップバー */}
         <div className="kanno-topbar">
           <div className="kanno-topbar-left">
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={imgIdx}
-                className="kanno-img-name"
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 6 }}
-                transition={{ duration: 0.18 }}
-              >
-                {imgIdx + 1} / {allImages.length} — {currentImg?.name}
-              </motion.span>
-            </AnimatePresence>
+            <span className="kanno-img-name">{imgIdx + 1} / {allImages.length} - {currentImg.name}</span>
           </div>
           <div className="kanno-topbar-right">
-            <motion.button
-              type="button" className="kanno-nav-btn"
-              disabled={imgIdx === 0}
-              onClick={() => goTo(imgIdx - 1)}
-              whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >← 前</motion.button>
-            <motion.button
-              type="button" className="kanno-nav-btn"
-              disabled={imgIdx === allImages.length - 1}
-              onClick={() => goTo(imgIdx + 1)}
-              whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >次 →</motion.button>
-            <motion.button
-              type="button" className="kanno-save-btn"
-              onClick={() => onSave(allImages)}
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.93 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            >💾 保存して閉じる</motion.button>
-            <motion.button
-              type="button" className="kanno-close-btn"
-              onClick={onClose}
-              whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 400, damping: 18 }}
-            >✕</motion.button>
+            <motion.button type="button" className="kanno-nav-btn" disabled={imgIdx === 0} onClick={() => setImgIdx((v) => Math.max(v - 1, 0))}>前</motion.button>
+            <motion.button type="button" className="kanno-nav-btn" disabled={imgIdx === allImages.length - 1} onClick={() => setImgIdx((v) => Math.min(v + 1, allImages.length - 1))}>次</motion.button>
+            <motion.button type="button" className="kanno-save-btn" onClick={() => onSave(allImages)}>保存して閉じる</motion.button>
+            <motion.button type="button" className="kanno-close-btn" onClick={onClose}>x</motion.button>
           </div>
         </div>
 
-        {/* キャンバス */}
         <div
           ref={containerRef}
           className="kanno-canvas-wrap"
-          style={{ cursor: tool === "select" ? "default" : "crosshair" }}
+          style={{ cursor: tool === "box" ? "crosshair" : "default", position: "relative" }}
         >
-          {/* 画像切り替えアニメーション */}
-          <AnimatePresence mode="wait" custom={imgDir}>
-            <motion.div
-              key={imgIdx}
-              custom={imgDir}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              style={{ position: "absolute", inset: 0 }}
-            >
-              {!konvaImg && currentImg?.src && (
-                <div className="kanno-loading">画像を読み込み中...</div>
-              )}
-              <Stage
-                ref={stageRef}
-                width={canvasSize.w}
-                height={canvasSize.h}
-                style={{ display: "block" }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onDblClick={handleDblClick}
-              >
-                <Layer>
-                  {konvaImg && <KonvaImage image={konvaImg} x={0} y={0} width={imgW} height={imgH} />}
-
-                  {regions.map((r) => {
-                    const color = getColor(r.cls, regionClsList);
-                    const isSelected = r.id === selectedId;
-                    const isFlash   = r.id === flashId;
-                    const sw = isSelected ? 2.5 : 1.5;
-                    const fill = isFlash ? color + "88" : color + "33";
-                    const onClick = () => tool === "select" && setSelectedId(r.id);
-
-                    if (r.type === "box") {
-                      const { cx, cy } = toCanvas(r.x, r.y);
-                      const w = r.w * imgNaturalSize.w * scale;
-                      const h = r.h * imgNaturalSize.h * scale;
-                      return (
-                        <Group key={r.id} onClick={onClick}>
-                          <Rect x={cx} y={cy} width={w} height={h} stroke={color} strokeWidth={sw} fill={fill} />
-                          {r.cls && <Text x={cx + 3} y={cy + 3} text={r.cls} fill={color} fontSize={11} fontStyle="bold" />}
-                        </Group>
-                      );
-                    }
-                    if (r.type === "polygon") {
-                      const pts = r.points.flatMap(([nx, ny]) => { const { cx, cy } = toCanvas(nx, ny); return [cx, cy]; });
-                      return (
-                        <Group key={r.id} onClick={onClick}>
-                          <Line points={pts} closed stroke={color} strokeWidth={sw} fill={fill} />
-                          {r.cls && pts.length >= 2 && <Text x={pts[0]} y={pts[1] - 14} text={r.cls} fill={color} fontSize={11} fontStyle="bold" />}
-                        </Group>
-                      );
-                    }
-                    if (r.type === "point") {
-                      const { cx, cy } = toCanvas(r.x, r.y);
-                      return (
-                        <Group key={r.id} onClick={onClick}>
-                          <Circle x={cx} y={cy} radius={isSelected ? 7 : isFlash ? 9 : 5} fill={color} stroke="#fff" strokeWidth={1.5} />
-                          {r.cls && <Text x={cx + 8} y={cy - 8} text={r.cls} fill={color} fontSize={11} fontStyle="bold" />}
-                        </Group>
-                      );
-                    }
-                    return null;
-                  })}
-
-                  {draftBox && drawing && (
-                    <Rect
-                      x={draftBox.w < 0 ? draftBox.x + draftBox.w : draftBox.x}
-                      y={draftBox.h < 0 ? draftBox.y + draftBox.h : draftBox.y}
-                      width={Math.abs(draftBox.w)} height={Math.abs(draftBox.h)}
-                      stroke={getColor(selectedCls, regionClsList)} strokeWidth={1.5}
-                      dash={[6, 3]} fill={getColor(selectedCls, regionClsList) + "22"}
-                    />
-                  )}
-
-                  {draftPoly.length > 0 && (
-                    <>
-                      <Line points={draftPoly.flatMap(([px, py]) => [px, py])} stroke={getColor(selectedCls, regionClsList)} strokeWidth={1.5} dash={[6, 3]} />
-                      {draftPoly.map(([px, py], i) => <Circle key={i} x={px} y={py} radius={4} fill={getColor(selectedCls, regionClsList)} />)}
-                    </>
-                  )}
-                </Layer>
-              </Stage>
-            </motion.div>
-          </AnimatePresence>
+          <div ref={stageHostRef} style={{ position: "absolute", inset: 0 }} />
+          {!konvaReady && <div className="kanno-loading" style={{ position: "absolute", inset: 0 }}>Konva を読み込み中...</div>}
         </div>
 
-        {/* ステータスバー */}
         <div className="kanno-statusbar">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={tool}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              {tool === "select"  && "↖ 選択モード — クリックでリージョン選択 / Delete で削除"}
-              {tool === "box"     && "⬜ BBoxモード — ドラッグで矩形を描画"}
-              {tool === "polygon" && `🔷 ポリゴンモード — クリックで頂点追加 / ダブルクリックで確定${draftPoly.length > 0 ? ` (${draftPoly.length}点)` : ""}`}
-              {tool === "point"   && "⚬ ポイントモード — クリックで追加"}
-            </motion.span>
-          </AnimatePresence>
-          <span style={{ marginLeft: "auto", opacity: 0.4, fontSize: "0.75rem" }}>
-            {canvasSize.w.toFixed(0)}×{canvasSize.h.toFixed(0)} | scale {scale.toFixed(2)} | ←→キーで移動
+          {tool === "box" ? "BBox モード: 画像上をドラッグして矩形を作成" : "選択モード: BOX をクリックして選択"}
+          <span style={{ marginLeft: "auto", opacity: 0.45, fontSize: "0.75rem" }}>
+            canvas {canvasSize.w.toFixed(0)}x{canvasSize.h.toFixed(0)} | image {viewport.w.toFixed(0)}x{viewport.h.toFixed(0)}
           </span>
         </div>
-
       </div>
     </div>
   );
 }
-
