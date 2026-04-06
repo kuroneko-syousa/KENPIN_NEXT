@@ -1,19 +1,79 @@
 /**
  * データセット管理ページ
- * 
- * 機能:
- * - データセット一覧を表示
- * - 一つを選択して詳詳情報、会議銀、锦辰を設定・編集
- * - テータセットを保存または検診ジョブを実行できる
  */
 "use client";
 
-import { useState } from "react";
-import { datasets } from "@/lib/dashboard-data";
+import { useState, useEffect } from "react";
+import { datasets, type Dataset } from "@/lib/dashboard-data";
+
+type FormData = {
+  name: string;
+  owner: string;
+  images: string;
+  split: string;
+  captionPolicy: string;
+  notes: string;
+};
+
+const STORAGE_KEY = "kenpin_dataset_edits";
+
+function loadSaved(): Record<number, FormData> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<number, FormData>;
+  } catch {
+    return {};
+  }
+}
+
+function datasetToForm(dataset: Dataset): FormData {
+  return {
+    name: dataset.name,
+    owner: dataset.owner,
+    images: String(dataset.images),
+    split: dataset.split,
+    captionPolicy: dataset.captionPolicy,
+    notes: "",
+  };
+}
 
 export function DatasetsWorkspace() {
   const [selectedId, setSelectedId] = useState(datasets[0].id);
-  const selectedDataset = datasets.find((dataset) => dataset.id === selectedId) ?? datasets[0];
+  const [saved, setSaved] = useState<Record<number, FormData>>({});
+  const [form, setForm] = useState<FormData>(() => datasetToForm(datasets[0]));
+  const [saveMessage, setSaveMessage] = useState("");
+
+  const selectedDataset = datasets.find((d) => d.id === selectedId) ?? datasets[0];
+
+  // 初回マウント時にlocalStorageから読み込み
+  useEffect(() => {
+    const stored = loadSaved();
+    setSaved(stored);
+    const initial = stored[datasets[0].id] ?? datasetToForm(datasets[0]);
+    setForm(initial);
+  }, []);
+
+  // データセット切替時にフォームを更新
+  const handleSelectDataset = (id: number) => {
+    setSelectedId(id);
+    setSaveMessage("");
+    const dataset = datasets.find((d) => d.id === id) ?? datasets[0];
+    setForm(saved[id] ?? datasetToForm(dataset));
+  };
+
+  const handleChange = (field: keyof FormData) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handleSave = () => {
+    const next = { ...saved, [selectedId]: form };
+    setSaved(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setSaveMessage("保存しました");
+    setTimeout(() => setSaveMessage(""), 2500);
+  };
 
   return (
     <div className="workspace-content">
@@ -34,12 +94,11 @@ export function DatasetsWorkspace() {
               <button
                 key={dataset.id}
                 type="button"
-                className={selectedId === dataset.id ? "selection-card active" : "selection-card"}
-                onClick={() => setSelectedId(dataset.id)}
+                className={selectedId === dataset.id ? "selection-card workspace-selection-card active" : "selection-card workspace-selection-card"}
+                onClick={() => handleSelectDataset(dataset.id)}
               >
-                <strong>{dataset.name}</strong>
-                <span>{dataset.images.toLocaleString()} images</span>
-                <span>{dataset.quality}</span>
+                <strong>{saved[dataset.id]?.name ?? dataset.name}</strong>
+                <span>{dataset.images.toLocaleString()} images · {dataset.quality}</span>
               </button>
             ))}
           </div>
@@ -49,44 +108,40 @@ export function DatasetsWorkspace() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Dataset Detail</p>
-              <h3>{selectedDataset.name}</h3>
+              <h3>{form.name || selectedDataset.name}</h3>
             </div>
             <span className="status draft">{selectedDataset.quality}</span>
           </div>
 
-          <form className="editor-form">
+          <form className="editor-form" onSubmit={(e) => e.preventDefault()}>
             <label>
-              データセット名
-              <input defaultValue={selectedDataset.name} />
+              ワークスペース名
+              <input value={form.name} onChange={handleChange("name")} />
             </label>
             <label>
-              所有者
-              <input defaultValue={selectedDataset.owner} />
+              作成ユーザー
+              <input value={form.owner} onChange={handleChange("owner")} />
             </label>
             <label>
               画像数
-              <input defaultValue={selectedDataset.images} />
+              <input value={form.images} onChange={handleChange("images")} />
             </label>
             <label>
               分割比率
-              <input defaultValue={selectedDataset.split} />
+              <input value={form.split} onChange={handleChange("split")} />
             </label>
             <label className="full-span">
-              キャプション方針
-              <textarea defaultValue={selectedDataset.captionPolicy} rows={4} />
+              キャプション方針（テキストの説明・注釈ルール）
+              <textarea value={form.captionPolicy} onChange={handleChange("captionPolicy")} rows={4} />
             </label>
             <label className="full-span">
-              品質ノート
-              <textarea
-                defaultValue={`品質レベル: ${selectedDataset.quality}\u3000定期レビュー: 週次`}
-                rows={5}
-              />
+              備考
+              <textarea value={form.notes} onChange={handleChange("notes")} rows={4} placeholder="備考を入力してください" />
             </label>
             <div className="form-actions full-span">
-              <button type="button">データセット設定を保存</button>
-              <button type="button" className="ghost-button">
-                検証ジョブを実行
-              </button>
+              <button type="button" onClick={handleSave}>変更を保存</button>
+              <button type="button">エクスポート</button>
+              {saveMessage ? <span style={{ color: "#7cf0ba", fontSize: "0.85rem" }}>{saveMessage}</span> : null}
             </div>
           </form>
         </article>
