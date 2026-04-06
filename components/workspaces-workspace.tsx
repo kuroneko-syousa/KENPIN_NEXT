@@ -378,11 +378,10 @@ export function WorkspacesWorkspace({
     model: [
       { key: "name", label: "ワークスペース名" },
       { key: "target", label: "ターゲット選択" },
-      { key: "selectedModel", label: "モデル選択" },
     ],
     folder: [
-      { key: "databaseType", label: "画像DB接続タイプ" },
-      { key: "databaseId", label: "マウント対象" },
+      { key: "databaseType", label: "リソースタイプ" },
+      { key: "databaseId", label: "対象フォルダ" },
     ],
   };
 
@@ -703,22 +702,6 @@ export function WorkspacesWorkspace({
       );
     }
 
-    if (activeField.key === "selectedModel") {
-      return (
-        <select
-          value={effectiveForm.selectedModel || MODEL_OPTIONAL_VALUE}
-          onChange={(event) => handleFieldChange(event.target.value)}
-        >
-          <option value={MODEL_OPTIONAL_VALUE}>未選択（候補はプルダウン内のみ表示）</option>
-          {suggestedModels.map((model) => (
-            <option key={model} value={model}>
-              {model}
-            </option>
-          ))}
-        </select>
-      );
-    }
-
     if (activeField.key === "databaseType") {
       return (
         <select
@@ -817,10 +800,7 @@ export function WorkspacesWorkspace({
                       <strong>{workspace.name}</strong>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#f7f8fc' }}>
                         <div><strong>手法:</strong> {targetLabel}</div>
-                        <div><strong>モデル:</strong> {workspace.selectedModel || "未選択"}</div>
-                        <div><strong>接続先:</strong> {allMountTargets.find((target) => target.databaseId === workspace.databaseId)?.name ?? workspace.databaseId ?? "未設定"}</div>
-                        <div><strong>マウント先:</strong> {workspace.imageFolder || "未設定"}</div>
-                        <div><strong>仮保存先:</strong> {workspace.datasetFolder || "未設定"}</div>
+                        <div><strong>リソースアクセス:</strong> {(() => { const t = allMountTargets.find((target) => target.databaseId === workspace.databaseId); const name = t?.name ?? workspace.databaseId ?? "未設定"; const path = workspace.imageFolder; return path ? `${name} (${path})` : name; })()}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -928,23 +908,17 @@ export function WorkspacesWorkspace({
                 </div>
 
                 <div className="workflow-paths">
-                  <span>
+                  <span className={activeField.key === "name" ? "active" : ""}>
                     ワークスペース名: <code>{effectiveForm.name || "未入力"}</code>
                   </span>
-                  <span>
+                  <span className={activeField.key === "target" ? "active" : ""}>
                     ターゲット: <code>{selectedTarget.label}</code>
                   </span>
-                  <span>
-                    モデル選択: <code>{effectiveForm.selectedModel || "未選択"}</code>
+                  <span className={activeField.key === "databaseType" ? "active" : ""}>
+                    リソースタイプ: <code>{selectedMountType.label}</code>
                   </span>
-                  <span>
-                    DB接続タイプ: <code>{selectedMountType.label}</code>
-                  </span>
-                  <span>
-                    マウント対象: <code>{selectedDatabaseName}</code>
-                  </span>
-                  <span>
-                    マウント先: <code>{selectedMountTarget?.mountPath ?? "未設定"}</code>
+                  <span className={activeField.key === "databaseId" ? "active" : ""}>
+                    対象フォルダ: <code>{selectedDatabaseName}</code>
                   </span>
                 </div>
 
@@ -974,13 +948,6 @@ export function WorkspacesWorkspace({
                       画像DB設定ページで登録済みの接続先から、選んだタイプに合うものだけを表示しています。
                     </p>
                   ) : null}
-
-                  <div className="wizard-progress">
-                    <span>
-                      {activeStep.id === "model" ? "工程1" : "工程2"} / {createFieldIndex + 1} 項目目
-                    </span>
-                    <strong>{activeField.label}</strong>
-                  </div>
 
                   <div className="workflow-actions">
                     <button

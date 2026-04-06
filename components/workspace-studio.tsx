@@ -213,15 +213,22 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     setImages(updated);
     setAnnotatorOpen(false);
 
+    // src はブラウザ上の base64 データURL であり DB に保存しない。
+    // regions・name のみ永続化し、復元時は画像の再アップロードを促す。
+    const persisted = updated.map(({ src: _src, ...rest }) => rest);
+
     try {
-      await fetch(`/api/workspaces/${workspace.id}`, {
+      const res = await fetch(`/api/workspaces/${workspace.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotationData: JSON.stringify(updated) }),
+        body: JSON.stringify({ annotationData: JSON.stringify(persisted) }),
       });
-    } catch {
-      // 保存失敗は画面のメイン操作を妨げないようサイレント
-      console.error("[AnnotationTab] annotationData の保存に失敗しました");
+      if (!res.ok) {
+        const text = await res.text().catch(() => res.status.toString());
+        console.error("[AnnotationTab] annotationData の保存に失敗しました", text);
+      }
+    } catch (err) {
+      console.error("[AnnotationTab] annotationData の保存に失敗しました", err);
     }
   };
 
