@@ -98,13 +98,16 @@ export async function PATCH(
   const body = (await request.json()) as {
     annotationExportPath?: string;
     annotationData?: string;
+    preprocessConfig?: string;
   };
 
-  const updateData: { annotationExportPath?: string; annotationData?: string } = {};
+  const updateData: { annotationExportPath?: string; annotationData?: string; preprocessConfig?: string } = {};
   if (body.annotationExportPath !== undefined)
     updateData.annotationExportPath = body.annotationExportPath.trim();
   if (body.annotationData !== undefined)
     updateData.annotationData = body.annotationData;
+  if (body.preprocessConfig !== undefined)
+    updateData.preprocessConfig = body.preprocessConfig;
 
   try {
     const workspace = await prisma.workspace.update({
@@ -115,6 +118,7 @@ export async function PATCH(
     return NextResponse.json({
       annotationExportPath: workspace.annotationExportPath,
       annotationData: workspace.annotationData,
+      preprocessConfig: workspace.preprocessConfig,
     });
   } catch {
     return NextResponse.json({ error: "Workspace not found or update failed" }, { status: 404 });

@@ -688,6 +688,7 @@ export const WorkspaceScalarFieldEnum = {
   databaseType: 'databaseType',
   annotationExportPath: 'annotationExportPath',
   annotationData: 'annotationData',
+  preprocessConfig: 'preprocessConfig',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',

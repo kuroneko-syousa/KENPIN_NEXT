@@ -30,6 +30,7 @@ model Workspace {
   databaseType          String
   annotationExportPath  String   @default("")
   annotationData        String   @default("[]")
+  preprocessConfig      String   @default("{}")
   status                String   @default("draft")
   createdAt             DateTime @default(now())
   updatedAt     DateTime @updatedAt

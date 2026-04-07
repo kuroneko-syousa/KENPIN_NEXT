@@ -38,6 +38,7 @@ export default async function WorkspaceStudioPage({
         databaseType: workspace.databaseType,
         annotationExportPath: workspace.annotationExportPath ?? "",
         annotationData: workspace.annotationData ?? "[]",
+        preprocessConfig: workspace.preprocessConfig ?? "{}",
         ownerName: workspace.owner.name,
         ownerEmail: workspace.owner.email,
       }}

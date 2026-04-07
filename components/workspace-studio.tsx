@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AnnotateImage, DrawTool } from "../types/annotate";
@@ -39,6 +39,7 @@ type WorkspaceInfo = {
   databaseType: string;
   annotationExportPath: string;
   annotationData: string;
+  preprocessConfig: string;
   ownerName: string;
   ownerEmail: string;
 };
@@ -59,269 +60,653 @@ const tabs: { id: StudioTab; label: string; icon: string }[] = [
   { id: "results", label: "結果確認", icon: "📊" },
 ];
 
+/* ─── 前処理設定型 ─── */
+export type PreprocessConfig = {
+  resize: number;
+  grayscale: boolean;
+  binarize: boolean;
+  binarizeThreshold: number;
+  histogramEqualization: boolean;
+  edgeEnhance: boolean;
+  normalize: boolean;
+  removeBlur: boolean;
+  crop: boolean;
+  cropX: number;
+  cropY: number;
+  cropW: number;
+  cropH: number;
+  hue: number;
+  saturation: number;
+  brightness: number;
+  augFlip: boolean;
+  augRotate: boolean;
+};
+
+const DEFAULT_CONFIG: PreprocessConfig = {
+  resize: 640,
+  grayscale: false,
+  binarize: false,
+  binarizeThreshold: 128,
+  histogramEqualization: false,
+  edgeEnhance: false,
+  normalize: false,
+  removeBlur: false,
+  crop: false,
+  cropX: 0,
+  cropY: 0,
+  cropW: 100,
+  cropH: 100,
+  hue: 0,
+  saturation: 0,
+  brightness: 0,
+  augFlip: false,
+  augRotate: false,
+};
+
+type PreprocessResult = { dataUrl: string; srcW: number; srcH: number; outSize: number };
+
+/** Canvas API を使ったピクセル処理 */
+function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<PreprocessResult> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const srcW = img.width;
+      const srcH = img.height;
+      // リサイズ
+      const targetSize = cfg.resize;
+      let sw = img.width;
+      let sh = img.height;
+      let sx = 0;
+      let sy = 0;
+
+      // 切り抜き（%指定 → px換算）
+      if (cfg.crop) {
+        sx = Math.round((cfg.cropX / 100) * img.width);
+        sy = Math.round((cfg.cropY / 100) * img.height);
+        sw = Math.round((cfg.cropW / 100) * img.width);
+        sh = Math.round((cfg.cropH / 100) * img.height);
+        sw = Math.max(1, Math.min(sw, img.width - sx));
+        sh = Math.max(1, Math.min(sh, img.height - sy));
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetSize;
+      canvas.height = targetSize;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetSize, targetSize);
+
+      const imageData = ctx.getImageData(0, 0, targetSize, targetSize);
+      const d = imageData.data;
+
+      // グレースケール
+      if (cfg.grayscale || cfg.binarize || cfg.histogramEqualization) {
+        for (let i = 0; i < d.length; i += 4) {
+          const gray = Math.round(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+          d[i] = gray;
+          d[i + 1] = gray;
+          d[i + 2] = gray;
+        }
+      }
+
+      // 二値化
+      if (cfg.binarize) {
+        const thr = cfg.binarizeThreshold;
+        for (let i = 0; i < d.length; i += 4) {
+          const v = d[i] >= thr ? 255 : 0;
+          d[i] = v;
+          d[i + 1] = v;
+          d[i + 2] = v;
+        }
+      }
+
+      // ヒストグラム平坦化
+      if (cfg.histogramEqualization && !cfg.binarize) {
+        const hist = new Array<number>(256).fill(0);
+        for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
+        const total = targetSize * targetSize;
+        const cdf = new Array<number>(256).fill(0);
+        cdf[0] = hist[0];
+        for (let i = 1; i < 256; i++) cdf[i] = cdf[i - 1] + hist[i];
+        const cdfMin = cdf.find((v) => v > 0) ?? 0;
+        const lut = cdf.map((v) => Math.round(((v - cdfMin) / (total - cdfMin)) * 255));
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = lut[d[i]];
+          d[i + 1] = lut[d[i + 1]];
+          d[i + 2] = lut[d[i + 2]];
+        }
+      }
+
+      // エッジ強調（ラプラシアン畳み込み）
+      if (cfg.edgeEnhance) {
+        const w = targetSize;
+        const h = targetSize;
+        const src2 = new Uint8ClampedArray(d);
+        const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            for (let c = 0; c < 3; c++) {
+              let val = 0;
+              for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                  val += src2[((y + ky) * w + (x + kx)) * 4 + c] * kernel[(ky + 1) * 3 + (kx + 1)];
+                }
+              }
+              d[(y * w + x) * 4 + c] = Math.max(0, Math.min(255, val));
+            }
+          }
+        }
+      }
+
+      // 色調調整（brightness / saturation / hue）
+      if (cfg.brightness !== 0 || cfg.saturation !== 0 || cfg.hue !== 0) {
+        const bAdj = cfg.brightness / 100;
+        const sAdj = cfg.saturation / 100;
+        const hAdj = cfg.hue;
+        for (let i = 0; i < d.length; i += 4) {
+          let r = d[i] / 255;
+          let g = d[i + 1] / 255;
+          let b = d[i + 2] / 255;
+          // RGB → HSL
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          let h2 = 0;
+          let s2 = 0;
+          let l2 = (max + min) / 2;
+          if (max !== min) {
+            const delta = max - min;
+            s2 = l2 > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+            h2 = max === r ? (g - b) / delta + (g < b ? 6 : 0)
+               : max === g ? (b - r) / delta + 2
+               : (r - g) / delta + 4;
+            h2 /= 6;
+          }
+          h2 = (h2 + hAdj / 360 + 1) % 1;
+          s2 = Math.max(0, Math.min(1, s2 + sAdj));
+          l2 = Math.max(0, Math.min(1, l2 + bAdj));
+          // HSL → RGB
+          if (s2 === 0) {
+            r = g = b = l2;
+          } else {
+            const q = l2 < 0.5 ? l2 * (1 + s2) : l2 + s2 - l2 * s2;
+            const p2 = 2 * l2 - q;
+            const hue2rgb = (p: number, q2: number, t: number) => {
+              const t2 = ((t % 1) + 1) % 1;
+              if (t2 < 1 / 6) return p + (q2 - p) * 6 * t2;
+              if (t2 < 1 / 2) return q2;
+              if (t2 < 2 / 3) return p + (q2 - p) * (2 / 3 - t2) * 6;
+              return p;
+            };
+            r = hue2rgb(p2, q, h2 + 1 / 3);
+            g = hue2rgb(p2, q, h2);
+            b = hue2rgb(p2, q, h2 - 1 / 3);
+          }
+          d[i] = Math.round(r * 255);
+          d[i + 1] = Math.round(g * 255);
+          d[i + 2] = Math.round(b * 255);
+        }
+      }
+
+      // 正規化（対比較のため明度微調整）
+      if (cfg.normalize) {
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = Math.min(255, Math.round(d[i] * 1.04));
+          d[i + 1] = Math.min(255, Math.round(d[i + 1] * 1.04));
+          d[i + 2] = Math.min(255, Math.round(d[i + 2] * 1.04));
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      // 水平フリップ
+      if (cfg.augFlip) {
+        const flipped = document.createElement("canvas");
+        flipped.width = targetSize;
+        flipped.height = targetSize;
+        const fc = flipped.getContext("2d")!;
+        fc.translate(targetSize, 0);
+        fc.scale(-1, 1);
+        fc.drawImage(canvas, 0, 0);
+        resolve({ dataUrl: flipped.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+        return;
+      }
+
+      // ランダム回転（±15°をプレビューでは +10° 固定表示）
+      if (cfg.augRotate) {
+        const rot = document.createElement("canvas");
+        rot.width = targetSize;
+        rot.height = targetSize;
+        const rc = rot.getContext("2d")!;
+        rc.translate(targetSize / 2, targetSize / 2);
+        rc.rotate((10 * Math.PI) / 180);
+        rc.drawImage(canvas, -targetSize / 2, -targetSize / 2);
+        resolve({ dataUrl: rot.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+        return;
+      }
+
+      resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+    };
+    img.src = src;
+  });
+}
+
 /* ─── 前処理タブ ─── */
 function PreprocessTab({ workspace }: { workspace: WorkspaceInfo }) {
-  const [resize, setResize] = useState("640");
-  const [normalize, setNormalize] = useState(true);
-  const [removeBlur, setRemoveBlur] = useState(true);
-  const [augFlip, setAugFlip] = useState(true);
-  const [augRotate, setAugRotate] = useState(false);
-  const [augBrightness, setAugBrightness] = useState(false);
+  const [cfg, setCfg] = useState<PreprocessConfig>(() => {
+    try {
+      return { ...DEFAULT_CONFIG, ...JSON.parse(workspace.preprocessConfig || "{}") };
+    } catch {
+      return { ...DEFAULT_CONFIG };
+    }
+  });
+
   const [previewImages, setPreviewImages] = useState<Array<{ name: string; src: string }>>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previewSourceLabel, setPreviewSourceLabel] = useState(workspace.imageFolder || "未選択");
-  const [status, setStatus] = useState<"idle" | "running" | "done">("idle");
+  const [afterResult, setAfterResult] = useState<PreprocessResult | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
   const selectedPreview = previewImages[previewIndex] ?? null;
 
-  const processedPreviewStyle = useMemo<React.CSSProperties>(() => {
-    const filters: string[] = [];
-    if (normalize) filters.push("brightness(1.04)", "contrast(1.06)");
-    if (removeBlur) filters.push("contrast(1.12)", "saturate(1.08)");
-    if (augBrightness) filters.push("brightness(1.18)");
+  // Afterプレビューを再生成
+  useEffect(() => {
+    if (!selectedPreview) { setAfterResult(null); return; }
+    let cancelled = false;
+    applyPreprocess(selectedPreview.src, cfg).then((result) => {
+      if (!cancelled) setAfterResult(result);
+    });
+    return () => { cancelled = true; };
+  }, [selectedPreview, cfg]);
 
-    return {
-      filter: filters.length > 0 ? filters.join(" ") : undefined,
-      transform: `${augFlip ? "scaleX(-1)" : "scaleX(1)"} ${augRotate ? "rotate(4deg)" : "rotate(0deg)"}`,
-      transformOrigin: "center",
-      transition: "transform 0.2s ease, filter 0.2s ease",
-    };
-  }, [normalize, removeBlur, augBrightness, augFlip, augRotate]);
+  const afterSrc = afterResult?.dataUrl ?? null;
 
-  const isImageFile = (file: File) => {
-    if (file.type.startsWith("image/")) return true;
-    return /\.(png|jpe?g|webp|bmp|gif|tiff?|avif)$/i.test(file.name);
-  };
+  const set = <K extends keyof PreprocessConfig>(key: K, value: PreprocessConfig[K]) =>
+    setCfg((prev) => ({ ...prev, [key]: value }));
 
-  const getImportName = (file: File) => {
-    const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
-    return rel && rel.trim() ? rel : file.name;
-  };
-
-  const handlePreprocessFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    const imageFiles = files.filter(isImageFile);
-    if (imageFiles.length === 0) {
-      e.target.value = "";
-      return;
-    }
-
-    const sorted = [...imageFiles].sort((a, b) => getImportName(a).localeCompare(getImportName(b)));
-    const firstRel = (sorted[0] as File & { webkitRelativePath?: string }).webkitRelativePath;
-    const root = firstRel?.split("/")[0] || "選択フォルダ";
-
-    const readers = sorted.map(
-      (file) =>
-        new Promise<{ name: string; src: string }>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve({ name: getImportName(file), src: reader.result as string });
-          reader.readAsDataURL(file);
-        })
-    );
-
-    Promise.all(readers).then((loaded) => {
+  const handleImport = async () => {
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      const res = await fetch(`/api/workspaces/${workspace.id}/images`);
+      const json = await res.json();
+      if (!res.ok) { setImportError(json.error ?? "読み込みに失敗しました"); return; }
+      const loaded = json.images as Array<{ name: string; src: string }>;
       setPreviewImages(loaded);
       setPreviewIndex(0);
-      setPreviewSourceLabel(`${root} (${loaded.length} 枚)`);
-    });
-
-    e.target.value = "";
+      setPreviewSourceLabel(`${workspace.imageFolder} (${loaded.length} 枚)`);
+    } catch {
+      setImportError("サーバーへの接続に失敗しました");
+    } finally {
+      setImportLoading(false);
+    }
   };
 
-  const run = () => {
-    setStatus("running");
-    setTimeout(() => setStatus("done"), 2000);
+  const saveConfig = async () => {
+    setSaving(true);
+    setSaveError("");
+    setSaved(false);
+    try {
+      const res = await fetch(`/api/workspaces/${workspace.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preprocessConfig: JSON.stringify(cfg) }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError("設定の保存に失敗しました。");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  return (
-    <div className="studio-tab-content">
-      <div className="studio-section-header">
-        <div>
-          <p className="eyebrow">Step 1</p>
-          <h3>画像前処理</h3>
-        </div>
-        <span className={status === "done" ? "status ready" : status === "running" ? "status training" : "status draft"}>
-          {status === "done" ? "完了" : status === "running" ? "実行中" : "未実行"}
-        </span>
-      </div>
+  /* 設定パネル（タブ内・全画面共通） */
+  const settingsPanel = (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+      {/* リサイズ */}
+      <label className="db-control">
+        リサイズ (px)
+        <select value={cfg.resize} onChange={(e) => set("resize", Number(e.target.value))}>
+          {[320, 416, 512, 640, 768, 1024].map((v) => (
+            <option key={v} value={v}>{v} × {v}</option>
+          ))}
+        </select>
+      </label>
 
-      <div className="studio-info-row">
-        <div className="summary-item">
-          <span>入力フォルダ</span>
-          <strong>{previewSourceLabel || "未設定"}</strong>
-        </div>
-        <div className="summary-item">
-          <span>出力先</span>
-          <strong>{workspace.datasetFolder || "未設定"}</strong>
-        </div>
-      </div>
-
-      <div className="panel annotation-upload-panel" style={{ marginBottom: "1rem" }}>
-        <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>前処理プレビュー画像</p>
-        <p className="muted" style={{ margin: "0 0 0.75rem" }}>
-          リソース画像を読み込むと、前処理結果を Before / After で確認できます。
-        </p>
-        <label className="annotation-upload-label">
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            style={{ display: "none" }}
-            // @ts-expect-error - webkitdirectory は非標準属性
-            webkitdirectory=""
-            onChange={handlePreprocessFolderUpload}
-          />
-          🗂 画像をインポート
+      {/* 切り抜き */}
+      <div className="studio-checkboxes">
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.crop} onChange={(e) => set("crop", e.target.checked)} />
+          切り抜き
         </label>
-
-        {previewImages.length > 0 && (
-          <div style={{ marginTop: "0.9rem" }}>
-            <p className="muted" style={{ margin: "0 0 0.45rem", fontSize: "0.74rem" }}>
-              読み込み済み {previewImages.length} 枚
-            </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))",
-                gap: "0.35rem",
-              }}
-            >
-              {previewImages.slice(0, 18).map((img, idx) => (
-                <button
-                  key={img.name}
-                  type="button"
-                  onClick={() => setPreviewIndex(idx)}
-                  title={img.name}
-                  style={{
-                    padding: 0,
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                    border:
-                      idx === previewIndex
-                        ? "1px solid rgba(124, 240, 186, 0.75)"
-                        : "1px solid rgba(237, 241, 250, 0.16)",
-                    background: "rgba(9, 14, 26, 0.45)",
-                    cursor: "pointer",
-                    aspectRatio: "1",
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.src}
-                    alt={img.name}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {selectedPreview && (
-        <div
-          className="panel"
-          style={{
-            padding: "1rem",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "0.8rem",
-            marginBottom: "1rem",
-          }}
-        >
-          <div>
-            <p className="eyebrow" style={{ marginBottom: "0.4rem" }}>Before</p>
-            <div
-              style={{
-                borderRadius: "10px",
-                overflow: "hidden",
-                border: "1px solid rgba(237, 241, 250, 0.12)",
-                background: "rgba(9, 14, 26, 0.4)",
-                aspectRatio: "4 / 3",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selectedPreview.src}
-                alt={`${selectedPreview.name} before`}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              />
-            </div>
-          </div>
-          <div>
-            <p className="eyebrow" style={{ marginBottom: "0.4rem" }}>After</p>
-            <div
-              style={{
-                borderRadius: "10px",
-                overflow: "hidden",
-                border: "1px solid rgba(124, 240, 186, 0.28)",
-                background: "rgba(9, 14, 26, 0.4)",
-                aspectRatio: "4 / 3",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selectedPreview.src}
-                alt={`${selectedPreview.name} after`}
-                style={{ width: "100%", height: "100%", objectFit: "contain", ...processedPreviewStyle }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="studio-form-grid">
-        <label className="db-control">
-          リサイズ (px)
-          <select value={resize} onChange={(e) => setResize(e.target.value)}>
-            {["320", "416", "512", "640", "768", "1024"].map((v) => (
-              <option key={v} value={v}>{v} × {v}</option>
+        {cfg.crop && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem", marginTop: "0.4rem" }}>
+            {(["cropX","cropY","cropW","cropH"] as const).map((k) => (
+              <label key={k} className="db-control" style={{ fontSize: "0.76rem" }}>
+                {k === "cropX" ? "X開始 (%)" : k === "cropY" ? "Y開始 (%)" : k === "cropW" ? "幅 (%)" : "高さ (%)"}
+                <input type="number" min={0} max={100} value={cfg[k]}
+                  onChange={(e) => set(k, Number(e.target.value))} style={{ fontSize: "0.76rem" }} />
+              </label>
             ))}
-          </select>
-        </label>
-
-        <div className="studio-checkboxes">
-          <label className="checkbox-row">
-            <input type="checkbox" checked={normalize} onChange={(e) => setNormalize(e.target.checked)} />
-            正規化 (0–1)
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={removeBlur} onChange={(e) => setRemoveBlur(e.target.checked)} />
-            ブレ画像を除外
-          </label>
-        </div>
-
-        <div className="studio-checkboxes">
-          <p className="eyebrow" style={{ marginBottom: "0.5rem" }}>オーグメンテーション</p>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={augFlip} onChange={(e) => setAugFlip(e.target.checked)} />
-            水平フリップ
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={augRotate} onChange={(e) => setAugRotate(e.target.checked)} />
-            ランダム回転 (±15°)
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={augBrightness} onChange={(e) => setAugBrightness(e.target.checked)} />
-            明度ジッター
-          </label>
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="workflow-actions" style={{ marginTop: "1.5rem" }}>
-        <button type="button" onClick={run} disabled={status === "running"}>
-          {status === "running" ? "実行中..." : "前処理を実行"}
+      {/* カラー処理 */}
+      <p style={{ fontSize: "0.74rem", opacity: 0.55, margin: "0.2rem 0 -0.2rem" }}>カラー処理</p>
+      <div className="studio-checkboxes">
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.grayscale} onChange={(e) => {
+            set("grayscale", e.target.checked);
+            if (e.target.checked) { set("binarize", false); set("histogramEqualization", false); }
+          }} />
+          グレースケール
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.binarize} onChange={(e) => {
+            set("binarize", e.target.checked);
+            if (e.target.checked) { set("grayscale", false); set("histogramEqualization", false); }
+          }} />
+          二値化
+        </label>
+        {cfg.binarize && (
+          <label className="db-control" style={{ fontSize: "0.76rem", marginTop: "0.2rem" }}>
+            閾値: {cfg.binarizeThreshold}
+            <input type="range" min={0} max={255} value={cfg.binarizeThreshold}
+              onChange={(e) => set("binarizeThreshold", Number(e.target.value))} />
+          </label>
+        )}
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.histogramEqualization} onChange={(e) => {
+            set("histogramEqualization", e.target.checked);
+            if (e.target.checked) { set("grayscale", false); set("binarize", false); }
+          }} />
+          ヒストグラム平坦化
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.edgeEnhance} onChange={(e) => set("edgeEnhance", e.target.checked)} />
+          エッジ強調
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.normalize} onChange={(e) => set("normalize", e.target.checked)} />
+          正規化 (0–1)
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.removeBlur} onChange={(e) => set("removeBlur", e.target.checked)} />
+          ブレ画像を除外
+        </label>
+      </div>
+
+      {/* 色調調整 */}
+      <p style={{ fontSize: "0.74rem", opacity: 0.55, margin: "0.2rem 0 -0.2rem" }}>色調調整</p>
+      {([
+        { key: "hue" as const, label: "色相", min: -180, max: 180 },
+        { key: "saturation" as const, label: "彩度", min: -100, max: 100 },
+        { key: "brightness" as const, label: "明度", min: -100, max: 100 },
+      ]).map(({ key, label, min, max }) => (
+        <label key={key} className="db-control" style={{ display: "grid", gap: "0.15rem" }}>
+          <span style={{ fontSize: "0.76rem" }}>{label}: {cfg[key] > 0 ? "+" : ""}{cfg[key]}</span>
+          <input type="range" min={min} max={max} value={cfg[key]}
+            onChange={(e) => set(key, Number(e.target.value))} />
+        </label>
+      ))}
+
+      {/* オーグメンテーション */}
+      <p style={{ fontSize: "0.74rem", opacity: 0.55, margin: "0.2rem 0 -0.2rem" }}>オーグメンテーション</p>
+      <div className="studio-checkboxes">
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.augFlip} onChange={(e) => set("augFlip", e.target.checked)} />
+          水平フリップ
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={cfg.augRotate} onChange={(e) => set("augRotate", e.target.checked)} />
+          ランダム回転 (±15°)
+        </label>
+      </div>
+
+      {/* 保存 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", paddingTop: "0.4rem" }}>
+        <button type="button" onClick={saveConfig} disabled={saving}>
+          {saving ? "保存中..." : "⚙️ 設定を保存"}
         </button>
-        {previewImages.length > 0 && (
-          <span className="muted" style={{ fontSize: "0.8rem" }}>
-            {previewImages.length} 枚の画像に対して設定を適用します
-          </span>
-        )}
-        {status === "done" && (
-          <span style={{ color: "#7cf0ba" }}>✓ 前処理が完了しました</span>
-        )}
+        {saved && <span style={{ color: "#7cf0ba", fontSize: "0.8rem" }}>✓ 設定を保存しました</span>}
+        {saveError && <span style={{ color: "#f87171", fontSize: "0.8rem" }}>{saveError}</span>}
       </div>
     </div>
+  );
+
+  /* 全画面プレビューポータル */
+  const fullscreenPortal = createPortal(
+    <AnimatePresence>
+      {fullscreenOpen && (
+        <motion.div
+          className="annotator-fullscreen"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          style={{ display: "flex", flexDirection: "column" }}
+        >
+          {/* ヘッダー */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0.6rem 1rem", borderBottom: "1px solid rgba(237,241,250,0.1)", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>⚙️ 前処理プレビュー</span>
+              {previewImages.length > 0 && (
+                <span className="muted" style={{ fontSize: "0.78rem" }}>
+                  {previewIndex + 1} / {previewImages.length} 枚
+                </span>
+              )}
+            </div>
+            <button type="button" className="ghost-button"
+              style={{ fontSize: "0.8rem", padding: "0.25rem 0.6rem" }}
+              onClick={() => setFullscreenOpen(false)}>
+              ✕ 閉じる
+            </button>
+          </div>
+
+          {/* 本体 */}
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {/* 左: 設定パネル */}
+            <div style={{ width: "260px", flexShrink: 0, overflowY: "auto", padding: "1rem",
+              borderRight: "1px solid rgba(237,241,250,0.1)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <p className="eyebrow" style={{ marginBottom: "0.5rem" }}>前処理設定</p>
+              {settingsPanel}
+            </div>
+
+            {/* 右: プレビューエリア */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              {/* サムネイル行 */}
+              {previewImages.length > 0 && (
+                <div style={{ display: "flex", gap: "0.3rem", padding: "0.5rem 0.8rem",
+                  overflowX: "auto", flexShrink: 0, borderBottom: "1px solid rgba(237,241,250,0.08)" }}>
+                  {previewImages.map((img, idx) => (
+                    <button key={img.name} type="button" onClick={() => setPreviewIndex(idx)} title={img.name}
+                      style={{ padding: 0, flexShrink: 0, width: "52px", height: "52px", borderRadius: "6px",
+                        overflow: "hidden", cursor: "pointer",
+                        border: idx === previewIndex ? "2px solid rgba(124,240,186,0.8)" : "1px solid rgba(237,241,250,0.16)",
+                        background: "rgba(9,14,26,0.45)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Before / After 大画像 */}
+              <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr",
+                gap: "0.8rem", padding: "0.8rem", overflow: "hidden" }}>
+                <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.4rem", flexShrink: 0 }}>
+                    <p className="eyebrow" style={{ margin: 0 }}>Before（元画像）</p>
+                    {afterResult && (
+                      <span style={{ fontSize: "0.72rem", opacity: 0.55 }}>
+                        {afterResult.srcW} × {afterResult.srcH} px
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, borderRadius: "10px", overflow: "hidden",
+                    border: "1px solid rgba(237,241,250,0.12)", background: "rgba(9,14,26,0.4)" }}>
+                    {selectedPreview
+                      ? /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={selectedPreview.src} alt="before"
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center",
+                          justifyContent: "center", opacity: 0.35, fontSize: "0.85rem" }}>
+                          画像を読み込んでください
+                        </div>
+                    }
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.4rem", flexShrink: 0 }}>
+                    <p className="eyebrow" style={{ margin: 0 }}>After（前処理後）</p>
+                    {afterResult && (
+                      <span style={{ fontSize: "0.72rem", color: "rgba(124,240,186,0.8)" }}>
+                        {afterResult.outSize} × {afterResult.outSize} px
+                        {afterResult.srcW !== afterResult.outSize || afterResult.srcH !== afterResult.outSize
+                          ? ` ← ${afterResult.srcW}×${afterResult.srcH}` : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, borderRadius: "10px", overflow: "hidden",
+                    border: "1px solid rgba(124,240,186,0.28)", background: "rgba(9,14,26,0.4)" }}>
+                    {!selectedPreview
+                      ? <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center",
+                          justifyContent: "center", opacity: 0.35, fontSize: "0.85rem" }}>
+                          画像を読み込んでください
+                        </div>
+                      : afterSrc
+                        ? /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={afterSrc} alt="after"
+                            style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center",
+                            justifyContent: "center", opacity: 0.4, fontSize: "0.8rem" }}>処理中...</div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+
+  return (
+    <>
+      {fullscreenPortal}
+      <div className="studio-tab-content">
+        <div className="studio-section-header">
+          <div>
+            <p className="eyebrow">Step 1</p>
+            <h3>画像前処理</h3>
+          </div>
+          <span className="status draft">設定はアノテーション時に自動適用されます</span>
+        </div>
+
+        <div className="studio-info-row">
+          <div className="summary-item">
+            <span>入力フォルダ</span>
+            <strong>{previewSourceLabel || "未設定"}</strong>
+          </div>
+        </div>
+
+        {/* 画像インポート & プレビュー起動 */}
+        <div className="panel annotation-upload-panel" style={{ marginBottom: "1rem" }}>
+          <p className="eyebrow" style={{ marginBottom: "0.5rem" }}>前処理プレビュー</p>
+          <p className="muted" style={{ margin: "0 0 0.6rem", fontSize: "0.82rem" }}>
+            画像を読み込んでプレビューを開くと、元画像を見ながら設定を調整できます。元画像は変更されません。
+          </p>
+          <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
+            {workspace.imageFolder && (
+              <button type="button" className="ghost-button"
+                style={{ fontSize: "0.8rem", padding: "0.3rem 0.75rem" }}
+                onClick={handleImport} disabled={importLoading}>
+                {importLoading ? "読み込み中..." : "📂 設定フォルダから読み込み"}
+              </button>
+            )}
+            {previewImages.length > 0 && (
+              <button type="button"
+                style={{ fontSize: "0.8rem", padding: "0.3rem 0.75rem" }}
+                onClick={() => setFullscreenOpen(true)}>
+                🖼️ プレビューを開く（{previewImages.length} 枚）
+              </button>
+            )}
+          </div>
+          {importError && <p style={{ color: "#f87171", fontSize: "0.78rem", marginTop: "0.5rem" }}>{importError}</p>}
+
+          {/* サムネイル + 小プレビュー */}
+          {previewImages.length > 0 && (
+            <div style={{ marginTop: "0.9rem", display: "flex", gap: "0.8rem", flexWrap: "wrap", alignItems: "flex-start" }}>
+              {/* サムネイル列 */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
+                gap: "0.3rem", flex: "1 1 200px" }}>
+                {previewImages.slice(0, 12).map((img, idx) => (
+                  <button key={img.name} type="button" onClick={() => setPreviewIndex(idx)} title={img.name}
+                    style={{ padding: 0, borderRadius: "6px", overflow: "hidden", aspectRatio: "1", cursor: "pointer",
+                      border: idx === previewIndex ? "1px solid rgba(124,240,186,0.75)" : "1px solid rgba(237,241,250,0.16)",
+                      background: "rgba(9,14,26,0.45)" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </button>
+                ))}
+              </div>
+
+              {/* 選択画像の小プレビュー（Before/After） */}
+              {selectedPreview && (
+                <div style={{ display: "flex", gap: "0.5rem", flex: "0 0 auto" }}>
+                  <div style={{ width: "120px" }}>
+                    <p style={{ fontSize: "0.7rem", opacity: 0.55, marginBottom: "0.2rem" }}>Before</p>
+                    {afterResult && (
+                      <p style={{ fontSize: "0.66rem", opacity: 0.45, marginBottom: "0.2rem" }}>
+                        {afterResult.srcW}×{afterResult.srcH}
+                      </p>
+                    )}
+                    <div style={{ borderRadius: "6px", overflow: "hidden", aspectRatio: "1",
+                      border: "1px solid rgba(237,241,250,0.12)", background: "rgba(9,14,26,0.4)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedPreview.src} alt="before"
+                        style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    </div>
+                  </div>
+                  <div style={{ width: "120px" }}>
+                    <p style={{ fontSize: "0.7rem", opacity: 0.55, marginBottom: "0.2rem" }}>After</p>
+                    {afterResult && (
+                      <p style={{ fontSize: "0.66rem", color: "rgba(124,240,186,0.75)", marginBottom: "0.2rem" }}>
+                        {afterResult.outSize}×{afterResult.outSize}
+                      </p>
+                    )}
+                    <div style={{ borderRadius: "6px", overflow: "hidden", aspectRatio: "1",
+                      border: "1px solid rgba(124,240,186,0.28)", background: "rgba(9,14,26,0.4)" }}>
+                      {afterSrc
+                        ? /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={afterSrc} alt="after"
+                            style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center",
+                            justifyContent: "center", opacity: 0.4, fontSize: "0.7rem" }}>...</div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 前処理設定（コンパクト） */}
+        <div className="panel" style={{ padding: "1.25rem", marginBottom: "1rem" }}>
+          <p className="eyebrow" style={{ marginBottom: "1rem" }}>前処理設定</p>
+          {settingsPanel}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -434,20 +819,27 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     const imgFiles = files.filter(isImageFile);
     if (imgFiles.length === 0) return;
 
+    // 前処理設定を読み込む
+    let preprocessCfg: PreprocessConfig | null = null;
+    try {
+      const parsed = JSON.parse(workspace.preprocessConfig || "{}");
+      if (Object.keys(parsed).length > 0) {
+        preprocessCfg = { ...DEFAULT_CONFIG, ...parsed };
+      }
+    } catch { /* ignore */ }
+
     const sorted = [...imgFiles].sort((a, b) => getImportName(a).localeCompare(getImportName(b)));
     const readers = sorted.map(
       (file) =>
         new Promise<AnnotateImage>((resolve) => {
           const name = getImportName(file);
           const reader = new FileReader();
-          reader.onload = () => {
-            // 既存のアノテーションが同名（相対パス含む）なら引き継ぐ
+          reader.onload = async () => {
+            const rawSrc = reader.result as string;
+            // 前処理設定があればCanvas APIで処理を適用
+            const src = preprocessCfg ? await applyPreprocess(rawSrc, preprocessCfg) : rawSrc;
             const existing = images.find((img) => img.name === name);
-            resolve({
-              src: reader.result as string,
-              name,
-              regions: existing?.regions ?? [],
-            });
+            resolve({ src, name, regions: existing?.regions ?? [] });
           };
           reader.readAsDataURL(file);
         })

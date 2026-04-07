@@ -7,7 +7,7 @@ import {
   type ImageDatabaseConnectionPayload,
   type ImageDatabaseConnectionRecord,
 } from "@/lib/image-database";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type AccessMethod = {
   id: string;
@@ -46,32 +46,16 @@ export function ImageDatabaseWorkspace() {
   const [formMountPath, setFormMountPath] = useState("");
   const [formEndpoint, setFormEndpoint] = useState("");
 
-  const folderInputRef = useRef<HTMLInputElement>(null);
+  // 編集フォーム
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editMountPath, setEditMountPath] = useState("");
+  const [editEndpoint, setEditEndpoint] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const availableMethods = accessMethodsByType[selectedConnectionType];
   const selectedMethod =
     availableMethods.find((method) => method.id === selectedMethodId) ?? availableMethods[0];
-
-  const browseLocalFolder = async () => {
-    if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
-      try {
-        const dirHandle = await (window as Window & { showDirectoryPicker: () => Promise<{ name: string }> }).showDirectoryPicker();
-        setFormMountPath(dirHandle.name);
-      } catch {
-        // ユーザーがキャンセル
-      }
-    } else {
-      folderInputRef.current?.click();
-    }
-  };
-
-  const handleFolderInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const rel = files[0].webkitRelativePath;
-      setFormMountPath(rel.split("/")[0] ?? "");
-    }
-  };
 
   const fetchConnections = async () => {
     setIsLoadingConnections(true);
@@ -147,6 +131,62 @@ export function ImageDatabaseWorkspace() {
       setErrorMessage(error instanceof Error ? error.message : "接続先の登録に失敗しました。");
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  const startEdit = (connection: ImageDatabaseConnectionRecord) => {
+    setEditingId(connection.id);
+    setEditName(connection.name);
+    setEditMountPath(connection.mountPath);
+    setEditEndpoint(connection.connectionType === "local" ? "" : connection.endpoint);
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = async (connection: ImageDatabaseConnectionRecord) => {
+    if (editName.trim() === "" || editMountPath.trim() === "") return;
+
+    setIsSavingEdit(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const payload: ImageDatabaseConnectionPayload = {
+      name: editName.trim(),
+      connectionType: connection.connectionType as ConnectionType,
+      mountName: editName.trim().toLowerCase().replace(/[\s/\\]+/g, "-"),
+      mountPath: editMountPath.trim(),
+      storageEngine: connection.storageEngine,
+      endpoint: connection.connectionType === "local" ? "localhost" : editEndpoint.trim(),
+      accessMode: connection.accessMode,
+      status: connection.status,
+      purpose: connection.purpose,
+      notes: connection.notes,
+      imageCount: connection.imageCount,
+    };
+
+    try {
+      const response = await fetch(`/api/image-databases/${connection.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "接続先の更新に失敗しました。");
+      }
+
+      setSuccessMessage("接続先を更新しました。");
+      setEditingId(null);
+      await fetchConnections();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "接続先の更新に失敗しました。");
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -240,31 +280,13 @@ export function ImageDatabaseWorkspace() {
 
           {selectedConnectionType === "local" && (
             <label className="db-control" style={{ display: "grid", gap: "0.4rem" }}>
-              <span>フォルダパス</span>
-              <div className="local-folder-row">
-                <input
-                  type="text"
-                  placeholder="例: D:\vision\images"
-                  value={formMountPath}
-                  onChange={(e) => setFormMountPath(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="ghost-button local-browse-btn"
-                  onClick={browseLocalFolder}
-                  title="フォルダを参照"
-                >
-                  📁 参照...
-                </button>
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  style={{ display: "none" }}
-                  // @ts-expect-error — webkitdirectory は非標準属性
-                  webkitdirectory=""
-                  onChange={handleFolderInput}
-                />
-              </div>
+              <span>フォルダパス（フルパス）</span>
+              <input
+                type="text"
+                placeholder="例: D:\vision\images"
+                value={formMountPath}
+                onChange={(e) => setFormMountPath(e.target.value)}
+              />
             </label>
           )}
 
@@ -357,32 +379,97 @@ export function ImageDatabaseWorkspace() {
               <div
                 key={connection.id}
                 className="selection-card workspace-selection-card"
-                style={{ position: "relative", padding: "0.55rem 0.9rem", paddingRight: "7rem" }}
+                style={{ position: "relative", padding: "0.55rem 0.9rem", paddingRight: "11rem" }}
               >
-                <strong>{connection.name}</strong>
-                <span style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                  <span>{connectionTypeLabel[connection.connectionType as ConnectionType]} / {connection.storageEngine}</span>
-                  <span style={{ opacity: 0.65 }}>|</span>
-                  <span>{connection.mountPath}</span>
-                  <span style={{ opacity: 0.65 }}>|</span>
-                  <span>{connection.imageCount.toLocaleString()} 枚</span>
-                </span>
-                <button
-                  type="button"
-                  className="ghost-button"
-                  style={{
-                    position: "absolute",
-                    top: "0.5rem",
-                    right: "0.75rem",
-                    fontSize: "0.75rem",
-                    padding: "0.2rem 0.5rem",
-                    color: "#ef4444",
-                  }}
-                  onClick={() => deleteConnection(connection.id)}
-                  disabled={deletingConnectionId === connection.id}
-                >
-                  {deletingConnectionId === connection.id ? "削除中..." : "保存先を削除"}
-                </button>
+                {editingId === connection.id ? (
+                  <div style={{ display: "grid", gap: "0.6rem", paddingRight: "0.5rem" }}>
+                    <label className="db-control" style={{ display: "grid", gap: "0.3rem" }}>
+                      <span style={{ fontSize: "0.8rem" }}>名前</span>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
+                    </label>
+                    <label className="db-control" style={{ display: "grid", gap: "0.3rem" }}>
+                      <span style={{ fontSize: "0.8rem" }}>
+                        {connection.connectionType === "cloud" ? "バケット / コンテナ名" : "パス"}
+                      </span>
+                      <input
+                        type="text"
+                        value={editMountPath}
+                        onChange={(e) => setEditMountPath(e.target.value)}
+                      />
+                    </label>
+                    {connection.connectionType !== "local" && (
+                      <label className="db-control" style={{ display: "grid", gap: "0.3rem" }}>
+                        <span style={{ fontSize: "0.8rem" }}>
+                          {connection.connectionType === "cloud" ? "エンドポイント" : "サーバーアドレス"}
+                        </span>
+                        <input
+                          type="text"
+                          value={editEndpoint}
+                          onChange={(e) => setEditEndpoint(e.target.value)}
+                        />
+                      </label>
+                    )}
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.2rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => saveEdit(connection)}
+                        disabled={isSavingEdit || editName.trim() === "" || editMountPath.trim() === ""}
+                        style={{ fontSize: "0.8rem", padding: "0.2rem 0.7rem" }}
+                      >
+                        {isSavingEdit ? "保存中..." : "保存"}
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={cancelEdit}
+                        disabled={isSavingEdit}
+                        style={{ fontSize: "0.8rem", padding: "0.2rem 0.7rem" }}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <strong>{connection.name}</strong>
+                    <span style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                      <span>{connectionTypeLabel[connection.connectionType as ConnectionType]}</span>
+                      <span style={{ opacity: 0.65 }}>|</span>
+                      <span>{connection.mountPath}</span>
+                      <span style={{ opacity: 0.65 }}>|</span>
+                      <span>{connection.imageCount.toLocaleString()} 枚</span>
+                    </span>
+                  </>
+                )}
+                {editingId !== connection.id && (
+                  <div style={{ position: "absolute", top: "0.5rem", right: "0.75rem", display: "flex", gap: "0.4rem" }}>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                      onClick={() => startEdit(connection)}
+                    >
+                      編集
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      style={{
+                        fontSize: "0.75rem",
+                        padding: "0.2rem 0.5rem",
+                        color: "#ef4444",
+                      }}
+                      onClick={() => deleteConnection(connection.id)}
+                      disabled={deletingConnectionId === connection.id}
+                    >
+                      {deletingConnectionId === connection.id ? "削除中..." : "削除"}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
