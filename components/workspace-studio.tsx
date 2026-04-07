@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import type { AnnotateImage, AnyRegion, DrawTool } from "../types/annotate";
+import type { AnnotateImage, DrawTool } from "../types/annotate";
 export type { AnnotateImage, AnyRegion, DrawTool } from "../types/annotate";
 
 /* react-konva は SSR 非対応のため動的インポート */
@@ -14,6 +14,7 @@ type KonvaAnnotatorProps = {
   currentIndex?: number;
   regionClsList: string[];
   defaultTool?: DrawTool;
+  onClassListChange?: (next: string[]) => void;
   onSave: (updated: AnnotateImage[]) => void;
   onClose: () => void;
 };
@@ -66,7 +67,66 @@ function PreprocessTab({ workspace }: { workspace: WorkspaceInfo }) {
   const [augFlip, setAugFlip] = useState(true);
   const [augRotate, setAugRotate] = useState(false);
   const [augBrightness, setAugBrightness] = useState(false);
+  const [previewImages, setPreviewImages] = useState<Array<{ name: string; src: string }>>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [previewSourceLabel, setPreviewSourceLabel] = useState(workspace.imageFolder || "未選択");
   const [status, setStatus] = useState<"idle" | "running" | "done">("idle");
+
+  const selectedPreview = previewImages[previewIndex] ?? null;
+
+  const processedPreviewStyle = useMemo<React.CSSProperties>(() => {
+    const filters: string[] = [];
+    if (normalize) filters.push("brightness(1.04)", "contrast(1.06)");
+    if (removeBlur) filters.push("contrast(1.12)", "saturate(1.08)");
+    if (augBrightness) filters.push("brightness(1.18)");
+
+    return {
+      filter: filters.length > 0 ? filters.join(" ") : undefined,
+      transform: `${augFlip ? "scaleX(-1)" : "scaleX(1)"} ${augRotate ? "rotate(4deg)" : "rotate(0deg)"}`,
+      transformOrigin: "center",
+      transition: "transform 0.2s ease, filter 0.2s ease",
+    };
+  }, [normalize, removeBlur, augBrightness, augFlip, augRotate]);
+
+  const isImageFile = (file: File) => {
+    if (file.type.startsWith("image/")) return true;
+    return /\.(png|jpe?g|webp|bmp|gif|tiff?|avif)$/i.test(file.name);
+  };
+
+  const getImportName = (file: File) => {
+    const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+    return rel && rel.trim() ? rel : file.name;
+  };
+
+  const handlePreprocessFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const imageFiles = files.filter(isImageFile);
+    if (imageFiles.length === 0) {
+      e.target.value = "";
+      return;
+    }
+
+    const sorted = [...imageFiles].sort((a, b) => getImportName(a).localeCompare(getImportName(b)));
+    const firstRel = (sorted[0] as File & { webkitRelativePath?: string }).webkitRelativePath;
+    const root = firstRel?.split("/")[0] || "選択フォルダ";
+
+    const readers = sorted.map(
+      (file) =>
+        new Promise<{ name: string; src: string }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({ name: getImportName(file), src: reader.result as string });
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(readers).then((loaded) => {
+      setPreviewImages(loaded);
+      setPreviewIndex(0);
+      setPreviewSourceLabel(`${root} (${loaded.length} 枚)`);
+    });
+
+    e.target.value = "";
+  };
 
   const run = () => {
     setStatus("running");
@@ -88,13 +148,127 @@ function PreprocessTab({ workspace }: { workspace: WorkspaceInfo }) {
       <div className="studio-info-row">
         <div className="summary-item">
           <span>入力フォルダ</span>
-          <strong>{workspace.imageFolder || "未設定"}</strong>
+          <strong>{previewSourceLabel || "未設定"}</strong>
         </div>
         <div className="summary-item">
           <span>出力先</span>
           <strong>{workspace.datasetFolder || "未設定"}</strong>
         </div>
       </div>
+
+      <div className="panel annotation-upload-panel" style={{ marginBottom: "1rem" }}>
+        <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>前処理プレビュー画像</p>
+        <p className="muted" style={{ margin: "0 0 0.75rem" }}>
+          リソース画像を読み込むと、前処理結果を Before / After で確認できます。
+        </p>
+        <label className="annotation-upload-label">
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            style={{ display: "none" }}
+            // @ts-expect-error - webkitdirectory は非標準属性
+            webkitdirectory=""
+            onChange={handlePreprocessFolderUpload}
+          />
+          🗂 画像をインポート
+        </label>
+
+        {previewImages.length > 0 && (
+          <div style={{ marginTop: "0.9rem" }}>
+            <p className="muted" style={{ margin: "0 0 0.45rem", fontSize: "0.74rem" }}>
+              読み込み済み {previewImages.length} 枚
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))",
+                gap: "0.35rem",
+              }}
+            >
+              {previewImages.slice(0, 18).map((img, idx) => (
+                <button
+                  key={img.name}
+                  type="button"
+                  onClick={() => setPreviewIndex(idx)}
+                  title={img.name}
+                  style={{
+                    padding: 0,
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    border:
+                      idx === previewIndex
+                        ? "1px solid rgba(124, 240, 186, 0.75)"
+                        : "1px solid rgba(237, 241, 250, 0.16)",
+                    background: "rgba(9, 14, 26, 0.45)",
+                    cursor: "pointer",
+                    aspectRatio: "1",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.src}
+                    alt={img.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selectedPreview && (
+        <div
+          className="panel"
+          style={{
+            padding: "1rem",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "0.8rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <div>
+            <p className="eyebrow" style={{ marginBottom: "0.4rem" }}>Before</p>
+            <div
+              style={{
+                borderRadius: "10px",
+                overflow: "hidden",
+                border: "1px solid rgba(237, 241, 250, 0.12)",
+                background: "rgba(9, 14, 26, 0.4)",
+                aspectRatio: "4 / 3",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selectedPreview.src}
+                alt={`${selectedPreview.name} before`}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </div>
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: "0.4rem" }}>After</p>
+            <div
+              style={{
+                borderRadius: "10px",
+                overflow: "hidden",
+                border: "1px solid rgba(124, 240, 186, 0.28)",
+                background: "rgba(9, 14, 26, 0.4)",
+                aspectRatio: "4 / 3",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selectedPreview.src}
+                alt={`${selectedPreview.name} after`}
+                style={{ width: "100%", height: "100%", objectFit: "contain", ...processedPreviewStyle }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="studio-form-grid">
         <label className="db-control">
@@ -138,6 +312,11 @@ function PreprocessTab({ workspace }: { workspace: WorkspaceInfo }) {
         <button type="button" onClick={run} disabled={status === "running"}>
           {status === "running" ? "実行中..." : "前処理を実行"}
         </button>
+        {previewImages.length > 0 && (
+          <span className="muted" style={{ fontSize: "0.8rem" }}>
+            {previewImages.length} 枚の画像に対して設定を適用します
+          </span>
+        )}
         {status === "done" && (
           <span style={{ color: "#7cf0ba" }}>✓ 前処理が完了しました</span>
         )}
@@ -171,8 +350,9 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
   const [regionClsList, setRegionClsList] = useState<string[]>(
     defaultClasses[workspace.target] ?? ["object"]
   );
-  const [newClass, setNewClass] = useState("");
-  const [exportPath, setExportPath] = useState(workspace.annotationExportPath);
+  const [exportPath, setExportPath] = useState(
+    workspace.annotationExportPath || workspace.datasetFolder || ""
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -207,6 +387,10 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     () => images.filter((img) => img.regions.length > 0).length,
     [images]
   );
+  const importPreviewImages = useMemo(
+    () => images.filter((img) => Boolean(img.src)).slice(0, 15),
+    [images]
+  );
 
   /* アノテーター保存 → state 更新 + DB 永続化 */
   const handleAnnotationSave = async (updated: AnnotateImage[]) => {
@@ -215,7 +399,11 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
 
     // src はブラウザ上の base64 データURL であり DB に保存しない。
     // regions・name のみ永続化し、復元時は画像の再アップロードを促す。
-    const persisted = updated.map(({ src: _src, ...rest }) => rest);
+    const persisted = updated.map((img) => {
+      const next = { ...img };
+      delete next.src;
+      return next;
+    });
 
     try {
       const res = await fetch(`/api/workspaces/${workspace.id}`, {
@@ -272,13 +460,6 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     });
   };
 
-  /* 画像ファイル選択 → DataURL に変換 */
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    importFiles(files, `${files.length} 枚をファイル選択から取り込み`);
-    e.target.value = "";
-  };
-
   /* 画像フォルダ選択 → DataURL に変換 */
   const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -286,14 +467,6 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
     const root = firstRel?.split("/")[0] || "選択フォルダ";
     importFiles(files, `${root} (${files.length} ファイル)`);
     e.target.value = "";
-  };
-
-  /* クラスラベル管理 */  const addClassLabel = () => {
-    const trimmed = newClass.trim();
-    if (trimmed && !regionClsList.includes(trimmed)) {
-      setRegionClsList((prev) => [...prev, trimmed]);
-    }
-    setNewClass("");
   };
 
   /* YOLO フォーマット (.txt) をダウンロード */
@@ -346,7 +519,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
   };
 
   /* エクスポートパスを DB に保存 */
-  const saveExportPath = async () => {
+  const saveExportPath = async (path: string) => {
     setSaving(true);
     setSaveError("");
     setSaved(false);
@@ -354,7 +527,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
       const res = await fetch(`/api/workspaces/${workspace.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotationExportPath: exportPath }),
+        body: JSON.stringify({ annotationExportPath: path }),
       });
       if (!res.ok) throw new Error("save failed");
       setSaved(true);
@@ -365,6 +538,19 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
       setSaving(false);
     }
   };
+
+  // ワークスペースで決めた出力先をアノテーション出力先として自動利用する
+  useEffect(() => {
+    const preferredPath = workspace.annotationExportPath || workspace.datasetFolder || "";
+    if (!preferredPath) return;
+
+    setExportPath(preferredPath);
+
+    if (workspace.annotationExportPath === preferredPath) return;
+    void saveExportPath(preferredPath);
+  // ワークスペース切り替え時に再同期する
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace.id, workspace.annotationExportPath, workspace.datasetFolder]);
 
   /* ─── アノテーター全画面表示 (Portal経由で body 直下に描画) ─── */
   const annotatorPortal = createPortal(
@@ -382,6 +568,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
             currentIndex={0}
             regionClsList={regionClsList}
             defaultTool={toolMap[workspace.target] ?? "box"}
+            onClassListChange={setRegionClsList}
             onSave={handleAnnotationSave}
             onClose={() => setAnnotatorOpen(false)}
           />
@@ -395,7 +582,9 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
   return (
     <>
       {annotatorPortal}
-      <div className="studio-tab-content">
+      <div style={{ display: "flex", gap: "1rem", position: "relative" }}>
+        {/* メインコンテンツ */}
+        <div className="studio-tab-content" style={{ flex: 1 }}>
       <div className="studio-section-header">
         <div>
           <p className="eyebrow">Step 2</p>
@@ -418,7 +607,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
         <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>画像を読み込む</p>
         <div className="annotation-upload-zone">
           <p className="muted" style={{ margin: "0 0 0.75rem" }}>
-            ワークスペースの画像ソースに合わせて、ファイル単位またはフォルダ単位で取り込みできます。
+            ワークスペースで選択したリソースから、画像を一括インポートします。
           </p>
           <p className="muted" style={{ margin: "0 0 0.75rem", fontSize: "0.78rem" }}>
             現在のソース: {importSourceLabel}
@@ -430,67 +619,54 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
                 multiple
                 accept="image/*"
                 style={{ display: "none" }}
-                onChange={handleImageUpload}
-              />
-              📂 画像を選択
-            </label>
-            <label className="annotation-upload-label">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                style={{ display: "none" }}
                 // @ts-expect-error - webkitdirectory は非標準属性
                 webkitdirectory=""
                 onChange={handleFolderUpload}
               />
-              🗂 フォルダを選択
+              🗂 リソースからインポート
             </label>
           </div>
-        </div>
 
-        {images.length > 0 && (
-          <div className="annotation-image-preview">
-            {images.slice(0, 6).map((img) => (
-              <div key={img.name} className="annotation-preview-thumb">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.src} alt={img.name} />
-                {img.regions.length > 0 && (
-                  <span className="annotation-preview-badge">{img.regions.length}</span>
-                )}
+          {importPreviewImages.length > 0 && (
+            <div style={{ marginTop: "0.9rem" }}>
+              <p className="muted" style={{ margin: "0 0 0.45rem", fontSize: "0.72rem" }}>
+                サンプル画像 ({importPreviewImages.length}/{images.length})
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(54px, 1fr))",
+                  gap: "0.35rem",
+                }}
+              >
+                {importPreviewImages.map((img) => (
+                  <div
+                    key={img.name}
+                    style={{
+                      position: "relative",
+                      aspectRatio: "1",
+                      borderRadius: "6px",
+                      overflow: "hidden",
+                      border: "1px solid rgba(237, 241, 250, 0.16)",
+                      backgroundColor: "rgba(9, 14, 26, 0.45)",
+                    }}
+                    title={img.name}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.src}
+                      alt={img.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-            {images.length > 6 && (
-              <div className="annotation-preview-more">+{images.length - 6}</div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* クラスラベル */}
-      <div className="panel" style={{ padding: "1.25rem" }}>
-        <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>クラスラベル</p>
-        <div className="annotation-class-list">
-          {regionClsList.map((cls) => (
-            <span key={cls} className="annotation-class-tag">
-              {cls}
-              <button
-                type="button"
-                className="annotation-class-remove"
-                onClick={() => setRegionClsList((prev) => prev.filter((c) => c !== cls))}
-              >×</button>
-            </span>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-          <input
-            value={newClass}
-            onChange={(e) => setNewClass(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addClassLabel()}
-            placeholder="クラス名を追加..."
-            style={{ flex: 1 }}
-          />
-          <button type="button" onClick={addClassLabel}>追加</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -516,7 +692,7 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
           </p>
           <p className="muted" style={{ margin: "0 0 0.9rem" }}>
             各画像のアノテーションを YOLO 形式の .txt ファイルとして一括ダウンロードします。
-            ダウンロード先のパスを登録すると、学習タブに自動反映されます。
+            出力先はワークスペースで設定済みのリソースを自動利用します。
           </p>
           <button type="button" onClick={exportYOLO}>
             ラベルファイルをダウンロード (YOLO)
@@ -524,21 +700,23 @@ function AnnotationTab({ workspace }: { workspace: WorkspaceInfo }) {
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "1rem" }}>
             <input
               value={exportPath}
-              onChange={(e) => setExportPath(e.target.value)}
-              placeholder="例: D:\annotations\workspace-abc\labels"
+              readOnly
+              disabled
+              placeholder="ワークスペースの出力先を自動使用"
               style={{ flex: "1 1 300px" }}
             />
-            <button type="button" onClick={saveExportPath} disabled={saving}>
-              {saving ? "登録中..." : "エクスポートパスを登録"}
+            <button type="button" disabled>
+              {saving ? "同期中..." : "自動設定"}
             </button>
           </div>
-          {saved && <p style={{ marginTop: "0.6rem", color: "#7cf0ba" }}>✓ 登録しました</p>}
+          {saved && <p style={{ marginTop: "0.6rem", color: "#7cf0ba" }}>✓ 出力先を同期しました</p>}
           {saveError && (
             <p className="form-error" style={{ marginTop: "0.6rem" }}>{saveError}</p>
           )}
         </div>
       )}
-    </div>
+        </div>
+      </div>
     </>
   );
 }
@@ -727,6 +905,77 @@ function TrainingTab({ workspace }: { workspace: WorkspaceInfo }) {
           </div>
         </div>
       )}
+        {/* インポート画像サンプル */}
+        {images.length > 0 && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <p className="muted" style={{ fontSize: "0.7rem", margin: "0 0 0.5rem" }}>
+              インポートされた画像 ({images.length})
+            </p>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(6, 1fr)",
+              gap: "0.3rem",
+            }}>
+              {images.slice(0, 12).map((img) => (
+                <div
+                  key={img.name}
+                  style={{
+                    position: "relative",
+                    aspectRatio: "1",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(237, 241, 250, 0.1)",
+                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.src}
+                    alt={img.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  {img.regions.length > 0 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "0.1rem",
+                        right: "0.1rem",
+                        background: "#7cf0ba",
+                        color: "#0f1728",
+                        fontSize: "0.5rem",
+                        fontWeight: 700,
+                        padding: "0.1rem 0.25rem",
+                        borderRadius: "2px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {img.regions.length}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {images.length > 12 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.6rem",
+                    color: "rgba(237, 241, 250, 0.4)",
+                    borderRadius: "4px",
+                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                  }}
+                >
+                  +{images.length - 12}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       <div className="workflow-actions" style={{ marginTop: "1.5rem" }}>
         {phase === "idle" && (

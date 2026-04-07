@@ -1805,10 +1805,10 @@ a, button, div {
 }
 
 .annotation-upload-zone {
-  border: 1.5px dashed rgba(237, 241, 250, 0.25);
-  border-radius: 8px;
-  padding: 1.25rem;
-  text-align: center;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  text-align: left;
 }
 
 .annotation-upload-label {

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -10,6 +11,7 @@ export type KonvaAnnotatorProps = {
   currentIndex?: number;
   regionClsList: string[];
   defaultTool?: DrawTool;
+  onClassListChange?: (next: string[]) => void;
   onSave: (updated: AnnotateImage[]) => void;
   onClose: () => void;
 };
@@ -66,6 +68,7 @@ export default function KonvaAnnotator({
   currentIndex = 0,
   regionClsList,
   defaultTool = "box",
+  onClassListChange,
   onSave,
   onClose,
 }: KonvaAnnotatorProps) {
@@ -74,7 +77,12 @@ export default function KonvaAnnotator({
   );
   const [imgIdx, setImgIdx] = useState(currentIndex);
   const [tool, setTool] = useState<"select" | "box">(defaultTool === "select" ? "select" : "box");
-  const [selectedCls, setSelectedCls] = useState<string>(regionClsList[0] ?? "object");
+  const [classList, setClassList] = useState<string[]>(() => {
+    const unique = Array.from(new Set(regionClsList));
+    return unique.length > 0 ? unique : ["object"];
+  });
+  const [selectedCls, setSelectedCls] = useState<string>((regionClsList[0] ?? "object"));
+  const [newClass, setNewClass] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, w: 1, h: 1 });
@@ -106,6 +114,25 @@ export default function KonvaAnnotator({
     [regions]
   );
 
+  useEffect(() => {
+    const unique = Array.from(new Set(regionClsList));
+    if (unique.length === 0) return;
+    setClassList((prev) => {
+      if (prev.length === unique.length && prev.every((v, i) => v === unique[i])) return prev;
+      return unique;
+    });
+  }, [regionClsList]);
+
+  useEffect(() => {
+    if (!classList.includes(selectedCls)) {
+      setSelectedCls(classList[0] ?? "object");
+    }
+  }, [classList, selectedCls]);
+
+  useEffect(() => {
+    onClassListChange?.(classList);
+  }, [classList, onClassListChange]);
+
   const updateRegions = useCallback(
     (fn: (prev: AnyRegion[]) => AnyRegion[]) => {
       setAllImages((prev) =>
@@ -128,8 +155,8 @@ export default function KonvaAnnotator({
   }, [selectedCls]);
 
   useEffect(() => {
-    regionClsListRef.current = regionClsList;
-  }, [regionClsList]);
+    regionClsListRef.current = classList;
+  }, [classList]);
 
   useEffect(() => {
     updateRegionsRef.current = updateRegions;
@@ -306,7 +333,7 @@ export default function KonvaAnnotator({
       const p = toCanvas(region.x, region.y, viewport);
       const w = region.w * viewport.w;
       const h = region.h * viewport.h;
-      const color = getColor(region.cls, regionClsList);
+      const color = getColor(region.cls, classList);
       const isSelected = selectedId === region.id;
 
       const rect = new Konva.Rect({
@@ -337,7 +364,37 @@ export default function KonvaAnnotator({
     }
 
     layer.batchDraw();
-  }, [boxRegions, regionClsList, selectedId, viewport]);
+  }, [boxRegions, classList, selectedId, viewport]);
+
+  const addClassLabel = () => {
+    const trimmed = newClass.trim();
+    if (!trimmed) return;
+    if (classList.includes(trimmed)) {
+      setSelectedCls(trimmed);
+      setNewClass("");
+      return;
+    }
+    setClassList((prev) => [...prev, trimmed]);
+    setSelectedCls(trimmed);
+    setNewClass("");
+  };
+
+  const removeClassLabel = (targetCls: string) => {
+    if (classList.length <= 1) return;
+    const fallbackCls = classList.find((cls) => cls !== targetCls) ?? "object";
+
+    setClassList((prev) => prev.filter((cls) => cls !== targetCls));
+    if (selectedCls === targetCls) setSelectedCls(fallbackCls);
+
+    setAllImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        regions: img.regions.map((region) =>
+          region.cls === targetCls ? { ...region, cls: fallbackCls } : region
+        ),
+      }))
+    );
+  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -372,7 +429,7 @@ export default function KonvaAnnotator({
   }
 
   return (
-    <div className="kanno-root">
+    <div className="kanno-root" style={{ display: "flex", gap: 0, height: "100vh" }}>
       <div className="kanno-sidebar">
         <div className="kanno-sidebar-section">
           <p className="kanno-sidebar-label">ツール</p>
@@ -386,18 +443,71 @@ export default function KonvaAnnotator({
 
         <div className="kanno-sidebar-section">
           <p className="kanno-sidebar-label">クラス</p>
-          {regionClsList.map((c, i) => (
-            <button
-              key={c}
-              type="button"
-              className={`kanno-cls-btn${selectedCls === c ? " active" : ""}`}
-              style={{ "--cls-color": CLASS_COLORS[i % CLASS_COLORS.length] } as React.CSSProperties}
-              onClick={() => setSelectedCls(c)}
-            >
-              <span className="kanno-cls-dot" />
-              {c}
-            </button>
+          {classList.map((c, i) => (
+            <div key={c} style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <button
+                type="button"
+                className={`kanno-cls-btn${selectedCls === c ? " active" : ""}`}
+                style={{ "--cls-color": CLASS_COLORS[i % CLASS_COLORS.length] } as React.CSSProperties}
+                onClick={() => setSelectedCls(c)}
+              >
+                <span className="kanno-cls-dot" />
+                {c}
+              </button>
+              <button
+                type="button"
+                onClick={() => removeClassLabel(c)}
+                disabled={classList.length <= 1}
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(255, 255, 255, 0.16)",
+                  background: "rgba(255, 255, 255, 0.04)",
+                  color: "#fca5a5",
+                  cursor: classList.length <= 1 ? "not-allowed" : "pointer",
+                  opacity: classList.length <= 1 ? 0.45 : 1,
+                }}
+                title="クラスを削除"
+              >
+                ×
+              </button>
+            </div>
           ))}
+          <div style={{ display: "flex", gap: "0.35rem", marginTop: "0.45rem" }}>
+            <input
+              value={newClass}
+              onChange={(e) => setNewClass(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addClassLabel()}
+              placeholder="クラス追加"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 255, 255, 0.16)",
+                background: "rgba(255, 255, 255, 0.04)",
+                color: "#e5ecff",
+                padding: "0.4rem 0.5rem",
+                fontSize: "0.78rem",
+              }}
+            />
+            <button
+              type="button"
+              onClick={addClassLabel}
+              style={{
+                borderRadius: "8px",
+                border: "1px solid rgba(124, 240, 186, 0.35)",
+                background: "rgba(124, 240, 186, 0.15)",
+                color: "#7cf0ba",
+                padding: "0.4rem 0.55rem",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              追加
+            </button>
+          </div>
         </div>
 
         <div className="kanno-sidebar-section kanno-region-list-wrap">
@@ -459,6 +569,122 @@ export default function KonvaAnnotator({
           <span style={{ marginLeft: "auto", opacity: 0.45, fontSize: "0.75rem" }}>
             canvas {canvasSize.w.toFixed(0)}x{canvasSize.h.toFixed(0)} | image {viewport.w.toFixed(0)}x{viewport.h.toFixed(0)}
           </span>
+        </div>
+      </div>
+
+      {/* 画像リストサイドバー */}
+      <div
+        style={{
+          width: "180px",
+          display: "flex",
+          flexDirection: "column",
+          borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
+          backgroundColor: "rgba(15, 23, 40, 0.4)",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "#7cf0ba",
+            padding: "0.75rem",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            margin: 0,
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          📄 画像 ({allImages.length})
+        </p>
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+            padding: "0.5rem",
+          }}
+        >
+          {allImages.map((img, idx) => (
+            <div
+              key={`${img.name}-${idx}`}
+              onClick={() => setImgIdx(idx)}
+              style={{
+                cursor: "pointer",
+                padding: "0.5rem",
+                borderRadius: "6px",
+                backgroundColor:
+                  imgIdx === idx
+                    ? "rgba(124, 240, 186, 0.15)"
+                    : "rgba(255, 255, 255, 0.04)",
+                border:
+                  imgIdx === idx
+                    ? "1px solid rgba(124, 240, 186, 0.4)"
+                    : "1px solid rgba(255, 255, 255, 0.08)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  paddingBottom: "75%",
+                  marginBottom: "0.4rem",
+                  overflow: "hidden",
+                  borderRadius: "4px",
+                  backgroundColor: "rgba(0, 0, 0, 0.3)",
+                }}
+              >
+                {img.src && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={img.src}
+                    alt={img.name}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+                {/* BBOX数表示 */}
+                {img.regions && img.regions.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "0.25rem",
+                      right: "0.25rem",
+                      background: "rgba(124, 240, 186, 0.9)",
+                      color: "#0f1728",
+                      fontSize: "0.55rem",
+                      fontWeight: 700,
+                      padding: "0.15rem 0.35rem",
+                      borderRadius: "3px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {img.regions.length}
+                  </div>
+                )}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.65rem",
+                  color: imgIdx === idx ? "#7cf0ba" : "rgba(255, 255, 255, 0.6)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {idx + 1}/{allImages.length}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

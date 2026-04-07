@@ -357,7 +357,8 @@ export function WorkspacesWorkspace({
 
   const allMountTargets = dynamicMountTargets.length > 0 ? dynamicMountTargets : registeredMountTargets;
 
-  const effectiveForm = isCreating ? draftForm : toEditableForm(selectedWorkspace, allMountTargets);
+  const isFormMode = isCreating || isEditing;
+  const effectiveForm = isFormMode ? draftForm : toEditableForm(selectedWorkspace, allMountTargets);
   const suggestedModels = getModelsForTarget(effectiveForm.target);
   const selectedTarget = targetOptions.find((option) => option.id === effectiveForm.target) ?? targetOptions[0];
   const mountTargets = allMountTargets.filter((target) => target.type === effectiveForm.databaseType);
@@ -458,6 +459,7 @@ export function WorkspacesWorkspace({
           const nextTarget = allMountTargets.find((target) => target.type === value) ?? null;
           return {
             ...workspace,
+            databaseType: value,
             databaseId: nextTarget?.databaseId ?? workspace.databaseId,
             imageFolder: nextTarget?.mountPath ?? workspace.imageFolder,
           };
@@ -479,7 +481,7 @@ export function WorkspacesWorkspace({
 
   const handleFieldChange = (rawValue: string) => {
     const value = rawValue === MODEL_OPTIONAL_VALUE ? "" : rawValue;
-    if (isCreating) {
+    if (isFormMode) {
       updateDraft(activeField.key, value);
     } else {
       updateWorkspace(activeField.key, value);
@@ -598,6 +600,10 @@ export function WorkspacesWorkspace({
     setIsSaving(true);
 
     try {
+      const selectedTargetAtSave = allMountTargets.find(
+        (target) => target.databaseId === draftForm.databaseId,
+      );
+
       const response = await fetch("/api/workspaces", {
         method: "POST",
         headers: {
@@ -607,10 +613,10 @@ export function WorkspacesWorkspace({
           name: draftForm.name,
           target: draftForm.target,
           selectedModel: draftForm.selectedModel,
-          imageFolder: draftForm.imageFolder,
+          imageFolder: selectedTargetAtSave?.mountPath ?? draftForm.imageFolder,
           datasetFolder: getOutputFolderPath(draftForm.name || "new-workspace"),
           databaseId: draftForm.databaseId,
-          databaseType: draftForm.databaseType,
+          databaseType: selectedTargetAtSave?.type ?? draftForm.databaseType,
         }),
       });
 
@@ -639,9 +645,14 @@ export function WorkspacesWorkspace({
     if (!canCreateWorkspace || !selectedWorkspaceId) return;
 
     setIsSaving(true);
+    const editingWorkspaceId = selectedWorkspaceId;
 
     try {
-      const response = await fetch(`/api/workspaces/${selectedWorkspaceId}`, {
+      const selectedTargetAtSave = allMountTargets.find(
+        (target) => target.databaseId === draftForm.databaseId,
+      );
+
+      const response = await fetch(`/api/workspaces/${editingWorkspaceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -650,10 +661,10 @@ export function WorkspacesWorkspace({
           name: draftForm.name,
           target: draftForm.target,
           selectedModel: draftForm.selectedModel,
-          imageFolder: draftForm.imageFolder,
+          imageFolder: selectedTargetAtSave?.mountPath ?? draftForm.imageFolder,
           datasetFolder: getOutputFolderPath(draftForm.name || "new-workspace"),
           databaseId: draftForm.databaseId,
-          databaseType: draftForm.databaseType,
+          databaseType: selectedTargetAtSave?.type ?? draftForm.databaseType,
         }),
       });
 
@@ -663,7 +674,8 @@ export function WorkspacesWorkspace({
 
       const updatedWorkspace = (await response.json()) as WorkspacePipeline;
 
-      setWorkspaces((current) => current.map(w => w.id === selectedWorkspaceId ? updatedWorkspace : w));
+      setWorkspaces((current) => current.map((w) => (w.id === updatedWorkspace.id ? updatedWorkspace : w)));
+      setSelectedWorkspaceId(updatedWorkspace.id);
       setIsAnimatingOut(true);
       setTimeout(() => {
         setIsEditing(false);
