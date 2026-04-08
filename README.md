@@ -218,6 +218,23 @@ npm.cmd run dev
 
 - 「画像をインポート」ボタン（webkitdirectory）を削除し、「設定フォルダから読み込み」のみに統一
 
+#### アノテーターのモジュール分割リファクタリング
+
+モノリシックな `components/konva-annotator.tsx` を責務ごとに分割し、`components/studio/annotator/` 配下で管理するアーキテクチャに移行。
+
+| ファイル | 役割 |
+|---|---|
+| `konva-annotator.tsx` | コンポジションルート（各モジュールを組み合わせる） |
+| `studio/annotator/useAnnotatorState.ts` | 全状態（images / classList / selectedId 等）と CRUD 操作を管理するカスタムフック |
+| `studio/annotator/AnnotatorCanvas.tsx` | Konva Stage/Layer + マウスイベント処理 |
+| `studio/annotator/hooks/useBoxDraw.ts` | BBox ドラッグ描画の純粋ロジック（副作用なし） |
+| `studio/annotator/AnnotationSidebar.tsx` | 左パネル UI（ツール選択・クラス管理・アノテーション一覧） |
+| `studio/annotator/ImageListSidebar.tsx` | 右サイドバー UI（画像サンプル・BBox 数表示） |
+| `studio/annotator/Topbar.tsx` | トップバー UI（ナビゲーション・保存・閉じる） |
+
+- UI コンポーネント（Sidebar / Topbar）はステートレス（props のみ受け取る）に統一
+- `useRef` を `useState` に置き換え、状態管理を整理
+
 ### 2026-04-07
 
 - 前処理タブを視覚プレビュー対応（画像インポート、サムネイル選択、Before / After 表示）
@@ -238,6 +255,6 @@ npm.cmd run dev
 
 1. 変更確認: `git status`
 2. 差分確認: `git diff`
-3. ステージ: `git add README.md components/konva-annotator.tsx`
-4. コミット: `git commit -m "docs: update README and annotate Konva bugfixes"`
+3. ステージ: `git add README.md docs/ components/konva-annotator.tsx components/studio/`
+4. コミット: `git commit -m "refactor: split KonvaAnnotator into modular studio/annotator structure"`
 5. 反映: `git push origin <branch-name>`
