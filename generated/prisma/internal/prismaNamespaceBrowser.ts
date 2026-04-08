@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Workspace: 'Workspace',
+  AnnotationEntry: 'AnnotationEntry',
   ImageDatabaseConnection: 'ImageDatabaseConnection'
 } as const
 
@@ -101,6 +102,18 @@ export const WorkspaceScalarFieldEnum = {
 } as const
 
 export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
+
+
+export const AnnotationEntryScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  imageName: 'imageName',
+  regions: 'regions',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AnnotationEntryScalarFieldEnum = (typeof AnnotationEntryScalarFieldEnum)[keyof typeof AnnotationEntryScalarFieldEnum]
 
 
 export const ImageDatabaseConnectionScalarFieldEnum = {

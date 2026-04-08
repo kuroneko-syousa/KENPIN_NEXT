@@ -52,6 +52,11 @@ export type User = Prisma.UserModel
  */
 export type Workspace = Prisma.WorkspaceModel
 /**
+ * Model AnnotationEntry
+ * 
+ */
+export type AnnotationEntry = Prisma.AnnotationEntryModel
+/**
  * Model ImageDatabaseConnection
  * 
  */

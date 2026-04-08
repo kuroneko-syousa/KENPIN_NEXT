@@ -36,6 +36,19 @@ model Workspace {
   updatedAt     DateTime @updatedAt
   ownerId       String
   owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  annotationEntries     AnnotationEntry[]
+}
+
+model AnnotationEntry {
+  id          String    @id @default(cuid())
+  workspaceId String
+  imageName   String
+  regions     String    @default("[]")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, imageName])
 }
 
 model ImageDatabaseConnection {

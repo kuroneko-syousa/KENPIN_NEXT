@@ -13,7 +13,8 @@ export type UsePreprocessReturn = ReturnType<typeof usePreprocess>;
 export function usePreprocess(
   workspaceId: string,
   initialConfigJson: string,
-  imageFolder: string
+  imageFolder: string,
+  onConfigSaved?: (json: string) => void
 ) {
   const [cfg, setCfg] = useState<PreprocessConfig>(() => {
     try {
@@ -83,20 +84,22 @@ export function usePreprocess(
     setSaveError("");
     setSaved(false);
     try {
+      const json = JSON.stringify(cfg);
       const res = await fetch(`/api/workspaces/${workspaceId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preprocessConfig: JSON.stringify(cfg) }),
+        body: JSON.stringify({ preprocessConfig: json }),
       });
       if (!res.ok) throw new Error("save failed");
       setSaved(true);
+      onConfigSaved?.(json);
       setTimeout(() => setSaved(false), 2500);
     } catch {
       setSaveError("設定の保存に失敗しました。");
     } finally {
       setSaving(false);
     }
-  }, [workspaceId, cfg]);
+  }, [workspaceId, cfg, onConfigSaved]);
 
   return {
     cfg,

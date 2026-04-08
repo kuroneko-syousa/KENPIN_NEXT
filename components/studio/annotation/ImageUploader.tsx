@@ -7,6 +7,8 @@ export type ImageUploaderProps = {
   previewImages: AnnotateImage[];
   restoreInfo: string | null;
   onFolderUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onResourceImport: () => void;
+  imageFolder: string;
 };
 
 /** 画像インポート + サンプルサムネイル表示（ステートレス） */
@@ -15,6 +17,8 @@ export default function ImageUploader({
   previewImages,
   restoreInfo,
   onFolderUpload,
+  onResourceImport,
+  imageFolder,
 }: ImageUploaderProps) {
   return (
     <>
@@ -35,18 +39,28 @@ export default function ImageUploader({
             現在のソース: {importSourceLabel}
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-            <label className="annotation-upload-label">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                style={{ display: "none" }}
-                // @ts-expect-error - webkitdirectory は非標準属性
-                webkitdirectory=""
-                onChange={onFolderUpload}
-              />
-              🗂 リソースからインポート
-            </label>
+            {imageFolder ? (
+              <button
+                type="button"
+                className="annotation-upload-label"
+                onClick={onResourceImport}
+              >
+                🗂 リソースからインポート
+              </button>
+            ) : (
+              <label className="annotation-upload-label">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  // @ts-expect-error - webkitdirectory は非標準属性
+                  webkitdirectory=""
+                  onChange={onFolderUpload}
+                />
+                🗂 フォルダからインポート
+              </label>
+            )}
           </div>
 
           {previewImages.length > 0 && (

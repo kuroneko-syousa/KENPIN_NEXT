@@ -2033,3 +2033,128 @@ a, button, div {
     flex: 1 1 calc(50% - 0.375rem);
   }
 }
+
+/* ─── AnnotationStats パネル ─── */
+
+.annotation-stats-panel {
+  padding: 1.1rem 1.25rem;
+  margin-top: 0;
+}
+
+.annotation-stats-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.annotation-stats-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.annotation-stats-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.annotation-stats-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.annotation-stats-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.annotation-stats-dot.annotated {
+  background: #7cb4f0;
+}
+
+.annotation-stats-dot.unannotated {
+  background: rgba(237, 241, 250, 0.18);
+  border: 1px solid rgba(237, 241, 250, 0.25);
+}
+
+.annotation-stats-classes {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.annotation-stats-bar-row {
+  margin-bottom: 0.45rem;
+}
+
+.annotation-stats-bar-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+
+.annotation-stats-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(237, 241, 250, 0.09);
+  overflow: hidden;
+}
+
+.annotation-stats-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #7cb4f0;
+  transition: width 0.4s cubic-bezier(.4, 0, .2, 1);
+}
+
+.annotation-stats-bar-fill.error {
+  background: #ff9d9d;
+}
+
+.annotation-stats-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+}
+
+.annotation-issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.annotation-issue-error {
+  background: rgba(255, 112, 112, 0.1);
+  border: 1px solid rgba(255, 112, 112, 0.22);
+  color: #ff9d9d;
+}
+
+.annotation-issue-warning {
+  background: rgba(255, 193, 106, 0.1);
+  border: 1px solid rgba(255, 193, 106, 0.22);
+  color: #ffd783;
+}
+
+.annotation-issue-icon {
+  flex-shrink: 0;
+  line-height: 1.45;
+}
+
+.annotation-stats-ok {
+  margin-top: 0.75rem;
+  color: #7cf0ba;
+  font-size: 0.8rem;
+}
+

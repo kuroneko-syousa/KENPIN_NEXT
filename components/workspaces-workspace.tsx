@@ -87,6 +87,34 @@ const targetOptions: TargetOption[] = [
   },
 ];
 
+const modelTypeOptions: Record<string, Array<{ id: string; label: string; description: string }>> = {
+  "object-detection": [
+    { id: "yolo", label: "YOLO", description: "リアルタイム推論向け1ステージ検出器。速度と精度のバランスに優れます。" },
+    { id: "rt-detr", label: "RT-DETR", description: "Transformerベースのリアルタイム検出器。高精度かつ高速です。" },
+    { id: "faster-rcnn", label: "Faster R-CNN", description: "2ステージ検出の代表。精度重視の用途に適しています。" },
+  ],
+  "anomaly-detection": [
+    { id: "patchcore", label: "PatchCore", description: "メモリバンクを用いた高精度な異常検知。教師ありラベル不要です。" },
+    { id: "fastflow", label: "FastFlow", description: "正規化フローベースの高速異常検知モデルです。" },
+    { id: "padim", label: "PaDiM", description: "パッチディストリビューションモデリングによる異常検知です。" },
+  ],
+  "segmentation": [
+    { id: "yolo-seg", label: "YOLO-seg", description: "YOLOベースのインスタンスセグメンテーション。高速です。" },
+    { id: "mask-rcnn", label: "Mask R-CNN", description: "精度の高いインスタンスセグメンテーションの定番モデルです。" },
+    { id: "sam", label: "SAM", description: "Segment Anything Model。汎用性が高いセグメンテーションです。" },
+  ],
+  "ocr-inspection": [
+    { id: "paddleocr", label: "PaddleOCR", description: "多言語対応のOCRフレームワーク。日本語に強みがあります。" },
+    { id: "crnn", label: "CRNN + Detector", description: "文字認識と検出を組み合わせた構成です。" },
+    { id: "yolo-ocr", label: "YOLO + OCR", description: "YOLOで文字領域を検出しOCRで認識する2段構成です。" },
+  ],
+  "pose-keypoint": [
+    { id: "yolo-pose", label: "YOLO-pose", description: "YOLOベースの高速キーポイント検出です。" },
+    { id: "hrnet", label: "HRNet", description: "高解像度表現を保持したキーポイント検出の高精度モデルです。" },
+    { id: "openpose", label: "OpenPose", description: "マルチパーソン姿勢推定の定番フレームワークです。" },
+  ],
+};
+
 const modelSuggestions: Record<string, string[]> = {
   "object-detection": [
     "YOLOv8m-det (仮設定)",
@@ -181,6 +209,10 @@ function getOutputFolderPath(name: string) {
 
 function getModelsForTarget(targetId: string) {
   return modelSuggestions[targetId] ?? modelSuggestions["object-detection"];
+}
+
+function getModelTypesForTarget(targetId: string) {
+  return modelTypeOptions[targetId] ?? modelTypeOptions["object-detection"];
 }
 
 function getTargetsByType(type: string, targets: RegisteredMountTarget[] = registeredMountTargets) {
@@ -367,6 +399,9 @@ export function WorkspacesWorkspace({
   const selectedMountType =
     databaseTypeOptions.find((option) => option.id === effectiveForm.databaseType) ?? databaseTypeOptions[0];
   const selectedDatabaseName = selectedMountTarget?.name ?? "未選択";
+  const selectedModelTypeLabel =
+    getModelTypesForTarget(effectiveForm.target).find((opt) => opt.id === effectiveForm.selectedModel)?.label ??
+    (effectiveForm.selectedModel || "未選択");
 
   const stepCards = pageSteps.map((step) => ({
     ...step,
@@ -379,6 +414,7 @@ export function WorkspacesWorkspace({
     model: [
       { key: "name", label: "ワークスペース名" },
       { key: "target", label: "ターゲット選択" },
+      { key: "selectedModel", label: "モデルタイプ" },
     ],
     folder: [
       { key: "databaseType", label: "リソースタイプ" },
@@ -714,6 +750,23 @@ export function WorkspacesWorkspace({
       );
     }
 
+    if (activeField.key === "selectedModel") {
+      const modelTypes = getModelTypesForTarget(effectiveForm.target);
+      return (
+        <select
+          value={effectiveForm.selectedModel}
+          onChange={(event) => handleFieldChange(event.target.value)}
+        >
+          <option value="">選択してください</option>
+          {modelTypes.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     if (activeField.key === "databaseType") {
       return (
         <select
@@ -795,6 +848,9 @@ export function WorkspacesWorkspace({
               const targetLabel =
                 targetOptions.find((option) => option.id === normalizeTarget(workspace.target))?.label ??
                 workspace.target;
+              const modelTypeLabel =
+                getModelTypesForTarget(workspace.target).find((opt) => opt.id === workspace.selectedModel)?.label ??
+                (workspace.selectedModel || null);
 
               return (
                 <div
@@ -811,7 +867,7 @@ export function WorkspacesWorkspace({
                     <div style={{ flex: 1 }}>
                       <strong>{workspace.name}</strong>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#f7f8fc' }}>
-                        <div><strong>手法:</strong> {targetLabel}</div>
+                        <div><strong>手法:</strong> {targetLabel}{modelTypeLabel ? ` / ${modelTypeLabel}` : ""}</div>
                         <div><strong>リソースアクセス:</strong> {(() => { const t = allMountTargets.find((target) => target.databaseId === workspace.databaseId); const name = t?.name ?? workspace.databaseId ?? "未設定"; const path = workspace.imageFolder; return path ? `${name} (${path})` : name; })()}</div>
                       </div>
                     </div>
@@ -926,6 +982,9 @@ export function WorkspacesWorkspace({
                   <span className={activeField.key === "target" ? "active" : ""}>
                     ターゲット: <code>{selectedTarget.label}</code>
                   </span>
+                  <span className={activeField.key === "selectedModel" ? "active" : ""}>
+                    モデルタイプ: <code>{selectedModelTypeLabel}</code>
+                  </span>
                   <span className={activeField.key === "databaseType" ? "active" : ""}>
                     リソースタイプ: <code>{selectedMountType.label}</code>
                   </span>
@@ -947,7 +1006,8 @@ export function WorkspacesWorkspace({
 
                   {activeField.key === "selectedModel" ? (
                     <p className="muted">
-                      候補はターゲットに応じた仮設定です。選択は任意で、プルダウン内だけに表示しています。
+                      {getModelTypesForTarget(effectiveForm.target).find((opt) => opt.id === effectiveForm.selectedModel)?.description
+                        ?? "ターゲットに合わせた代表的なモデルアーキテクチャを選択します。モデルサイズはパラメーターチューニングで設定できます。"}
                     </p>
                   ) : null}
 

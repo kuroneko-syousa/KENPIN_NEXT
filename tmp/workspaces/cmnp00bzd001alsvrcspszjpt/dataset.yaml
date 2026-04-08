@@ -1,0 +1,6 @@
+path: C:/Users/localadmin/Desktop/KENPIN_NEXT/tmp/workspaces/cmnp00bzd001alsvrcspszjpt
+train: images
+val: images
+
+nc: 1
+names: ['object']

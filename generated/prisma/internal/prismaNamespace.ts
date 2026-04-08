@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Workspace: 'Workspace',
+  AnnotationEntry: 'AnnotationEntry',
   ImageDatabaseConnection: 'ImageDatabaseConnection'
 } as const
 
@@ -402,7 +403,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "workspace" | "imageDatabaseConnection"
+    modelProps: "user" | "workspace" | "annotationEntry" | "imageDatabaseConnection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -554,6 +555,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AnnotationEntry: {
+      payload: Prisma.$AnnotationEntryPayload<ExtArgs>
+      fields: Prisma.AnnotationEntryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AnnotationEntryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AnnotationEntryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        findFirst: {
+          args: Prisma.AnnotationEntryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AnnotationEntryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        findMany: {
+          args: Prisma.AnnotationEntryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>[]
+        }
+        create: {
+          args: Prisma.AnnotationEntryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        createMany: {
+          args: Prisma.AnnotationEntryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AnnotationEntryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>[]
+        }
+        delete: {
+          args: Prisma.AnnotationEntryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        update: {
+          args: Prisma.AnnotationEntryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        deleteMany: {
+          args: Prisma.AnnotationEntryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AnnotationEntryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AnnotationEntryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>[]
+        }
+        upsert: {
+          args: Prisma.AnnotationEntryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AnnotationEntryPayload>
+        }
+        aggregate: {
+          args: Prisma.AnnotationEntryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAnnotationEntry>
+        }
+        groupBy: {
+          args: Prisma.AnnotationEntryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AnnotationEntryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AnnotationEntryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AnnotationEntryCountAggregateOutputType> | number
+        }
+      }
+    }
     ImageDatabaseConnection: {
       payload: Prisma.$ImageDatabaseConnectionPayload<ExtArgs>
       fields: Prisma.ImageDatabaseConnectionFieldRefs
@@ -696,6 +771,18 @@ export const WorkspaceScalarFieldEnum = {
 } as const
 
 export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
+
+
+export const AnnotationEntryScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  imageName: 'imageName',
+  regions: 'regions',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AnnotationEntryScalarFieldEnum = (typeof AnnotationEntryScalarFieldEnum)[keyof typeof AnnotationEntryScalarFieldEnum]
 
 
 export const ImageDatabaseConnectionScalarFieldEnum = {
@@ -857,6 +944,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   workspace?: Prisma.WorkspaceOmit
+  annotationEntry?: Prisma.AnnotationEntryOmit
   imageDatabaseConnection?: Prisma.ImageDatabaseConnectionOmit
 }
 

@@ -3,7 +3,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AnnotateImage, DrawTool } from "../types/annotate";
 import { importImages, getRootFolderLabel } from "../lib/annotation/importImages";
-import { exportYOLO } from "../lib/annotation/exportYOLO";
+import { exportYOLOZip } from "../lib/annotation/exportYOLO";
+import { applyPreprocessToDataUrl, DEFAULT_CONFIG, type PreprocessConfig } from "../lib/preprocess/applyPreprocess";
+
+export type AnnotationIssue = {
+  level: "error" | "warning";
+  message: string;
+};
+
+export type AnnotationStats = {
+  total: number;
+  annotated: number;
+  unannotated: number;
+  classCounts: Record<string, number>;
+  issues: AnnotationIssue[];
+};
 
 export type UseAnnotationReturn = ReturnType<typeof useAnnotation>;
 
@@ -50,28 +64,56 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     workspace.imageFolder || "未選択"
   );
 
-  // DB から保存済みアノテーションを復元
+  // DB の AnnotationEntry テーブルからアノテーションを復元（新方式）
+  // フォールバック: workspace.annotationData JSON blob（旧方式）
   useEffect(() => {
-    try {
-      const savedData: AnnotateImage[] = JSON.parse(workspace.annotationData || "[]");
-      if (savedData.length === 0) return;
-      setImages(savedData);
-      const withSrc = savedData.filter((img) => img.src).length;
-      const total = savedData.length;
-      const annotated = savedData.filter((img) => img.regions.length > 0).length;
-      if (withSrc === total) {
-        setRestoreInfo(
-          `前回のセッション (${total} 枚・${annotated} 枚アノテーション済み) を復元しました`
-        );
-      } else {
-        setRestoreInfo(
-          `アノテーションデータを復元しました（${annotated}枚）。画像を再アップロードしてください`
-        );
+    let cancelled = false;
+    const restore = async () => {
+      try {
+        const res = await fetch(`/api/workspaces/${workspace.id}/annotations`);
+        if (!res.ok) throw new Error("fetch failed");
+        const { entries } = (await res.json()) as {
+          entries: { imageName: string; regions: string }[];
+        };
+
+        if (cancelled) return;
+
+        if (entries.length > 0) {
+          const savedData: AnnotateImage[] = entries.map((e) => ({
+            src: "",
+            name: e.imageName,
+            regions: (() => {
+              try { return JSON.parse(e.regions); } catch { return []; }
+            })(),
+          }));
+          setImages(savedData);
+          const annotated = savedData.filter((img) => img.regions.length > 0).length;
+          setRestoreInfo(
+            `アノテーションデータを復元しました（${annotated}枚）。リソースから再インポートすると画像が表示されます`
+          );
+          setTimeout(() => setRestoreInfo(null), 6000);
+          return;
+        }
+      } catch {
+        // AnnotationEntry 取得失敗時は旧 JSON blob にフォールバック
       }
-      setTimeout(() => setRestoreInfo(null), 5000);
-    } catch {
-      // 不正な JSON は無視
-    }
+
+      // 旧方式フォールバック
+      try {
+        const savedData: AnnotateImage[] = JSON.parse(workspace.annotationData || "[]");
+        if (cancelled || savedData.length === 0) return;
+        setImages(savedData);
+        const annotated = savedData.filter((img) => img.regions.length > 0).length;
+        setRestoreInfo(
+          `アノテーションデータを復元しました（${annotated}枚）。リソースから再インポートすると画像が表示されます`
+        );
+        setTimeout(() => setRestoreInfo(null), 6000);
+      } catch {
+        // 無視
+      }
+    };
+    void restore();
+    return () => { cancelled = true; };
   // 初回マウント時のみ
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -96,6 +138,62 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     [images]
   );
 
+  const annotationStats = useMemo((): AnnotationStats => {
+    const total = images.length;
+    const annotated = images.filter((img) => img.regions.length > 0).length;
+    const unannotated = total - annotated;
+
+    // クラス別リージョン数カウント
+    const classCounts: Record<string, number> = {};
+    for (const img of images) {
+      for (const r of img.regions) {
+        const cls = r.cls ?? "(未設定)";
+        classCounts[cls] = (classCounts[cls] ?? 0) + 1;
+      }
+    }
+
+    const issues: AnnotationIssue[] = [];
+
+    // クラスリストに存在しないクラス名のリージョン → エクスポート時スキップ
+    const unknownClasses = new Set<string>();
+    for (const img of images) {
+      for (const r of img.regions) {
+        if (!r.cls) {
+          unknownClasses.add("(未設定)");
+        } else if (!regionClsList.includes(r.cls)) {
+          unknownClasses.add(r.cls);
+        }
+      }
+    }
+    if (unknownClasses.size > 0) {
+      issues.push({
+        level: "error",
+        message: `未登録クラスのリージョンがあります: ${[...unknownClasses].join("、")}。エクスポート時にスキップされ、ラベルファイルが不完全になります。`,
+      });
+    }
+
+    // データなし画像 → 空ラベルファイル生成（学習データとして無効）
+    if (unannotated > 0 && total > 0) {
+      issues.push({
+        level: "warning",
+        message: `${unannotated} 枚の画像にアノテーションがありません。空のラベルファイルが生成され、学習効率が低下します。`,
+      });
+    }
+
+    // クラスリストに定義されているがリージョンが0のクラス → データ不均衡
+    if (total > 0) {
+      const unusedClasses = regionClsList.filter((cls) => !classCounts[cls]);
+      if (unusedClasses.length > 0) {
+        issues.push({
+          level: "warning",
+          message: `クラス「${unusedClasses.join("、")}」にリージョンが0件です。classes.txt と実データが不一致になります。`,
+        });
+      }
+    }
+
+    return { total, annotated, unannotated, classCounts, issues };
+  }, [images, regionClsList]);
+
   const saveExportPath = useCallback(
     async (path: string) => {
       setSaving(true);
@@ -119,24 +217,29 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     [workspace.id]
   );
 
-  // アノテーター保存 → state 更新 + DB 永続化（src は除いて保存）
+  // アノテーター保存 → state 更新 + AnnotationEntry テーブルへ永続化
   const handleAnnotationSave = useCallback(
     async (updated: AnnotateImage[]) => {
       setImages(updated);
       setAnnotatorOpen(false);
-      const persisted = updated.map(({ src: _src, ...rest }) => rest);
+
+      const entries = updated.map((img) => ({
+        imageName: img.name,
+        regions: JSON.stringify(img.regions),
+      }));
+
       try {
-        const res = await fetch(`/api/workspaces/${workspace.id}`, {
-          method: "PATCH",
+        const res = await fetch(`/api/workspaces/${workspace.id}/annotations`, {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ annotationData: JSON.stringify(persisted) }),
+          body: JSON.stringify({ entries }),
         });
         if (!res.ok) {
           const text = await res.text().catch(() => res.status.toString());
-          console.error("[useAnnotation] annotationData の保存に失敗しました", text);
+          console.error("[useAnnotation] annotationEntries の保存に失敗しました", text);
         }
       } catch (err) {
-        console.error("[useAnnotation] annotationData の保存に失敗しました", err);
+        console.error("[useAnnotation] annotationEntries の保存に失敗しました", err);
       }
     },
     [workspace.id]
@@ -156,8 +259,71 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     [images, workspace.preprocessConfig]
   );
 
-  const handleExportYOLO = useCallback(() => {
-    exportYOLO(images, regionClsList);
+  const handleResourceImport = useCallback(async () => {
+    try {
+      // 画像リスト + 保存済みアノテーションを並列取得
+      const [imgRes, annRes] = await Promise.all([
+        fetch(`/api/workspaces/${workspace.id}/images`),
+        fetch(`/api/workspaces/${workspace.id}/annotations`),
+      ]);
+
+      if (!imgRes.ok) {
+        const err = await imgRes.json().catch(() => ({ error: imgRes.statusText }));
+        console.error("[useAnnotation] リソースインポート失敗", err);
+        return;
+      }
+
+      const imgData = (await imgRes.json()) as {
+        images: { name: string; src: string }[];
+        folder: string;
+        total: number;
+      };
+
+      // 保存済みアノテーションをマップに
+      const entryMap = new Map<string, string>();
+      if (annRes.ok) {
+        const { entries } = (await annRes.json()) as {
+          entries: { imageName: string; regions: string }[];
+        };
+        for (const e of entries) {
+          entryMap.set(e.imageName, e.regions);
+        }
+      }
+
+      let preprocessCfg: PreprocessConfig | null = null;
+      try {
+        const parsed = JSON.parse(workspace.preprocessConfig || "{}");
+        if (Object.keys(parsed).length > 0) {
+          preprocessCfg = { ...DEFAULT_CONFIG, ...parsed };
+        }
+      } catch {
+        // 不正な JSON は無視
+      }
+
+      const imported: AnnotateImage[] = await Promise.all(
+        imgData.images.map(async ({ name, src: rawSrc }) => {
+          const src = preprocessCfg
+            ? await applyPreprocessToDataUrl(rawSrc, preprocessCfg)
+            : rawSrc;
+          // DB にあればそのリージョンを使用、なければ既存 images から探す
+          const savedRegions = entryMap.get(name);
+          const regions = savedRegions
+            ? (() => { try { return JSON.parse(savedRegions); } catch { return []; } })()
+            : (images.find((img) => img.name === name)?.regions ?? []);
+          return { src, name, regions };
+        })
+      );
+
+      setImages(imported);
+      setAnnotatorOpen(false);
+      setImportSourceLabel(`${imgData.folder} (${imgData.total} 枚)`);
+    } catch (err) {
+      console.error("[useAnnotation] リソースインポート失敗", err);
+    }
+  }, [workspace.id, workspace.preprocessConfig, images]);
+
+  const handleExportYOLOZip = useCallback(async () => {
+    await exportYOLOZip(images, regionClsList);
   }, [images, regionClsList]);
 
   return {
@@ -174,8 +340,10 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     importSourceLabel,
     annotatedCount,
     importPreviewImages,
+    annotationStats,
     handleAnnotationSave,
     handleFolderUpload,
-    handleExportYOLO,
+    handleResourceImport,
+    handleExportYOLOZip,
   };
 }
