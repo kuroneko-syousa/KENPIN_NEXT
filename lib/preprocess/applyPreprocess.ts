@@ -2,6 +2,7 @@
 
 export type PreprocessConfig = {
   resize: number;
+  resizeEnabled: boolean;
   grayscale: boolean;
   binarize: boolean;
   binarizeThreshold: number;
@@ -23,6 +24,7 @@ export type PreprocessConfig = {
 
 export const DEFAULT_CONFIG: PreprocessConfig = {
   resize: 640,
+  resizeEnabled: false,
   grayscale: false,
   binarize: false,
   binarizeThreshold: 128,
@@ -46,7 +48,8 @@ export type PreprocessResult = {
   dataUrl: string;
   srcW: number;
   srcH: number;
-  outSize: number;
+  outW: number;
+  outH: number;
 };
 
 /** Canvas API を使ったピクセル処理（純粋関数・元画像不変） */
@@ -56,7 +59,6 @@ export function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<Pre
     img.onload = () => {
       const srcW = img.width;
       const srcH = img.height;
-      const targetSize = cfg.resize;
 
       let sw = img.width;
       let sh = img.height;
@@ -72,13 +74,16 @@ export function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<Pre
         sh = Math.max(1, Math.min(sh, img.height - sy));
       }
 
-      const canvas = document.createElement("canvas");
-      canvas.width = targetSize;
-      canvas.height = targetSize;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetSize, targetSize);
+      const outW = cfg.resizeEnabled ? cfg.resize : sw;
+      const outH = cfg.resizeEnabled ? cfg.resize : sh;
 
-      const imageData = ctx.getImageData(0, 0, targetSize, targetSize);
+      const canvas = document.createElement("canvas");
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+
+      const imageData = ctx.getImageData(0, 0, outW, outH);
       const d = imageData.data;
 
       if (cfg.grayscale || cfg.binarize || cfg.histogramEqualization) {
@@ -103,7 +108,7 @@ export function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<Pre
       if (cfg.histogramEqualization && !cfg.binarize) {
         const hist = new Array<number>(256).fill(0);
         for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
-        const total = targetSize * targetSize;
+        const total = outW * outH;
         const cdf = new Array<number>(256).fill(0);
         cdf[0] = hist[0];
         for (let i = 1; i < 256; i++) cdf[i] = cdf[i - 1] + hist[i];
@@ -117,8 +122,8 @@ export function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<Pre
       }
 
       if (cfg.edgeEnhance) {
-        const w = targetSize;
-        const h = targetSize;
+        const w = outW;
+        const h = outH;
         const src2 = new Uint8ClampedArray(d);
         const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
         for (let y = 1; y < h - 1; y++) {
@@ -199,29 +204,29 @@ export function applyPreprocess(src: string, cfg: PreprocessConfig): Promise<Pre
 
       if (cfg.augFlip) {
         const flipped = document.createElement("canvas");
-        flipped.width = targetSize;
-        flipped.height = targetSize;
+        flipped.width = outW;
+        flipped.height = outH;
         const fc = flipped.getContext("2d")!;
-        fc.translate(targetSize, 0);
+        fc.translate(outW, 0);
         fc.scale(-1, 1);
         fc.drawImage(canvas, 0, 0);
-        resolve({ dataUrl: flipped.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+        resolve({ dataUrl: flipped.toDataURL("image/jpeg", 0.92), srcW, srcH, outW, outH });
         return;
       }
 
       if (cfg.augRotate) {
         const rot = document.createElement("canvas");
-        rot.width = targetSize;
-        rot.height = targetSize;
+        rot.width = outW;
+        rot.height = outH;
         const rc = rot.getContext("2d")!;
-        rc.translate(targetSize / 2, targetSize / 2);
+        rc.translate(outW / 2, outH / 2);
         rc.rotate((10 * Math.PI) / 180);
-        rc.drawImage(canvas, -targetSize / 2, -targetSize / 2);
-        resolve({ dataUrl: rot.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+        rc.drawImage(canvas, -outW / 2, -outH / 2);
+        resolve({ dataUrl: rot.toDataURL("image/jpeg", 0.92), srcW, srcH, outW, outH });
         return;
       }
 
-      resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.92), srcW, srcH, outSize: targetSize });
+      resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.92), srcW, srcH, outW, outH });
     };
     img.src = src;
   });

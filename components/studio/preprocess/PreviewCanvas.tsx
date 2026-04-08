@@ -57,7 +57,7 @@ export default function PreviewCanvas({
             style={{ fontSize: "0.8rem", padding: "0.3rem 0.75rem" }}
             onClick={onOpenFullscreen}
           >
-            🖼️ プレビューを開く（{previewImages.length} 枚）
+            🖼️ 前処理の調整（{previewImages.length} 枚）
           </button>
         )}
       </div>
@@ -157,7 +157,7 @@ export default function PreviewCanvas({
                       marginBottom: "0.2rem",
                     }}
                   >
-                    {afterResult.outSize}×{afterResult.outSize}
+                    {afterResult.outW}×{afterResult.outH}
                   </p>
                 )}
                 <div

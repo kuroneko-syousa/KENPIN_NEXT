@@ -23,19 +23,31 @@ export default function PreprocessPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
       {/* リサイズ */}
-      <label className="db-control">
-        リサイズ (px)
-        <select
-          value={cfg.resize}
-          onChange={(e) => onConfigChange("resize", Number(e.target.value))}
-        >
-          {[320, 416, 512, 640, 768, 1024].map((v) => (
-            <option key={v} value={v}>
-              {v} × {v}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="studio-checkboxes">
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={cfg.resizeEnabled}
+            onChange={(e) => onConfigChange("resizeEnabled", e.target.checked)}
+          />
+          リサイズ
+        </label>
+        {cfg.resizeEnabled && (
+          <label className="db-control" style={{ marginTop: "0.4rem" }}>
+            サイズ (px)
+            <select
+              value={cfg.resize}
+              onChange={(e) => onConfigChange("resize", Number(e.target.value))}
+            >
+              {[320, 416, 512, 640, 768, 1024].map((v) => (
+                <option key={v} value={v}>
+                  {v} × {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {/* 切り抜き */}
       <div className="studio-checkboxes">

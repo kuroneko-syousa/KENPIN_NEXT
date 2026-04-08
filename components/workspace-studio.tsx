@@ -12,7 +12,6 @@ export type { PreprocessConfig } from "../lib/preprocess/applyPreprocess";
 import { usePreprocess } from "../hooks/usePreprocess";
 import { useAnnotation, toolMap } from "../hooks/useAnnotation";
 
-import PreprocessPanel from "./studio/preprocess/PreprocessPanel";
 import PreviewCanvas from "./studio/preprocess/PreviewCanvas";
 import FullscreenPreview from "./studio/preprocess/FullscreenPreview";
 import AnnotationToolbar from "./studio/annotation/AnnotationToolbar";
@@ -128,17 +127,6 @@ function PreprocessTab({ workspace }: { workspace: WorkspaceInfo }) {
           onOpenFullscreen={() => p.setFullscreenOpen(true)}
         />
 
-        <div className="panel" style={{ padding: "1.25rem", marginBottom: "1rem" }}>
-          <p className="eyebrow" style={{ marginBottom: "1rem" }}>前処理設定</p>
-          <PreprocessPanel
-            cfg={p.cfg}
-            onConfigChange={p.set}
-            saving={p.saving}
-            saved={p.saved}
-            saveError={p.saveError}
-            onSave={p.saveConfig}
-          />
-        </div>
       </div>
     </>
   );

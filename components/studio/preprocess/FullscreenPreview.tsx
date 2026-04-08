@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { PreprocessConfig, PreprocessResult } from "../../../lib/preprocess/applyPreprocess";
 import PreprocessPanel from "./PreprocessPanel";
+import CropSelector from "./CropSelector";
 
 export type FullscreenPreviewProps = {
   open: boolean;
@@ -62,7 +63,7 @@ export default function FullscreenPreview({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>⚙️ 前処理プレビュー</span>
+              <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>⚙️ 前処理の編集</span>
               {previewImages.length > 0 && (
                 <span className="muted" style={{ fontSize: "0.78rem" }}>
                   {previewIndex + 1} / {previewImages.length} 枚
@@ -185,23 +186,44 @@ export default function FullscreenPreview({
                         {afterResult.srcW} × {afterResult.srcH} px
                       </span>
                     )}
+                    {cfg.crop && selectedPreview && (
+                      <span style={{ fontSize: "0.72rem", color: "rgba(124,240,186,0.75)" }}>
+                        ドラッグで範囲を指定
+                      </span>
+                    )}
                   </div>
                   <div
                     style={{
                       flex: 1,
                       borderRadius: "10px",
-                      overflow: "hidden",
+                      overflow: cfg.crop ? "auto" : "hidden",
                       border: "1px solid rgba(237,241,250,0.12)",
                       background: "rgba(9,14,26,0.4)",
                     }}
                   >
                     {selectedPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={selectedPreview.src}
-                        alt="before"
-                        style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                      />
+                      cfg.crop ? (
+                        <CropSelector
+                          src={selectedPreview.src}
+                          cropX={cfg.cropX}
+                          cropY={cfg.cropY}
+                          cropW={cfg.cropW}
+                          cropH={cfg.cropH}
+                          onChange={(x, y, w, h) => {
+                            onConfigChange("cropX", Math.round(x));
+                            onConfigChange("cropY", Math.round(y));
+                            onConfigChange("cropW", Math.round(w));
+                            onConfigChange("cropH", Math.round(h));
+                          }}
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={selectedPreview.src}
+                          alt="before"
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                        />
+                      )
                     ) : (
                       <div
                         style={{
@@ -238,9 +260,9 @@ export default function FullscreenPreview({
                       <span
                         style={{ fontSize: "0.72rem", color: "rgba(124,240,186,0.8)" }}
                       >
-                        {afterResult.outSize} × {afterResult.outSize} px
-                        {afterResult.srcW !== afterResult.outSize ||
-                        afterResult.srcH !== afterResult.outSize
+                        {afterResult.outW} × {afterResult.outH} px
+                        {afterResult.srcW !== afterResult.outW ||
+                        afterResult.srcH !== afterResult.outH
                           ? ` ← ${afterResult.srcW}×${afterResult.srcH}`
                           : ""}
                       </span>
