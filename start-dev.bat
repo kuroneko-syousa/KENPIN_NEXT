@@ -3,6 +3,10 @@ setlocal
 
 cd /d "%~dp0"
 
+REM --- Python FastAPI backend (別ウィンドウで起動) ---
+start "KENPIN Backend" cmd /k "cd /d %~dp0backend && start.bat"
+
+REM --- Next.js フロントエンド ---
 if exist "C:\Program Files\nodejs\npm.cmd" (
   call "C:\Program Files\nodejs\npm.cmd" run dev
 ) else (

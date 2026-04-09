@@ -70,9 +70,16 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { classList = ["object"] } = (await request.json().catch(() => ({}))) as {
+  const {
+    classList = ["object"],
+    valRatio = 0.2,
+  } = (await request.json().catch(() => ({}))) as {
     classList?: string[];
+    valRatio?: number;
   };
+
+  // valRatio を 0〜0.9 の範囲にクランプ
+  const clampedValRatio = Math.min(0.9, Math.max(0, Number(valRatio) || 0.2));
 
   const imageFolder = workspace.imageFolder?.trim();
   if (!imageFolder || !fs.existsSync(imageFolder)) {
@@ -82,19 +89,23 @@ export async function POST(
     );
   }
 
-  // 出力先: プロジェクトルート/tmp/workspaces/{workspaceId}/
+  // 出力先: プロジェクトルート/tmp/workspaces/{workspaceId}/dataset/
   const projectRoot = process.cwd();
-  const outputDir = path.join(projectRoot, "tmp", "workspaces", params.id);
-  const imagesDir = path.join(outputDir, "images");
-  const labelsDir = path.join(outputDir, "labels");
+  const outputDir = path.join(projectRoot, "tmp", "workspaces", params.id, "dataset");
+  const imagesTrainDir = path.join(outputDir, "images", "train");
+  const imagesValDir   = path.join(outputDir, "images", "val");
+  const labelsTrainDir = path.join(outputDir, "labels", "train");
+  const labelsValDir   = path.join(outputDir, "labels", "val");
 
-  fs.mkdirSync(imagesDir, { recursive: true });
-  fs.mkdirSync(labelsDir, { recursive: true });
+  for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 
   // 既存ファイルをクリア
-  for (const dir of [imagesDir, labelsDir]) {
+  for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
     for (const f of fs.readdirSync(dir)) {
-      fs.unlinkSync(path.join(dir, f));
+      const full = path.join(dir, f);
+      if (fs.statSync(full).isFile()) fs.unlinkSync(full);
     }
   }
 
@@ -103,6 +114,15 @@ export async function POST(
     .filter((f) => IMAGE_EXTS.test(f))
     .sort();
 
+  // Fisher-Yates シャッフル（決定論的な分割のためシード不要・毎回ランダム）
+  const shuffled = [...imageFiles];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const valCount = Math.max(1, Math.round(shuffled.length * clampedValRatio));
+  const valSet   = new Set(shuffled.slice(0, valCount));
+
   // アノテーションエントリを imageName → regions のマップに
   const entryMap = new Map(
     workspace.annotationEntries.map((e) => [path.basename(e.imageName), e.regions])
@@ -110,20 +130,23 @@ export async function POST(
 
   let imageCount = 0;
   let labelCount = 0;
+  let trainCount = 0;
+  let valCountResult = 0;
 
   for (const filename of imageFiles) {
-    const srcPath = path.join(imageFolder, filename);
-    const destImagePath = path.join(imagesDir, filename);
+    const isTrain  = !valSet.has(filename);
+    const imgDest  = isTrain ? imagesTrainDir : imagesValDir;
+    const lblDest  = isTrain ? labelsTrainDir : labelsValDir;
 
-    // 画像をそのままコピー（前処理はブラウザ側 Canvas API で実施済みのため原本を使用）
-    fs.copyFileSync(srcPath, destImagePath);
+    const srcPath = path.join(imageFolder, filename);
+    fs.copyFileSync(srcPath, path.join(imgDest, filename));
     imageCount++;
+    if (isTrain) trainCount++; else valCountResult++;
 
     // ラベルファイル生成
     const regionsJson = entryMap.get(filename) ?? "[]";
     const lines = toYoloLines(regionsJson, classList);
-    const labelPath = path.join(labelsDir, labelFileName(filename));
-    fs.writeFileSync(labelPath, lines, "utf-8");
+    fs.writeFileSync(path.join(lblDest, labelFileName(filename)), lines, "utf-8");
     if (lines.trim().length > 0) labelCount++;
   }
 
@@ -131,10 +154,11 @@ export async function POST(
   fs.writeFileSync(path.join(outputDir, "classes.txt"), classList.join("\n"), "utf-8");
 
   // dataset.yaml 出力（YOLO 学習用）
+  const outDirUnix = outputDir.replace(/\\/g, "/");
   const yamlContent = [
-    `path: ${outputDir.replace(/\\/g, "/")}`,
-    `train: images`,
-    `val: images`,
+    `path: ${outDirUnix}`,
+    `train: images/train`,
+    `val: images/val`,
     ``,
     `nc: ${classList.length}`,
     `names: [${classList.map((c) => `'${c}'`).join(", ")}]`,
@@ -146,5 +170,7 @@ export async function POST(
     imageCount,
     labelCount,
     classCount: classList.length,
+    trainCount,
+    valCount: valCountResult,
   });
 }

@@ -12,3 +12,14 @@ yarn-error.log*
 pnpm-debug.log*
 prisma/dev.db
 prisma/dev.db-journal
+
+# Training outputs & temp files
+runs/
+tmp/
+
+# Python virtual env & cache
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+*.pt

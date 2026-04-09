@@ -331,8 +331,9 @@ const getDefaults = (key: string): ModelParams =>
 function ParamsTab({ workspace, onParamsSave }: { workspace: WorkspaceInfo; onParamsSave?: (key: string, params: ModelParams) => void }) {
   const isObjectDetection = workspace.target === "object-detection";
 
+  const _rawModel = workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") ?? "";
   const initialModel = isObjectDetection
-    ? (workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") || "yolov8n")
+    ? (MODEL_OPTIONS.some((m) => m.value === _rawModel) ? _rawModel : "yolov8n")
     : "";
   const [modelKey, setModelKey] = useState(initialModel);
   const [paramTab, setParamTab] = useState<ParamInnerTab>("basic");
@@ -639,8 +640,13 @@ function TrainingTab({
     imageCount: number;
     labelCount: number;
     classCount: number;
+    trainCount?: number;
+    valCount?: number;
   } | null>(null);
   const [prepareError, setPrepareError] = useState("");
+  const [valRatio, setValRatio] = useState(20); // val の割合 (%)
+  const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
+
 
   // ログが追加されるたびに最下行へスクロール
   useEffect(() => {
@@ -666,7 +672,7 @@ function TrainingTab({
       const res = await fetch(`/api/workspaces/${workspace.id}/prepare-training`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ classList }),
+        body: JSON.stringify({ classList, valRatio: valRatio / 100 }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -696,7 +702,7 @@ function TrainingTab({
       const res = await fetch(`/api/workspaces/${workspace.id}/start-training`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: savedModelKey, params: savedParams }),
+        body: JSON.stringify({ model: savedModelKey.replace(/\.pt$/i, ""), params: savedParams, device }),
       });
       const json = await res.json();
       if (!res.ok || !json.jobId) {
@@ -796,6 +802,10 @@ function TrainingTab({
           <span>オプティマイザー</span>
           <strong>{savedParams.optimizer}</strong>
         </div>
+        <div className="summary-item">
+          <span>デバイス</span>
+          <strong>{device === "auto" ? "⚡ 自動" : device === "cpu" ? "🖥 CPU" : "🎮 GPU (CUDA)"}</strong>
+        </div>
       </div>
 
       {/* 進捗バー */}
@@ -878,6 +888,73 @@ function TrainingTab({
         </div>
       )}
 
+      {/* デバイス選択 */}
+      <div className="panel" style={{ padding: "0.75rem 1.25rem", marginTop: "1.25rem" }}>
+        <p className="eyebrow" style={{ marginBottom: "0.5rem" }}>学習デバイス</p>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {(["auto", "cpu", "cuda"] as const).map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={device === d ? "" : "ghost-button"}
+              onClick={() => setDevice(d)}
+              disabled={phase === "running"}
+              style={{ padding: "0.3rem 0.9rem", fontSize: "0.78rem" }}
+            >
+              {d === "auto" ? "⚡ 自動" : d === "cpu" ? "🖥 CPU" : "🎮 GPU (CUDA)"}
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ fontSize: "0.68rem", margin: "0.5rem 0 0" }}>
+          {device === "auto"
+            ? "起動時にGPU（CUDA）を自動検出し、利用できなければCPUを使用します"
+            : device === "cuda"
+            ? "GPU（CUDA）を強制使用します。利用できない場合はCPUにフォールバックします"
+            : "CPUを強制使用します（GPU環境でも常にCPUで学習します）"}
+        </p>
+      </div>
+
+      {/* データセット分割設定 */}
+      <div className="panel" style={{ padding: "1rem 1.25rem", marginTop: "1.25rem" }}>
+        <p className="eyebrow" style={{ marginBottom: "0.6rem" }}>データセット分割設定</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+          <label className="db-control" style={{ flex: "1 1 220px", margin: 0 }}>
+            <span>検証（val）の割合</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <input
+                type="range"
+                min={5}
+                max={50}
+                step={5}
+                value={valRatio}
+                onChange={(e) => setValRatio(Number(e.target.value))}
+                style={{ flex: 1 }}
+              />
+              <strong style={{ minWidth: "2.5rem", textAlign: "right" }}>{valRatio}%</strong>
+            </div>
+            <span className="muted" style={{ fontSize: "0.68rem" }}>
+              train: {100 - valRatio}% / val: {valRatio}%（ランダム分割）
+            </span>
+          </label>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {[10, 20, 30].map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={valRatio === v ? "" : "ghost-button"}
+                onClick={() => setValRatio(v)}
+                style={{ padding: "0.3rem 0.75rem", fontSize: "0.76rem" }}
+              >
+                {100 - v}/{v}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="muted" style={{ fontSize: "0.68rem", margin: "0.6rem 0 0" }}>
+          出力先: <code>tmp/workspaces/…/dataset/images/train</code> および <code>val</code>
+        </p>
+      </div>
+
       {/* 学習データ準備 */}
       <div className="workflow-actions" style={{ marginTop: "1.25rem" }}>
         <button
@@ -890,7 +967,7 @@ function TrainingTab({
         </button>
         {prepareState === "done" && prepareResult && (
           <span style={{ fontSize: "0.78rem", color: "#7cf0ba" }}>
-            ✓ {prepareResult.imageCount}枚・{prepareResult.labelCount}ラベル・{prepareResult.classCount}クラス
+            ✓ {prepareResult.imageCount}枚（train: {prepareResult.trainCount ?? "?"} / val: {prepareResult.valCount ?? "?"}）・{prepareResult.labelCount}ラベル・{prepareResult.classCount}クラス
           </span>
         )}
         {prepareState === "error" && (
@@ -988,14 +1065,15 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
   const [sharedImages, setSharedImages] = useState<AnnotateImage[]>([]);
   const [livePreprocessConfig, setLivePreprocessConfig] = useState(workspace.preprocessConfig);
 
+  const _rawModelKey = workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") ?? "";
   const initialModelKey = workspace.target === "object-detection"
-    ? (workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") || "yolov8n")
+    ? (MODEL_OPTIONS.some((m) => m.value === _rawModelKey) ? _rawModelKey : "yolov8n")
     : "";
   const [savedModelKey, setSavedModelKey] = useState(initialModelKey);
   const [savedParams, setSavedParams] = useState<ModelParams>(() => getDefaults(initialModelKey || "yolov8n"));
 
   const handleParamsSave = (key: string, params: ModelParams) => {
-    setSavedModelKey(key);
+    setSavedModelKey(key.replace(/\.pt$/i, ""));
     setSavedParams(params);
   };
 

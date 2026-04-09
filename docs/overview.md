@@ -19,6 +19,7 @@ Kenpin Studio
   * **前処理** — リサイズ・切り抜き・グレースケール・二値化・色調調整など Canvas API ベースのプレビュー付き処理
   * **アノテーター** — Konva.js ベースの BBox アノテーション（クラスラベル管理、YOLO エクスポート）
   * **YOLO エクスポート** — `classes.txt` + 画像ごとの `.txt` を出力フォルダへ書き出し
+  * **AI 学習** — FastAPI + Ultralytics YOLO によるモデル学習（非同期ジョブ、エポック進捗リアルタイム表示、CUDA 自動検出）
 
 ## Target Users
 

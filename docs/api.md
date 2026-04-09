@@ -1,6 +1,6 @@
 # API Design
 
-## 実装済みエンドポイント
+## Next.js API Routes（フロントエンド側）
 
 ### Workspaces
 
@@ -11,6 +11,10 @@
 | `PATCH` | `/api/workspaces/[id]` | ワークスペース更新（annotationData / preprocessConfig 含む） |
 | `DELETE` | `/api/workspaces/[id]` | ワークスペース削除 |
 | `GET` | `/api/workspaces/[id]/images` | ワークスペース関連画像一覧 |
+| `POST` | `/api/workspaces/[id]/prepare-training` | dataset.yaml 生成（学習前準備） |
+| `POST` | `/api/workspaces/[id]/start-training` | 学習開始（FastAPI バックエンドへ委譲）→ `{ jobId, model, epochs }` |
+| `GET` | `/api/workspaces/[id]/start-training?jobId=xxx` | 学習進捗 SSE ストリーム（ログ・エポック・完了イベント） |
+| `DELETE` | `/api/workspaces/[id]/start-training?jobId=xxx` | 学習中断 |
 
 ### Image Databases
 
@@ -30,16 +34,61 @@
 
 ---
 
-## 共通仕様
+## FastAPI バックエンド（`http://localhost:8000`）
 
-* 全エンドポイントは NextAuth セッション検証必須（未認証 → `401 Unauthorized`）
-* レスポンス形式:
+> ドキュメントは起動後 http://localhost:8000/docs で確認可能。
+
+### Training
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `POST` | `/train/` | 学習ジョブ開始（BackgroundTasks で非同期実行）→ `{ job_id, status }` |
+| `GET` | `/train/status/{job_id}` | ジョブ状態取得 → `{ id, status, logs[], progress, epoch, total_epochs, ... }` |
+
+**POST `/train/` リクエストボディ:**
 
 ```json
-{ "data": {}, "error": null }
+{
+  "data_yaml": "/absolute/path/to/dataset.yaml",
+  "model": "yolov8n.pt",
+  "epochs": 100,
+  "imgsz": 640,
+  "batch": 16,
+  "patience": 50,
+  "optimizer": "auto",
+  "lr0": 0.01,
+  "lrf": 0.01,
+  "name": "train"
+}
 ```
 
-* エラー時:
+**ジョブステータス値:** `pending` → `running` → `done` / `failed`
+
+### Prediction
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `POST` | `/predict/` | 推論実行 → `{ detections[], count }` |
+
+### Dataset
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `POST` | `/upload-dataset/` | ZIP アップロード・展開・data.yaml 検証 |
+
+### Health
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `GET` | `/health` | ヘルスチェック → `{ status: "ok" }` |
+
+---
+
+## 共通仕様
+
+* Next.js API Routes: 全エンドポイントは NextAuth セッション検証必須（未認証 → `401 Unauthorized`）
+* FastAPI: `BACKEND_URL` 環境変数で接続先を変更可能（デフォルト: `http://localhost:8000`）
+* レスポンス形式（Next.js）:
 
 ```json
 { "error": "メッセージ" }
@@ -50,5 +99,5 @@
 ## Future
 
 * `GET /api/workspaces` — ワークスペース一覧（ページネーション対応）
-* `POST /api/workspaces/[id]/export` — YOLO フォーマットエクスポート（サーバーサイドファイル書き出し）
+* FastAPI `DELETE /train/{job_id}` — 学習ジョブ強制停止
 * `GET /api/jobs`, `/api/models`, `/api/datasets` — ジョブ・モデル・データセット API（現在はモック）
