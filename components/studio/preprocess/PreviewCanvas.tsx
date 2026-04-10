@@ -37,6 +37,16 @@ export default function PreviewCanvas({
         画像を読み込んでプレビューを開くと、元画像を見ながら設定を調整できます。元画像は変更されません。
       </p>
 
+      {/* ─── ローディング中オーバーレイ ─── */}
+      {importLoading && (
+        <div className="import-loading-wrap">
+          <div className="import-spinner" />
+          <span className="import-loading-label">画像フォルダを読み込み中...</span>
+        </div>
+      )}
+
+      {/* ─── ボタン行（ローディング中は非表示） ─── */}
+      {!importLoading && (
       <div
         style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}
       >
@@ -61,6 +71,7 @@ export default function PreviewCanvas({
           </button>
         )}
       </div>
+      )}
 
       {importError && (
         <p style={{ color: "#f87171", fontSize: "0.78rem", marginTop: "0.5rem" }}>

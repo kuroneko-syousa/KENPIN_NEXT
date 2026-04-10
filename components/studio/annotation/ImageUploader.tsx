@@ -9,6 +9,7 @@ export type ImageUploaderProps = {
   onFolderUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResourceImport: () => void;
   imageFolder: string;
+  importLoading?: boolean;
 };
 
 /** 画像インポート + サンプルサムネイル表示（ステートレス） */
@@ -19,6 +20,7 @@ export default function ImageUploader({
   onFolderUpload,
   onResourceImport,
   imageFolder,
+  importLoading = false,
 }: ImageUploaderProps) {
   return (
     <>
@@ -31,6 +33,14 @@ export default function ImageUploader({
         <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>
           画像を読み込む
         </p>
+
+        {/* ─── ローディング中オーバーレイ ─── */}
+        {importLoading ? (
+          <div className="import-loading-wrap">
+            <div className="import-spinner" />
+            <span className="import-loading-label">画像リソースをインポート中...</span>
+          </div>
+        ) : (
         <div className="annotation-upload-zone">
           <p className="muted" style={{ margin: "0 0 0.75rem" }}>
             ワークスペースで選択したリソースから、画像を一括インポートします。
@@ -100,6 +110,7 @@ export default function ImageUploader({
             </div>
           )}
         </div>
+        )}
       </div>
     </>
   );

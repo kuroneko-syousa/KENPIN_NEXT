@@ -8,6 +8,7 @@
 | 認証 | NextAuth.js (Credentials / JWT) |
 | UI | React 19, framer-motion |
 | キャンバス | Konva.js (direct) |
+| データフェッチ | @tanstack/react-query |
 | ORM | Prisma 7 |
 | DB | SQLite (開発) |
 | 言語 | TypeScript (front) / Python 3.10 (backend) |
@@ -29,22 +30,31 @@ app/
     image-databases/      # GET(一覧), POST(作成), PUT(更新)
       [id]/
         images/           # GET 画像一覧取得
-  dashboard/              # ダッシュボード全ページ
+  dashboard/              # ダッシュボード全ページ（API→FastAPIから集計データ取得）
     workspaces/[id]/      # ワークスペーススタジオ
 
 backend/                  # FastAPI Python バックエンド
   main.py                 # アプリエントリーポイント、CORS、ルーター登録
   start.bat               # 仮想環境アクティベート + uvicorn 起動
   requirements.txt
+  models/
+    job.py                # Job / JobCreate / JobSummary / JobStatus
   routers/
-    train.py              # POST /train/, GET /train/status/{job_id}
+    jobs.py               # POST/GET/DELETE /jobs, /jobs/{id}/logs, /jobs/{id}/results
+    dataset.py            # POST /datasets/upload, GET /datasets, GET /datasets/{id}
+    settings.py           # GET/PUT /settings
+    dashboard.py          # GET /dashboard/summary
+    train.py              # POST /train/, GET /train/status/{job_id}（後方互換）
     predict.py            # POST /predict/
-    dataset.py            # POST /upload-dataset/
   services/
     yolo_service.py       # YOLO 学習・推論ロジック（Ultralytics ラッパー）
-    job_manager.py        # インメモリジョブ管理（1ジョブ同時実行制限）
+    job_store.py          # JSON ファイル永続化（スレッドセーフ）
+    job_manager.py        # 非同期ジョブ管理（asyncio サブプロセス、キャンセル対応）
   utils/
     logging_config.py
+  data/
+    jobs.json             # ジョブレコード永続化
+    settings.json         # アプリ設定永続化
   datasets/               # アップロードZIP展開先
   runs/                   # YOLO 学習出力（runs/train/, runs/predict/）
 
@@ -121,11 +131,16 @@ Workspace Studio (WorkspaceStudio)
 ```
 backend/
   main.py (FastAPI app + CORS + router mounting)
-   ├── POST /train/              → BackgroundTasks で yolo_service.run_training()
-   ├── GET  /train/status/{id}   → job_manager から status/logs/progress を返す
-   ├── POST /predict/            → yolo_service.run_prediction()
-   ├── POST /upload-dataset/     → ZIP 受付・展開・data.yaml 検証
-   └── GET  /health              → ヘルスチェック
+   ├── /jobs/*                   → routers/jobs.py
+   ├── /datasets/*               → routers/dataset.py
+   ├── /settings/*               → routers/settings.py
+   ├── /dashboard/*              → routers/dashboard.py
+   ├── /train/*                  → routers/train.py（後方互換）
+   ├── /predict/*                → routers/predict.py
+   └── GET /health               → ヘルスチェック
+
+  models/
+    job.py                       → Job / JobCreate / JobSummary / JobStatus Pydantic モデル
 
   services/
     yolo_service.py
@@ -134,10 +149,17 @@ backend/
                                     job_manager.update_progress() を呼び出し
       run_prediction(...)        → YOLO 推論
 
-    job_manager.py (singleton JobManager)
-      create_job() / set_running() / set_done() / set_failed()
-      add_log() / update_progress()
-      is_busy()                  → 同時実行1ジョブ制限
+    job_store.py (JobStore)      → jobs.json から読込・書込（JSON ファイル永続化、スレッドセーフ）
+      save() / get() / list() / delete()
+
+    job_manager.py (JobManager)  → JobStore を ラップした非同期ジョブ管理
+      submit_job()               → キュー投入 + asyncio サブプロセスで YOLO 学習を非同期実行
+      cancel_job()               → SIGTERM でプロセス終了
+      is_busy()                  → 同時実行ジョブ数チェック
+
+  data/
+    jobs.json                    → ジョブレコード永続化ファイル（起動時に自動ロード）
+    settings.json                → アプリ設定永続化ファイル
 ```
 
 ## Annotator Module Architecture

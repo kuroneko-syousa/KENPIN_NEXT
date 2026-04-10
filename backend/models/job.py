@@ -28,11 +28,11 @@ class Job(BaseModel):
     """Persistent job record stored in data/jobs.json."""
 
     job_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    dataset_id: str = Field(..., description="Dataset identifier")
+    dataset_id: str = Field(default="", description="Dataset identifier")
     model: str = Field(default="yolov8n", description="YOLO model key (e.g. yolov8n)")
     yolo_version: str = Field(default="8.0.0", description="Ultralytics YOLO version in the venv")
     env_path: str = Field(
-        ...,
+        default="",
         description="Absolute path to the venv root (e.g. /envs/yolo_8.0.0). "
         "Python binary resolved as <env_path>/bin/python (Linux) or "
         "<env_path>/Scripts/python.exe (Windows).",
@@ -53,7 +53,13 @@ class Job(BaseModel):
     log_lines: List[str] = Field(default_factory=list)
 
     # Training hyperparameters — stored so reruns are reproducible
-    data_yaml: str = Field(default="", description="Absolute path to data.yaml")
+    data_yaml: str = Field(default="", description="Absolute path to data.yaml (legacy mode)")
+    dataset_source_path: Optional[str] = Field(
+        default=None,
+        description="Absolute path to the source dataset directory. "
+        "When provided the dataset is copied to jobs/{job_id}/dataset/ before training, "
+        "and a runtime.yaml with absolute paths is generated automatically.",
+    )
     epochs: int = Field(default=50, ge=1, le=1000)
     imgsz: int = Field(default=640, ge=32, le=1280)
     batch: int = Field(default=16, ge=1)
@@ -75,7 +81,16 @@ class JobCreate(BaseModel):
         ...,
         description="Absolute path to the venv root (e.g. /envs/yolo_8.0.0)",
     )
-    data_yaml: str = Field(..., description="Absolute path to data.yaml")
+    data_yaml: str = Field(
+        default="",
+        description="Absolute path to data.yaml (legacy). "
+        "Provide dataset_source_path instead for portable, reproducible jobs.",
+    )
+    dataset_source_path: Optional[str] = Field(
+        default=None,
+        description="Absolute path to the dataset directory (images/, labels/, classes.txt). "
+        "When provided the dataset is isolated per-job automatically.",
+    )
     epochs: int = Field(default=50, ge=1, le=1000)
     imgsz: int = Field(default=640, ge=32, le=1280)
     batch: int = Field(default=16, ge=1)
@@ -91,7 +106,7 @@ class JobSummary(BaseModel):
     """Lightweight response model for job listings."""
 
     job_id: str
-    dataset_id: str
+    dataset_id: Optional[str]
     model: str
     yolo_version: str
     status: JobStatus

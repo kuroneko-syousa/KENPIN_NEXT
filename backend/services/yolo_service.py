@@ -13,7 +13,9 @@ from ultralytics import YOLO
 logger = logging.getLogger(__name__)
 
 # Root output directory for all training / prediction runs
-RUNS_DIR = Path("runs")
+# Use an absolute path so results are always saved to backend/runs/
+# regardless of which directory uvicorn was started from.
+RUNS_DIR = Path(__file__).parent.parent / "runs"
 RUNS_DIR.mkdir(exist_ok=True)
 
 

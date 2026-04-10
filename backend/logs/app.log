@@ -179,3 +179,185 @@ FileNotFoundError: [Errno 2] No such file or directory: 'yolo.pt'
 2026-04-11 02:55:52 | INFO     | main:22 - KENPIN backend starting up
 2026-04-11 02:57:39 | INFO     | routers.train:108 - Model resolved: yolov8n -> yolov8n.pt
 2026-04-11 02:57:39 | INFO     | routers.train:119 - Training job 43ea4b76-40d5-483a-b013-eaa95e6a7021 queued | model=yolov8n.pt epochs=100
+2026-04-11 02:57:40 | INFO     | services.yolo_service:77 - Training started | model=yolov8n.pt epochs=100 imgsz=640 batch=16 device=cuda
+2026-04-11 03:28:27 | INFO     | services.yolo_service:115 - Training complete | best=runs\train\train\weights\best.pt
+2026-04-11 03:28:27 | INFO     | routers.train:70 - Job 43ea4b76-40d5-483a-b013-eaa95e6a7021 completed successfully
+2026-04-11 04:26:16 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:26:25 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:26:53 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:26:59 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:27:17 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:27:22 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:27:49 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:27:54 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:28:12 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:28:18 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:28:22 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:28:28 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:29:13 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-11 04:29:20 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:32:13 | INFO     | main:22 - KENPIN backend starting up
+2026-04-11 04:32:58 | WARNING  | routers.jobs:404 - Job 43ea4b76-40d5-483a-b013-eaa95e6a7021 not found in store; serving results from latest 'train' run dir
+2026-04-11 04:32:58 | WARNING  | routers.jobs:404 - Job 43ea4b76-40d5-483a-b013-eaa95e6a7021 not found in store; serving results from latest 'train' run dir
+2026-04-11 04:33:07 | WARNING  | routers.jobs:404 - Job 43ea4b76-40d5-483a-b013-eaa95e6a7021 not found in store; serving results from latest 'train' run dir
+2026-04-11 04:34:24 | INFO     | routers.train:108 - Model resolved: yolov8n -> yolov8n.pt
+2026-04-11 04:34:24 | INFO     | routers.train:119 - Training job 895c24e9-d710-43ed-a4bd-26779929f6a5 queued | model=yolov8n.pt epochs=30
+2026-04-11 04:34:25 | INFO     | services.yolo_service:79 - Training started | model=yolov8n.pt epochs=30 imgsz=640 batch=16 device=cuda
+2026-04-11 04:40:15 | ERROR    | routers.train:72 - Job 895c24e9-d710-43ed-a4bd-26779929f6a5 failed: Caught FileNotFoundError in DataLoader worker process 3.
+Original Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\worker.py", line 351, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 380, in __getitem__
+    return self.transforms(self.get_image_and_label(index))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 393, in get_image_and_label
+    label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 235, in load_image
+    im = imread(f, flags=self.cv2_flag)  # BGR
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\patches.py", line 35, in imread
+    file_bytes = np.fromfile(filename, np.uint8)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\localadmin\\Desktop\\KENPIN_NEXT\\tmp\\workspaces\\cmnt5e16y0016h8vr9roq5os8\\dataset\\images\\train\\68b250.jpg'
+Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\routers\train.py", line 54, in _run_training_task
+    result = run_training(
+             ^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\services\yolo_service.py", line 100, in run_training
+    model.train(
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\model.py", line 787, in train
+    self.trainer.train()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\trainer.py", line 246, in train
+    self._do_train()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\trainer.py", line 409, in _do_train
+    for i, batch in pbar:
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\tqdm.py", line 350, in __iter__
+    for item in self.iterable:
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\build.py", line 76, in __iter__
+    yield next(self.iterator)
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 701, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1465, in _next_data
+    return self._process_data(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1491, in _process_data
+    data.reraise()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\_utils.py", line 715, in reraise
+    raise exception
+FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 3.
+Original Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\worker.py", line 351, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 380, in __getitem__
+    return self.transforms(self.get_image_and_label(index))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 393, in get_image_and_label
+    label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 235, in load_image
+    im = imread(f, flags=self.cv2_flag)  # BGR
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\patches.py", line 35, in imread
+    file_bytes = np.fromfile(filename, np.uint8)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\localadmin\\Desktop\\KENPIN_NEXT\\tmp\\workspaces\\cmnt5e16y0016h8vr9roq5os8\\dataset\\images\\train\\68b250.jpg'
+
+2026-04-11 04:41:31 | INFO     | routers.train:108 - Model resolved: yolov8n -> yolov8n.pt
+2026-04-11 04:41:31 | INFO     | routers.train:119 - Training job 84a9b586-0e77-4c02-a34e-22b54c522124 queued | model=yolov8n.pt epochs=100
+2026-04-11 04:41:31 | INFO     | services.yolo_service:79 - Training started | model=yolov8n.pt epochs=100 imgsz=640 batch=16 device=cuda
+2026-04-11 04:44:46 | ERROR    | routers.train:72 - Job 84a9b586-0e77-4c02-a34e-22b54c522124 failed: Caught FileNotFoundError in DataLoader worker process 4.
+Original Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\worker.py", line 351, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 380, in __getitem__
+    return self.transforms(self.get_image_and_label(index))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 393, in get_image_and_label
+    label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 235, in load_image
+    im = imread(f, flags=self.cv2_flag)  # BGR
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\patches.py", line 35, in imread
+    file_bytes = np.fromfile(filename, np.uint8)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\localadmin\\Desktop\\KENPIN_NEXT\\tmp\\workspaces\\cmnt5e16y0016h8vr9roq5os8\\dataset\\images\\train\\68btuika09088.jpg'
+Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\routers\train.py", line 54, in _run_training_task
+    result = run_training(
+             ^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\services\yolo_service.py", line 100, in run_training
+    model.train(
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\model.py", line 787, in train
+    self.trainer.train()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\trainer.py", line 246, in train
+    self._do_train()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\engine\trainer.py", line 409, in _do_train
+    for i, batch in pbar:
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\tqdm.py", line 350, in __iter__
+    for item in self.iterable:
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\build.py", line 76, in __iter__
+    yield next(self.iterator)
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 701, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1465, in _next_data
+    return self._process_data(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1491, in _process_data
+    data.reraise()
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\_utils.py", line 715, in reraise
+    raise exception
+FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 4.
+Original Traceback (most recent call last):
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\worker.py", line 351, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 380, in __getitem__
+    return self.transforms(self.get_image_and_label(index))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 393, in get_image_and_label
+    label["img"], label["ori_shape"], label["resized_shape"] = self.load_image(index)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\data\base.py", line 235, in load_image
+    im = imread(f, flags=self.cv2_flag)  # BGR
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\localadmin\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\ultralytics\utils\patches.py", line 35, in imread
+    file_bytes = np.fromfile(filename, np.uint8)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\localadmin\\Desktop\\KENPIN_NEXT\\tmp\\workspaces\\cmnt5e16y0016h8vr9roq5os8\\dataset\\images\\train\\68btuika09088.jpg'
+
+2026-04-11 04:45:04 | INFO     | routers.train:108 - Model resolved: yolov8n -> yolov8n.pt
+2026-04-11 04:45:04 | INFO     | routers.train:119 - Training job b6b49962-841b-4c15-b674-b9f6e32fef58 queued | model=yolov8n.pt epochs=100
+2026-04-11 04:45:04 | INFO     | services.yolo_service:79 - Training started | model=yolov8n.pt epochs=100 imgsz=640 batch=16 device=cuda

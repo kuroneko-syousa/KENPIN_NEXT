@@ -60,6 +60,7 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [restoreInfo, setRestoreInfo] = useState<string | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
   const [importSourceLabel, setImportSourceLabel] = useState<string>(
     workspace.imageFolder || "未選択"
   );
@@ -262,6 +263,7 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
   );
 
   const handleResourceImport = useCallback(async () => {
+    setImportLoading(true);
     try {
       // 画像リスト + 保存済みアノテーションを並列取得
       const [imgRes, annRes] = await Promise.all([
@@ -321,6 +323,8 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
       setImportSourceLabel(`${imgData.folder} (${imgData.total} 枚)`);
     } catch (err) {
       console.error("[useAnnotation] リソースインポート失敗", err);
+    } finally {
+      setImportLoading(false);
     }
   }, [workspace.id, workspace.preprocessConfig, images]);
 
@@ -346,6 +350,7 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
     saved,
     saveError,
     restoreInfo,
+    importLoading,
     importSourceLabel,
     annotatedCount,
     importPreviewImages,

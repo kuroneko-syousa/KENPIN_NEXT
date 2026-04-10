@@ -75,9 +75,34 @@ type DrawTool = "select" | "box" | "polygon" | "point";
 
 ---
 
-## モックデータ（ダッシュボード表示用）
+## ジョブモデル（`backend/models/job.py`）
 
-ダッシュボード概要カードはモックデータで動作（`lib/dashboard-data.ts`）。
+FastAPI バックエンドで管理されるジョブレコード。`backend/data/jobs.json` に永続化。
+
+```python
+class Job(BaseModel):
+    job_id: str           # UUID
+    name: str             # 学習ラン名（例: "train20260411_001"）
+    status: JobStatus     # queued | running | completed | failed | cancelled
+    progress: int         # 0〜100（エポック進捗 %）
+    created_at: datetime
+    started_at: Optional[datetime]
+    finished_at: Optional[datetime]
+    dataset_id: str       # 使用データセット ID
+    model: str            # YOLO モデルキー（例: "yolov8n"）
+    epochs: int
+    imgsz: int
+    batch: int
+    log_path: Optional[str]      # train.log ファイルパス
+    results_path: Optional[str]  # best.pt ファイルパス
+    error_msg: Optional[str]
+```
+
+---
+
+## ダッシュボード表示データ
+
+ダッシュボード概要カードは `GET /dashboard/summary` API から取得したリアルタイムデータで動作。
 将来的に実APIへ移行予定。
 
 モックモデル: Job / Model / Dataset / ImageDatabase（表示専用）

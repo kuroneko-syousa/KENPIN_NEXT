@@ -247,6 +247,39 @@ npm.cmd run dev
 
 ## 直近の更新ログ
 
+### 2026-04-11
+
+#### FastAPI バックエンド全面整備 & フロントエンド API 連携
+
+- **Jobs API 実装**（`backend/routers/jobs.py`）
+  - `POST /jobs` — ジョブ作成・キュー投入
+  - `GET /jobs`, `GET /jobs/{id}` — 一覧・詳細取得
+  - `GET /jobs/{id}/logs` — ログ取得（プレーンテキスト）
+  - `GET /jobs/{id}/results` — 学習結果取得（YOLO `results.csv` 解析、メトリクス・画像パス）
+  - `GET /jobs/{id}/image`, `GET /jobs/{id}/weights` — ファイル直接取得
+  - `POST /jobs/{id}/cancel`, `DELETE /jobs/{id}` — キャンセル・削除
+- **ジョブ永続化**（`backend/services/job_store.py`）
+  - `backend/data/jobs.json` に JSON 形式でアトミック書込（`os.replace`）
+  - 再起動後もジョブ一覧が復元される
+  - スレッドセーフ（`threading.Lock`）
+- **JobManager 刷新**（`backend/services/job_manager.py`）
+  - asyncio サブプロセスで YOLO 学習を非同期実行
+  - `cancel_job()` で SIGTERM / SIGKILL によるキャンセル対応
+- **Datasets API 実装**（`backend/routers/dataset.py`）
+  - `POST /datasets/upload` — ZIP アップロード・展開・data.yaml 検証
+  - `GET /datasets`, `GET /datasets/{id}` — 一覧・詳細取得
+- **Settings API 実装**（`backend/routers/settings.py`）
+  - `GET /settings`, `PUT /settings` — アプリ設定の永続化（`backend/data/settings.json`）
+  - 設定項目: `default_model`, `default_epochs`, `default_imgsz`, `default_batch`, `max_concurrent_jobs`, `device_mode`, `storage_note`
+- **Dashboard API 実装**（`backend/routers/dashboard.py`）
+  - `GET /dashboard/summary` — ジョブ統計・データセット数・直近ジョブを集計
+- **`backend/models/job.py`** 追加
+  - `Job` / `JobCreate` / `JobSummary` / `JobStatus` Pydantic モデルを定義
+- **フロントエンド全ページ API 連携**
+  - 全ダッシュボードページのモックデータを FastAPI 実データに置き換え
+  - `GET /dashboard/summary` からジョブカウント・データセット数を取得
+- **@tanstack/react-query インストール**（`npm install @tanstack/react-query`）
+
 ### 2026-04-09
 
 - **アノテーション状況パネル**（STEP2 に新設）

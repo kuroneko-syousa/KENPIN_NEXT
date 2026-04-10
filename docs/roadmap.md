@@ -19,36 +19,41 @@
   * **前処理設定の永続化バグ修正**（タブ切替・再インポート時も最新設定を維持）
   * **アノテーション状況パネル**（ドーナツチャート・クラス別バー・整合性チェック）
 
-## Phase 3 ✅ 完了（AI 学習バックエンド）
+## Phase 3 ✅ 完了（AI 学習バックエンド全面刷新）
 
-* **FastAPI バックエンド導入**（`backend/` ディレクトリ）
+* **FastAPI バックエンド全面整備**（`backend/` ディレクトリ）
   * Ultralytics YOLO による モデル学習・推論
-  * 非同期バックグラウンドジョブ（BackgroundTasks）
-  * インメモリジョブ管理（同時1ジョブ制限）
+  * **非同期サブプロセスジョブ**（asyncio + subprocess、キャンセル対応）
+  * **JSON ファイルジョブ永続化**（`backend/data/jobs.json`、スレッドセーフ、再起動後も復元）
   * エポック単位のログ・進捗トラッキング
   * CUDA 自動検出 / CPU フォールバック
-  * 学習ジョブ: `POST /train/`, `GET /train/status/{job_id}`
+  * **Jobs API**: `POST /jobs`, `GET /jobs`, `GET /jobs/{id}`, `GET /jobs/{id}/logs`, `GET /jobs/{id}/results`, `POST /jobs/{id}/cancel`
+  * **Datasets API**: `POST /datasets/upload`, `GET /datasets`, `GET /datasets/{id}`
+  * **Settings API**: `GET /settings`, `PUT /settings`（設定を `data/settings.json` に永続化）
+  * **Dashboard API**: `GET /dashboard/summary`（ジョブ統計・データセット数・直近ジョブを集計）
   * ヘルスチェック: `GET /health`
-* **Next.js ↔ FastAPI 連携**
-  * `start-training/route.ts` を FastAPI 経由に刷新（Python サブプロセス廃止）
-  * 2秒ポーリング + SSE でエポック進捗をフロントへリアルタイム配信
+* **フロントエンド全ページ API 連携**（モックデータ → FastAPI 実データに置き換え）
+  * ジョブページ・モデルページ・データセットページ・設定ページ等
+* **@tanstack/react-query 導入**（インストール済み）
+* **Next.js ↔ FastAPI 連携**（`start-training/route.ts` → FastAPI 経由）
 * **バックエンド自動起動**（`start-dev.bat` から別ウィンドウで起動）
 * **Python 仮想環境**（`backend/.venv`、`backend/start.bat` でセットアップ）
 
 ## Phase 4 🔄 進行中
 
-* ポリゴン・ポイントアノテーション対応
-* Undo/Redo
-* アノテーター スマートズーム・スクロール対応
-* 学習結果ビューア（metrics、混同行列、val 画像）
-* FastAPI `DELETE /train/{job_id}` — 学習ジョブ強制停止
+* React Query プロバイダー設定（`app/providers.tsx`、`app/layout.tsx`）
+* StatusBadge コンポーネント（`running: 青`, `completed: 緑`, `failed: 赤`）
+* ジョブ監視ページでのポーリング（5 秒ごとに `/jobs` 再取得）
+* 学習進捗パネルのページ横断表示（ナビゲーション後も消えない）
+* 学習ログのリアルタイム詳細表示（SSE / 高頻度ポーリング）
+* ワークスペースを開いた際の自動リソースインポート（前処理・アノテーションタブ）
 
 ## Phase 5
 
-* ジョブ・モデル API 実装（モックから本実装へ、DB 永続化）
-* WebSocket 対応（SSE ポーリングから移行）
-* データセット品質チェック強化
-* 学習済みモデルの管理・デプロイ UI
+* 学習結果ビューア（metrics グラフ、混同行列、val 画像）
+* ポリゴン・ポイントアノテーション対応
+* Undo/Redo
+* アノテーター スマートズーム・スクロール対応
 
 ## Phase 6
 

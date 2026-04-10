@@ -202,6 +202,7 @@ function AnnotationTabWithShare({
             previewImages={a.importPreviewImages}
             restoreInfo={a.restoreInfo}
             imageFolder={workspace.imageFolder}
+            importLoading={a.importLoading}
             onResourceImport={async () => {
               await a.handleResourceImport();
               onImagesChange(a.images);

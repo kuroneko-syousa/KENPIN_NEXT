@@ -54,6 +54,7 @@ class JobResults(BaseModel):
 # ---------------------------------------------------------------------------
 
 _BACKEND_DIR = Path(__file__).parent.parent
+_WORKSPACE_DIR = _BACKEND_DIR.parent  # プロジェクトルート (KENPIN_NEXT/)
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 
@@ -63,17 +64,39 @@ def _find_run_dir(job: Job) -> Optional[Path]:
     Resolution order:
 
     1. ``job.results_path`` recorded by the training worker on completion
-       (e.g. ``.../runs/train/{name}/weights/best.pt``).
-       Two levels up from ``best.pt`` is the run directory.
-    2. Inferred path: ``backend/runs/train/{job.name}/``.
+       (absolute or relative). Two levels up from ``best.pt`` is the run dir.
+    2. Search known base directories using ``job.name``:
+       - backend/runs/train/{name}/
+       - backend/runs/detect/runs/train/{name}/  (YOLO task-prefix variant)
+       - KENPIN_NEXT/runs/train/{name}/
+       - KENPIN_NEXT/runs/detect/runs/train/{name}/
     """
+    def _ok(p: Path) -> Optional[Path]:
+        return p if p.is_dir() else None
+
+    # Strategy 1: results_path
     if job.results_path:
-        candidate = Path(job.results_path).parent.parent
-        if candidate.is_dir():
-            return candidate
-    candidate = _BACKEND_DIR / "runs" / "train" / job.name
-    if candidate.is_dir():
-        return candidate
+        rp = Path(job.results_path)
+        if rp.is_absolute():
+            if r := _ok(rp.parent.parent):
+                return r
+        else:
+            # Resolve relative to backend dir and workspace root
+            for base in (_BACKEND_DIR, _WORKSPACE_DIR):
+                if r := _ok((base / rp).resolve().parent.parent):
+                    return r
+
+    # Strategy 2: infer from job.name
+    if job.name:
+        for base in (
+            _BACKEND_DIR / "runs" / "train",
+            _BACKEND_DIR / "runs" / "detect" / "runs" / "train",
+            _WORKSPACE_DIR / "runs" / "train",
+            _WORKSPACE_DIR / "runs" / "detect" / "runs" / "train",
+        ):
+            if r := _ok(base / job.name):
+                return r
+
     return None
 
 
@@ -163,18 +186,43 @@ def create_job(req: JobCreate) -> Job:
 
     On Windows the binary is resolved as `<env_path>/Scripts/python.exe`.
     """
-    # Validate data.yaml path (early rejection before job is created)
-    data_yaml_path = Path(req.data_yaml)
-    if not data_yaml_path.is_absolute():
+    # ----------------------------------------------------------------
+    # Validate request: require either dataset_source_path or data_yaml
+    # ----------------------------------------------------------------
+    has_source = bool(req.dataset_source_path)
+    has_yaml = bool(req.data_yaml)
+
+    if not has_source and not has_yaml:
         raise HTTPException(
             status_code=400,
-            detail=f"data_yaml must be an absolute path, got: {req.data_yaml}",
+            detail="Provide either 'dataset_source_path' (recommended) or 'data_yaml'.",
         )
-    if not data_yaml_path.exists():
-        raise HTTPException(
-            status_code=400,
-            detail=f"data.yaml not found: {req.data_yaml}",
-        )
+
+    if has_source:
+        source_path = Path(req.dataset_source_path)  # type: ignore[arg-type]
+        if not source_path.is_absolute():
+            raise HTTPException(
+                status_code=400,
+                detail=f"dataset_source_path must be an absolute path, got: {req.dataset_source_path}",
+            )
+        if not source_path.is_dir():
+            raise HTTPException(
+                status_code=400,
+                detail=f"dataset_source_path directory not found: {req.dataset_source_path}",
+            )
+    else:
+        # Legacy: validate data_yaml path
+        data_yaml_path = Path(req.data_yaml)
+        if not data_yaml_path.is_absolute():
+            raise HTTPException(
+                status_code=400,
+                detail=f"data_yaml must be an absolute path, got: {req.data_yaml}",
+            )
+        if not data_yaml_path.exists():
+            raise HTTPException(
+                status_code=400,
+                detail=f"data.yaml not found: {req.data_yaml}",
+            )
 
     # Validate env_path is absolute
     if not Path(req.env_path).is_absolute():
@@ -360,7 +408,28 @@ def get_job_results(job_id: str) -> JobResults:
     """
     job = job_manager.get_job_model(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+        # Fallback 1: check the legacy in-memory dict (populated by /train route)
+        legacy = job_manager.get_job(job_id)
+        if legacy is not None:
+            legacy_result = legacy.get("result") if isinstance(legacy, dict) else None
+            name = "train"
+            results_path_str: Optional[str] = None
+            if isinstance(legacy_result, dict):
+                name = str(legacy_result.get("name", name))
+                results_path_str = legacy_result.get("best_weights")
+            job = Job(dataset_id="", env_path="", name=name, results_path=results_path_str)
+        else:
+            # Fallback 2: after backend restart the job record is lost.
+            # Try to find a run directory using the name "train"
+            # (all workspace-studio training uses this fixed name).
+            sentinel = Job(dataset_id="", env_path="", name="train")
+            if _find_run_dir(sentinel) is None:
+                raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+            job = sentinel
+            logger.warning(
+                "Job %s not found in store; serving results from latest 'train' run dir",
+                job_id,
+            )
 
     run_dir = _find_run_dir(job)
     if run_dir is None:

@@ -122,6 +122,7 @@ class JobManager:
             yolo_version=req.yolo_version,
             env_path=req.env_path,
             data_yaml=req.data_yaml,
+            dataset_source_path=req.dataset_source_path,
             epochs=req.epochs,
             imgsz=req.imgsz,
             batch=req.batch,
@@ -384,7 +385,51 @@ class JobManager:
                 "epoch": 0,
                 "total_epochs": 0,
             }
+        # Also persist to JobStore so the job survives server restarts
+        try:
+            legacy_job = Job(
+                job_id=job_id,
+                dataset_id=str(params.get("dataset_id", "")),
+                model=str(params.get("model", "yolov8n")),
+                env_path="",
+                data_yaml=str(params.get("data_yaml", "")),
+                epochs=int(params.get("epochs", 50)),
+                imgsz=int(params.get("imgsz", 640)),
+                batch=int(params.get("batch", 16)),
+                name=str(params.get("name", "train")),
+                patience=int(params.get("patience", 50)),
+                optimizer=str(params.get("optimizer", "auto")),
+                lr0=float(params.get("lr0", 0.01)),
+                lrf=float(params.get("lrf", 0.01)),
+                device=str(params.get("device", "auto")),
+                status=JobStatus.QUEUED,
+            )
+            self._store.save(legacy_job)
+        except Exception as exc:
+            logger.warning("Failed to persist legacy job %s to store: %s", job_id, exc)
         return job_id
+
+    def _update_store_status(
+        self,
+        job_id: str,
+        status: JobStatus,
+        *,
+        error: Optional[str] = None,
+        results_path: Optional[str] = None,
+        progress: Optional[int] = None,
+    ) -> None:
+        """Update the JobStore record for a job (no-op if not found)."""
+        job = self._store.get(job_id)
+        if job is None:
+            return
+        job.status = status
+        if error is not None:
+            job.error = error
+        if results_path is not None:
+            job.results_path = results_path
+        if progress is not None:
+            job.progress = progress
+        self._store.save(job)
 
     def add_log(self, job_id: str, message: str) -> None:
         with self._lock:
@@ -429,6 +474,7 @@ class JobManager:
             if job_id in self._legacy_jobs:
                 self._legacy_jobs[job_id]["status"] = "running"
                 self._legacy_active = job_id
+        self._update_store_status(job_id, JobStatus.RUNNING)
 
     def set_done(self, job_id: str, result: Any) -> None:
         with self._lock:
@@ -437,6 +483,13 @@ class JobManager:
                 self._legacy_jobs[job_id]["result"] = result
                 if self._legacy_active == job_id:
                     self._legacy_active = None
+        # Persist completion and results_path to JobStore
+        results_path: Optional[str] = None
+        if isinstance(result, dict):
+            results_path = result.get("best_weights")
+        self._update_store_status(
+            job_id, JobStatus.COMPLETED, results_path=results_path, progress=100
+        )
 
     def set_failed(self, job_id: str, error: str) -> None:
         with self._lock:
@@ -445,6 +498,7 @@ class JobManager:
                 self._legacy_jobs[job_id]["error"] = error
                 if self._legacy_active == job_id:
                     self._legacy_active = None
+        self._update_store_status(job_id, JobStatus.FAILED, error=error)
 
 
 # Module-level singleton shared across all routers
