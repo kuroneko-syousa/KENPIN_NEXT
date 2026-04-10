@@ -113,3 +113,21 @@ FileNotFoundError: [Errno 2] No such file or directory: 'yolo.pt'
 2026-04-10 03:56:41 | INFO     | services.yolo_service:77 - Training started | model=yolov8n.pt epochs=100 imgsz=640 batch=16 device=cpu
 2026-04-10 04:19:33 | INFO     | main:22 - KENPIN backend starting up
 2026-04-10 04:19:41 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-10 09:32:23 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 09:37:00 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-10 09:38:08 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 09:38:09 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-10 10:24:34 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 10:24:41 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-10 10:25:04 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 10:25:06 | INFO     | main:24 - KENPIN backend shutting down
+2026-04-10 11:08:17 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 11:47:27 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 12:06:32 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 12:07:17 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 12:13:34 | INFO     | main:22 - KENPIN backend starting up
+2026-04-10 12:20:39 | INFO     | routers.train:108 - Model resolved: yolov8n -> yolov8n.pt
+2026-04-10 12:20:39 | INFO     | routers.train:119 - Training job 22f7b48c-3d65-4fe3-a0c6-9f8b6dddc8e7 queued | model=yolov8n.pt epochs=100
+2026-04-10 12:20:40 | INFO     | services.yolo_service:77 - Training started | model=yolov8n.pt epochs=100 imgsz=640 batch=16 device=cuda
+2026-04-10 12:24:23 | INFO     | services.yolo_service:115 - Training complete | best=runs\train\train\weights\best.pt
+2026-04-10 12:24:23 | INFO     | routers.train:70 - Job 22f7b48c-3d65-4fe3-a0c6-9f8b6dddc8e7 completed successfully

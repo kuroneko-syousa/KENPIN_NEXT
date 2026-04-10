@@ -12,7 +12,7 @@ if not exist ".venv" (
 call .venv\Scripts\activate
 
 echo Installing dependencies...
-pip install -r requirements.txt --quiet
+REMpip install -r requirements.txt --quiet
 
 echo.
 echo Starting FastAPI server at http://localhost:8000

@@ -1,20 +1,18 @@
 @echo off
 setlocal
 
-cd /d "%~dp0"
+REM カレントディレクトリ取得
+set BASE_DIR=%~dp0
 
-REM --- Python FastAPI backend (別ウィンドウで起動) ---
-start "KENPIN Backend" cmd /k "cd /d %~dp0backend && start.bat"
+REM --- Backend ---
+start "" cmd /k "cd /d %BASE_DIR%backend && call start.bat"
 
-REM --- Next.js フロントエンド ---
-if exist "C:\Program Files\nodejs\npm.cmd" (
-  call "C:\Program Files\nodejs\npm.cmd" run dev
-) else (
-  call npm run dev
-)
+REM --- Frontend ---
+cd /d %BASE_DIR%
+call npm run dev
 
-timeout /t 10 /nobreak > nul
+timeout /t 5 /nobreak > nul
 
-rundll32 url.dll,FileProtocolHandler http://localhost:3000
+start "" http://localhost:3000
 
 endlocal

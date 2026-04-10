@@ -144,7 +144,7 @@ export async function POST(
   const lr0 = Math.max(0.000001, Math.min(1, parseFloat(p.lr0 || "0.01")));
   const lrf = Math.max(0.000001, Math.min(1, parseFloat(p.lrf || "0.01")));
 
-  const datasetYaml = path.join(process.cwd(), "tmp", "workspaces", id, "dataset.yaml");
+  const datasetYaml = path.join(process.cwd(), "tmp", "workspaces", id, "dataset", "dataset.yaml");
   if (!fs.existsSync(datasetYaml)) {
     return NextResponse.json(
       { error: "\u5b66\u7fd2\u30c7\u30fc\u30bf\u304c\u6e96\u5099\u3055\u308c\u3066\u3044\u307e\u305b\u3093\u3002\u5148\u306b\u300c\u5b66\u7fd2\u30c7\u30fc\u30bf\u3092\u6e96\u5099\u300d\u3092\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002" },
