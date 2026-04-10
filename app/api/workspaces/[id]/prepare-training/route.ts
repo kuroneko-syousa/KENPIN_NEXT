@@ -97,80 +97,85 @@ export async function POST(
   const labelsTrainDir = path.join(outputDir, "labels", "train");
   const labelsValDir   = path.join(outputDir, "labels", "val");
 
-  for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  // 既存ファイルをクリア
-  for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
-    for (const f of fs.readdirSync(dir)) {
-      const full = path.join(dir, f);
-      if (fs.statSync(full).isFile()) fs.unlinkSync(full);
+  try {
+    for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
+      fs.mkdirSync(dir, { recursive: true });
     }
+
+    // 既存ファイルをクリア
+    for (const dir of [imagesTrainDir, imagesValDir, labelsTrainDir, labelsValDir]) {
+      for (const f of fs.readdirSync(dir)) {
+        const full = path.join(dir, f);
+        if (fs.statSync(full).isFile()) fs.unlinkSync(full);
+      }
+    }
+
+    const imageFiles = fs
+      .readdirSync(imageFolder)
+      .filter((f) => IMAGE_EXTS.test(f))
+      .sort();
+
+    // Fisher-Yates シャッフル（決定論的な分割のためシード不要・毎回ランダム）
+    const shuffled = [...imageFiles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const valCount = Math.max(1, Math.round(shuffled.length * clampedValRatio));
+    const valSet   = new Set(shuffled.slice(0, valCount));
+
+    // アノテーションエントリを imageName → regions のマップに
+    const entryMap = new Map(
+      workspace.annotationEntries.map((e) => [path.basename(e.imageName), e.regions])
+    );
+
+    let imageCount = 0;
+    let labelCount = 0;
+    let trainCount = 0;
+    let valCountResult = 0;
+
+    for (const filename of imageFiles) {
+      const isTrain  = !valSet.has(filename);
+      const imgDest  = isTrain ? imagesTrainDir : imagesValDir;
+      const lblDest  = isTrain ? labelsTrainDir : labelsValDir;
+
+      const srcPath = path.join(imageFolder, filename);
+      fs.copyFileSync(srcPath, path.join(imgDest, filename));
+      imageCount++;
+      if (isTrain) trainCount++; else valCountResult++;
+
+      // ラベルファイル生成
+      const regionsJson = entryMap.get(filename) ?? "[]";
+      const lines = toYoloLines(regionsJson, classList);
+      fs.writeFileSync(path.join(lblDest, labelFileName(filename)), lines, "utf-8");
+      if (lines.trim().length > 0) labelCount++;
+    }
+
+    // classes.txt 出力
+    fs.writeFileSync(path.join(outputDir, "classes.txt"), classList.join("\n"), "utf-8");
+
+    // dataset.yaml 出力（YOLO 学習用）
+    const outDirUnix = outputDir.replace(/\\/g, "/");
+    const yamlContent = [
+      `path: ${outDirUnix}`,
+      `train: images/train`,
+      `val: images/val`,
+      ``,
+      `nc: ${classList.length}`,
+      `names: [${classList.map((c) => `'${c}'`).join(", ")}]`,
+    ].join("\n");
+    fs.writeFileSync(path.join(outputDir, "dataset.yaml"), yamlContent, "utf-8");
+
+    return NextResponse.json({
+      outputDir,
+      imageCount,
+      labelCount,
+      classCount: classList.length,
+      trainCount,
+      valCount: valCountResult,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `データセット生成に失敗しました: ${message}` }, { status: 500 });
   }
-
-  const imageFiles = fs
-    .readdirSync(imageFolder)
-    .filter((f) => IMAGE_EXTS.test(f))
-    .sort();
-
-  // Fisher-Yates シャッフル（決定論的な分割のためシード不要・毎回ランダム）
-  const shuffled = [...imageFiles];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const valCount = Math.max(1, Math.round(shuffled.length * clampedValRatio));
-  const valSet   = new Set(shuffled.slice(0, valCount));
-
-  // アノテーションエントリを imageName → regions のマップに
-  const entryMap = new Map(
-    workspace.annotationEntries.map((e) => [path.basename(e.imageName), e.regions])
-  );
-
-  let imageCount = 0;
-  let labelCount = 0;
-  let trainCount = 0;
-  let valCountResult = 0;
-
-  for (const filename of imageFiles) {
-    const isTrain  = !valSet.has(filename);
-    const imgDest  = isTrain ? imagesTrainDir : imagesValDir;
-    const lblDest  = isTrain ? labelsTrainDir : labelsValDir;
-
-    const srcPath = path.join(imageFolder, filename);
-    fs.copyFileSync(srcPath, path.join(imgDest, filename));
-    imageCount++;
-    if (isTrain) trainCount++; else valCountResult++;
-
-    // ラベルファイル生成
-    const regionsJson = entryMap.get(filename) ?? "[]";
-    const lines = toYoloLines(regionsJson, classList);
-    fs.writeFileSync(path.join(lblDest, labelFileName(filename)), lines, "utf-8");
-    if (lines.trim().length > 0) labelCount++;
-  }
-
-  // classes.txt 出力
-  fs.writeFileSync(path.join(outputDir, "classes.txt"), classList.join("\n"), "utf-8");
-
-  // dataset.yaml 出力（YOLO 学習用）
-  const outDirUnix = outputDir.replace(/\\/g, "/");
-  const yamlContent = [
-    `path: ${outDirUnix}`,
-    `train: images/train`,
-    `val: images/val`,
-    ``,
-    `nc: ${classList.length}`,
-    `names: [${classList.map((c) => `'${c}'`).join(", ")}]`,
-  ].join("\n");
-  fs.writeFileSync(path.join(outputDir, "dataset.yaml"), yamlContent, "utf-8");
-
-  return NextResponse.json({
-    outputDir,
-    imageCount,
-    labelCount,
-    classCount: classList.length,
-    trainCount,
-    valCount: valCountResult,
-  });
 }

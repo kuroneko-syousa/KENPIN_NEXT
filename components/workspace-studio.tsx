@@ -613,16 +613,37 @@ function ParamsTab({ workspace, onParamsSave }: { workspace: WorkspaceInfo; onPa
 }
 
 /* ─── 学習タブ ─── */
+type PrepareResult = {
+  outputDir: string;
+  imageCount: number;
+  labelCount: number;
+  classCount: number;
+  trainCount?: number;
+  valCount?: number;
+};
+
 function TrainingTab({
   workspace,
   images,
   savedModelKey,
   savedParams,
+  prepareState,
+  setPrepareState,
+  prepareResult,
+  setPrepareResult,
+  prepareError,
+  setPrepareError,
 }: {
   workspace: WorkspaceInfo;
   images: AnnotateImage[];
   savedModelKey: string;
   savedParams: ModelParams;
+  prepareState: "idle" | "running" | "done" | "error";
+  setPrepareState: (s: "idle" | "running" | "done" | "error") => void;
+  prepareResult: PrepareResult | null;
+  setPrepareResult: (r: PrepareResult | null) => void;
+  prepareError: string;
+  setPrepareError: (e: string) => void;
 }) {
   const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
   const [progress, setProgress] = useState(0);
@@ -634,16 +655,6 @@ function TrainingTab({
   const evtSourceRef = useRef<EventSource | null>(null);
   const logBoxRef = useRef<HTMLDivElement>(null);
 
-  const [prepareState, setPrepareState] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [prepareResult, setPrepareResult] = useState<{
-    outputDir: string;
-    imageCount: number;
-    labelCount: number;
-    classCount: number;
-    trainCount?: number;
-    valCount?: number;
-  } | null>(null);
-  const [prepareError, setPrepareError] = useState("");
   const [valRatio, setValRatio] = useState(20); // val の割合 (%)
   const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
 
@@ -682,8 +693,9 @@ function TrainingTab({
       }
       setPrepareResult(json as typeof prepareResult);
       setPrepareState("done");
-    } catch {
-      setPrepareError("サーバーへの接続に失敗しました");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "サーバーへの接続に失敗しました";
+      setPrepareError(msg);
       setPrepareState("error");
     }
   };
@@ -1072,6 +1084,10 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
   const [savedModelKey, setSavedModelKey] = useState(initialModelKey);
   const [savedParams, setSavedParams] = useState<ModelParams>(() => getDefaults(initialModelKey || "yolov8n"));
 
+  const [prepareState, setPrepareState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [prepareResult, setPrepareResult] = useState<PrepareResult | null>(null);
+  const [prepareError, setPrepareError] = useState("");
+
   const handleParamsSave = (key: string, params: ModelParams) => {
     setSavedModelKey(key.replace(/\.pt$/i, ""));
     setSavedParams(params);
@@ -1084,7 +1100,7 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
       case "preprocess": return <PreprocessTab workspace={liveWorkspace} onConfigSaved={setLivePreprocessConfig} />;
       case "annotation": return <AnnotationTabWithShare workspace={liveWorkspace} onImagesChange={setSharedImages} />;
       case "params":     return <ParamsTab workspace={workspace} onParamsSave={handleParamsSave} />;
-      case "training":   return <TrainingTab workspace={workspace} images={sharedImages} savedModelKey={savedModelKey} savedParams={savedParams} />;
+      case "training":   return <TrainingTab workspace={workspace} images={sharedImages} savedModelKey={savedModelKey} savedParams={savedParams} prepareState={prepareState} setPrepareState={setPrepareState} prepareResult={prepareResult} setPrepareResult={setPrepareResult} prepareError={prepareError} setPrepareError={setPrepareError} />;
       case "results":    return <ResultsTab workspace={workspace} />;
     }
   };
