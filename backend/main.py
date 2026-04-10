@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dataset, predict, train
+from routers import dashboard, dataset, jobs, predict, settings, train
 from utils.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,11 @@ app.add_middleware(
 )
 
 app.include_router(train.router)
+app.include_router(jobs.router)
 app.include_router(predict.router)
 app.include_router(dataset.router)
+app.include_router(dashboard.router)
+app.include_router(settings.router)
 
 
 @app.get("/health", tags=["Health"])

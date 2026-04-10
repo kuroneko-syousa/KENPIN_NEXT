@@ -10,7 +10,6 @@
 "use client";
 
 import {
-  teamUsers,
   type WorkspacePipeline,
   type WorkflowStepStatus,
 } from "@/lib/dashboard-data";
@@ -357,17 +356,13 @@ export function WorkspacesWorkspace({
     };
   }, []);
 
-  const currentUser = useMemo(() => {
-    return (
-      teamUsers.find((user) => user.email === currentUserEmail) ?? {
-        id: `session-${currentUserEmail}`,
-        name: currentUserName,
-        email: currentUserEmail,
-        role: "User",
-        team: "Personal",
-      }
-    );
-  }, [currentUserEmail, currentUserName]);
+  const currentUser = useMemo(() => ({
+    id: `session-${currentUserEmail}`,
+    name: currentUserName,
+    email: currentUserEmail,
+    role: "User",
+    team: "Personal",
+  }), [currentUserEmail, currentUserName]);
 
   const selectedWorkspace =
     workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? workspaces[0] ?? null;

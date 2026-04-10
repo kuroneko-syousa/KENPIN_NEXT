@@ -1,151 +1,189 @@
-/**
- * データセット管理ページ
- */
 "use client";
 
-import { useState, useEffect } from "react";
-import { datasets, type Dataset } from "@/lib/dashboard-data";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-type FormData = {
-  name: string;
-  owner: string;
-  images: string;
-  split: string;
-  captionPolicy: string;
-  notes: string;
-};
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const STORAGE_KEY = "kenpin_dataset_edits";
+interface DatasetInfo {
+  dataset_id: string;
+  image_count: number;
+  classes: string[];
+  created_at: string;
+  data_yaml: string | null;
+  path: string;
+}
 
-function loadSaved(): Record<number, FormData> {
-  if (typeof window === "undefined") return {};
+function formatDate(iso: string): string {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<number, FormData>;
+    return new Date(iso).toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
-    return {};
+    return iso;
   }
 }
 
-function datasetToForm(dataset: Dataset): FormData {
-  return {
-    name: dataset.name,
-    owner: dataset.owner,
-    images: String(dataset.images),
-    split: dataset.split,
-    captionPolicy: dataset.captionPolicy,
-    notes: "",
-  };
-}
-
 export function DatasetsWorkspace() {
-  const [selectedId, setSelectedId] = useState(datasets[0].id);
-  const [saved, setSaved] = useState<Record<number, FormData>>({});
-  const [form, setForm] = useState<FormData>(() => datasetToForm(datasets[0]));
-  const [saveMessage, setSaveMessage] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const selectedDataset = datasets.find((d) => d.id === selectedId) ?? datasets[0];
+  const {
+    data: datasets = [],
+    isFetching,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<DatasetInfo[]>({
+    queryKey: ["datasets"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/datasets`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: DatasetInfo[] = await res.json();
+      if (data.length > 0) setSelectedId((prev) => prev ?? data[0].dataset_id);
+      return data;
+    },
+  });
 
-  // 初回マウント時にlocalStorageから読み込み
-  useEffect(() => {
-    const stored = loadSaved();
-    setSaved(stored);
-    const initial = stored[datasets[0].id] ?? datasetToForm(datasets[0]);
-    setForm(initial);
-  }, []);
-
-  // データセット切替時にフォームを更新
-  const handleSelectDataset = (id: number) => {
-    setSelectedId(id);
-    setSaveMessage("");
-    const dataset = datasets.find((d) => d.id === id) ?? datasets[0];
-    setForm(saved[id] ?? datasetToForm(dataset));
-  };
-
-  const handleChange = (field: keyof FormData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
-  const handleSave = () => {
-    const next = { ...saved, [selectedId]: form };
-    setSaved(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setSaveMessage("保存しました");
-    setTimeout(() => setSaveMessage(""), 2500);
-  };
+  const selectedDataset = datasets.find((d) => d.dataset_id === selectedId) ?? null;
 
   return (
     <div className="workspace-content">
       <section className="workspace-header">
         <div>
           <p className="eyebrow">Datasets</p>
-          <h2>データセット詳細と品質設定</h2>
+          <h2>データセット管理</h2>
           <p className="muted">
-            キャプション方針や分割比率を見ながら、学習データの編集方針を詰められます。
+            登録済みデータセットの画像数・クラス情報を確認できます。
           </p>
         </div>
+        <button type="button" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? "読み込み中…" : "再読み込み"}
+        </button>
       </section>
 
-      <section className="detail-grid">
-        <article className="panel">
-          <div className="selection-list">
-            {datasets.map((dataset) => (
-              <button
-                key={dataset.id}
-                type="button"
-                className={selectedId === dataset.id ? "selection-card workspace-selection-card active" : "selection-card workspace-selection-card"}
-                onClick={() => handleSelectDataset(dataset.id)}
-              >
-                <strong>{saved[dataset.id]?.name ?? dataset.name}</strong>
-                <span>{dataset.images.toLocaleString()} images · {dataset.quality}</span>
-              </button>
-            ))}
-          </div>
-        </article>
+      {isLoading && (
+        <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
+          読み込み中…
+        </div>
+      )}
 
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Dataset Detail</p>
-              <h3>{form.name || selectedDataset.name}</h3>
-            </div>
-            <span className="status draft">{selectedDataset.quality}</span>
-          </div>
+      {isError && (
+        <div className="panel" style={{ color: "#ef4444", padding: "1rem" }}>
+          エラー: {error instanceof Error ? error.message : "取得に失敗しました"}
+        </div>
+      )}
 
-          <form className="editor-form" onSubmit={(e) => e.preventDefault()}>
-            <label>
-              ワークスペース名
-              <input value={form.name} onChange={handleChange("name")} />
-            </label>
-            <label>
-              作成ユーザー
-              <input value={form.owner} onChange={handleChange("owner")} />
-            </label>
-            <label>
-              画像数
-              <input value={form.images} onChange={handleChange("images")} />
-            </label>
-            <label>
-              分割比率
-              <input value={form.split} onChange={handleChange("split")} />
-            </label>
-            <label className="full-span">
-              キャプション方針（テキストの説明・注釈ルール）
-              <textarea value={form.captionPolicy} onChange={handleChange("captionPolicy")} rows={4} />
-            </label>
-            <label className="full-span">
-              備考
-              <textarea value={form.notes} onChange={handleChange("notes")} rows={4} placeholder="備考を入力してください" />
-            </label>
-            <div className="form-actions full-span">
-              <button type="button" onClick={handleSave}>変更を保存</button>
-              <button type="button">エクスポート</button>
-              {saveMessage ? <span style={{ color: "#7cf0ba", fontSize: "0.85rem" }}>{saveMessage}</span> : null}
+      {!isLoading && !isError && datasets.length === 0 && (
+        <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
+          データセットが見つかりません
+        </div>
+      )}
+
+      {datasets.length > 0 && (
+        <section className="detail-grid">
+          <article className="panel">
+            <div className="selection-list">
+              {datasets.map((ds) => (
+                <button
+                  key={ds.dataset_id}
+                  type="button"
+                  className={
+                    selectedId === ds.dataset_id
+                      ? "selection-card workspace-selection-card active"
+                      : "selection-card workspace-selection-card"
+                  }
+                  onClick={() => setSelectedId(ds.dataset_id)}
+                >
+                  <strong style={{ fontFamily: "monospace", fontSize: "0.82rem" }}>
+                    {ds.dataset_id}
+                  </strong>
+                  <span>
+                    {ds.image_count.toLocaleString()} 枚 · {ds.classes.length} クラス
+                  </span>
+                </button>
+              ))}
             </div>
-          </form>
-        </article>
-      </section>
+          </article>
+
+          <article className="panel">
+            {selectedDataset ? (
+              <>
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Dataset Detail</p>
+                    <h3 style={{ fontFamily: "monospace", fontSize: "1rem", wordBreak: "break-all" }}>
+                      {selectedDataset.dataset_id}
+                    </h3>
+                  </div>
+                </div>
+
+                <dl
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "max-content 1fr",
+                    gap: "0.5rem 1.5rem",
+                    fontSize: "0.9rem",
+                    margin: "1rem 0",
+                  }}
+                >
+                  <dt style={{ color: "var(--muted)" }}>画像数</dt>
+                  <dd style={{ margin: 0 }}>{selectedDataset.image_count.toLocaleString()}</dd>
+
+                  <dt style={{ color: "var(--muted)" }}>クラス数</dt>
+                  <dd style={{ margin: 0 }}>{selectedDataset.classes.length}</dd>
+
+                  <dt style={{ color: "var(--muted)" }}>作成日時</dt>
+                  <dd style={{ margin: 0 }}>{formatDate(selectedDataset.created_at)}</dd>
+
+                  <dt style={{ color: "var(--muted)" }}>パス</dt>
+                  <dd
+                    style={{
+                      margin: 0,
+                      fontFamily: "monospace",
+                      fontSize: "0.82rem",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {selectedDataset.path}
+                  </dd>
+                </dl>
+
+                {selectedDataset.classes.length > 0 && (
+                  <div>
+                    <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0.5rem 0 0.75rem" }}>
+                      クラス一覧
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                      {selectedDataset.classes.map((cls, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            padding: "2px 10px",
+                            borderRadius: "12px",
+                            fontSize: "0.8rem",
+                            background: "rgba(124, 240, 186, 0.12)",
+                            color: "#7cf0ba",
+                            border: "1px solid rgba(124, 240, 186, 0.25)",
+                          }}
+                        >
+                          {cls}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p style={{ color: "var(--muted)", padding: "1rem" }}>データセットを選択してください</p>
+            )}
+          </article>
+        </section>
+      )}
     </div>
   );
 }

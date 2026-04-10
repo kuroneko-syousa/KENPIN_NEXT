@@ -101,6 +101,13 @@ export function usePreprocess(
     }
   }, [workspaceId, cfg, onConfigSaved]);
 
+  // ワークスペース起動時に imageFolder が設定されていれば自動インポート
+  useEffect(() => {
+    if (!imageFolder) return;
+    void handleImport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount once
+
   return {
     cfg,
     set,

@@ -15,6 +15,48 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
+// ---------------------------------------------------------------------------
+// GET /api/workspaces/[id]
+// ---------------------------------------------------------------------------
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const params = await context.params;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: params.id },
+      include: { owner: true },
+    });
+
+    if (!workspace || workspace.owner.email !== session.user.email) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: workspace.id,
+      name: workspace.name,
+      target: workspace.target,
+      selectedModel: workspace.selectedModel,
+      imageFolder: workspace.imageFolder,
+      datasetFolder: workspace.datasetFolder,
+      databaseId: workspace.databaseId,
+      databaseType: workspace.databaseType,
+      annotationExportPath: workspace.annotationExportPath,
+      ownerName: workspace.owner.name,
+      ownerEmail: workspace.owner.email,
+    });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }

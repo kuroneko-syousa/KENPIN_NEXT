@@ -66,7 +66,9 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
 
   // DB の AnnotationEntry テーブルからアノテーションを復元（新方式）
   // フォールバック: workspace.annotationData JSON blob（旧方式）
+  // imageFolder が設定されている場合は後述の自動インポートが兼任するためスキップ
   useEffect(() => {
+    if (workspace.imageFolder) return;
     let cancelled = false;
     const restore = async () => {
       try {
@@ -325,6 +327,13 @@ export function useAnnotation(workspace: WorkspaceAnnotationInfo) {
   const handleExportYOLOZip = useCallback(async () => {
     await exportYOLOZip(images, regionClsList);
   }, [images, regionClsList]);
+
+  // ワークスペース起動時に imageFolder が設定されていれば自動インポート（画像 + アノテーション）
+  useEffect(() => {
+    if (!workspace.imageFolder) return;
+    void handleResourceImport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount once
 
   return {
     images,

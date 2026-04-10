@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AnnotateImage, DrawTool } from "../types/annotate";
@@ -11,6 +11,8 @@ export type { PreprocessConfig } from "../lib/preprocess/applyPreprocess";
 
 import { usePreprocess } from "../hooks/usePreprocess";
 import { useAnnotation, toolMap } from "../hooks/useAnnotation";
+import JobResultsViewer from "./studio/training/JobResultsViewer";
+import { fetchJobDetail, fetchJobLogs } from "@/lib/jobApi";
 
 import PreviewCanvas from "./studio/preprocess/PreviewCanvas";
 import FullscreenPreview from "./studio/preprocess/FullscreenPreview";
@@ -633,6 +635,9 @@ function TrainingTab({
   setPrepareResult,
   prepareError,
   setPrepareError,
+  onJobStarted,
+  restoredFastapiJobId,
+  onPhaseChange,
 }: {
   workspace: WorkspaceInfo;
   images: AnnotateImage[];
@@ -644,6 +649,10 @@ function TrainingTab({
   setPrepareResult: (r: PrepareResult | null) => void;
   prepareError: string;
   setPrepareError: (e: string) => void;
+  onJobStarted?: (fastapiJobId: string) => void;
+  /** ページリロード後に localStorage から復元された fastapiJobId */
+  restoredFastapiJobId?: string | null;
+  onPhaseChange?: (phase: "idle" | "running" | "done" | "error") => void;
 }) {
   const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
   const [progress, setProgress] = useState(0);
@@ -651,22 +660,106 @@ function TrainingTab({
   const [totalEpochs, setTotalEpochs] = useState(() => parseInt(savedParams.epochs || "100", 10));
   const [logs, setLogs] = useState<string[]>([]);
   const [trainError, setTrainError] = useState("");
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+  // jobId: Next.js SSE ジョブ ID（localStorage で永続化して再接続に利用）
+  const [jobId, setJobId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`jobId_${workspace.id}`) ?? null;
+    }
+    return null;
+  });
   const evtSourceRef = useRef<EventSource | null>(null);
   const logBoxRef = useRef<HTMLDivElement>(null);
 
   const [valRatio, setValRatio] = useState(20); // val の割合 (%)
   const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
 
-
-  // ログが追加されるたびに最下行へスクロール
+  // phase が変わるたびに親コンポーネントへ通知
   useEffect(() => {
-    if (logBoxRef.current) {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
+  // マウント時に localStorage の jobId を使って SSE へ再接続
+  useEffect(() => {
+    const storedJobId = typeof window !== "undefined"
+      ? localStorage.getItem(`jobId_${workspace.id}`)
+      : null;
+    if (!storedJobId) return;
+    const evtSource = new EventSource(
+      `/api/workspaces/${workspace.id}/start-training?jobId=${storedJobId}`
+    );
+    evtSourceRef.current = evtSource;
+    let gotEvent = false;
+    evtSource.addEventListener("log", (e) => {
+      gotEvent = true;
+      const { text } = JSON.parse(e.data) as { text: string };
+      setLogs((prev) => [...prev, text]);
+    });
+    evtSource.addEventListener("progress", (e) => {
+      gotEvent = true;
+      const { epoch: ep, totalEpochs: total, progress: pct } = JSON.parse(e.data) as {
+        epoch: number; totalEpochs: number; progress: number;
+      };
+      setPhase("running");
+      setEpoch(ep);
+      setTotalEpochs(total);
+      setProgress(pct);
+    });
+    evtSource.addEventListener("done", (e) => {
+      gotEvent = true;
+      const { success } = JSON.parse(e.data) as { success: boolean };
+      setPhase(success ? "done" : "error");
+      if (!success) setTrainError("学習が異常終了しました。ログを確認してください。");
+      evtSource.close();
+    });
+    evtSource.onerror = () => {
+      evtSource.close();
+      // SSE 再接続が失敗した場合（Next.js 再起動など）は FastAPI ログをフェッチ
+      if (!gotEvent && restoredFastapiJobId) {
+        void fetchJobLogs(restoredFastapiJobId)
+          .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+          .catch(() => {});
+      }
+    };
+    return () => { evtSource.close(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount once
+
+  // ページナビゲーション後に fastapiJobId から状態を復元
+  useEffect(() => {
+    if (!restoredFastapiJobId || phase !== "idle") return;
+    fetchJobDetail(restoredFastapiJobId)
+      .then((detail) => {
+        if (detail.status === "completed") {
+          setPhase("done");
+          if (detail.progress) setProgress(detail.progress);
+          // 完了済みログを FastAPI から取得
+          void fetchJobLogs(restoredFastapiJobId)
+            .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+            .catch(() => {});
+        } else if (detail.status === "failed") {
+          setPhase("error");
+          setTrainError(detail.error ?? "学習が異常終了しました。");
+          void fetchJobLogs(restoredFastapiJobId)
+            .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+            .catch(() => {});
+        } else if (detail.status === "running") {
+          setPhase("running");
+          if (detail.progress) setProgress(detail.progress);
+        }
+      })
+      .catch(() => { /* バックエンド未起動などの場合は無視 */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoredFastapiJobId]);
+
+  // ログが追加されるたびに最下行へスクロール（autoScroll ON の場合のみ）
+  useEffect(() => {
+    if (autoScroll && logBoxRef.current) {
       logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs, autoScroll]);
 
-  // タブ離脱時に SSE を切断
+  // アンマウント時に SSE を切断
   useEffect(() => {
     return () => { evtSourceRef.current?.close(); };
   }, []);
@@ -724,6 +817,8 @@ function TrainingTab({
       }
       id = json.jobId;
       setJobId(id);
+      localStorage.setItem(`jobId_${workspace.id}`, id);
+      if (json.fastapiJobId) onJobStarted?.(json.fastapiJobId);
     } catch {
       setTrainError("サーバーへの接続に失敗しました");
       setPhase("error");
@@ -834,32 +929,66 @@ function TrainingTab({
       {/* ログ表示エリア */}
       {(logs.length > 0 || phase === "running") && (
         <div style={{ marginTop: "0.75rem" }}>
-          <p className="eyebrow" style={{ marginBottom: "0.4rem", fontSize: "0.68rem" }}>学習ログ</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+            <p className="eyebrow" style={{ fontSize: "0.68rem", margin: 0 }}>学習ログ</p>
+            <span style={{ flex: 1 }} />
+            <button
+              type="button"
+              className="ghost-button"
+              style={{ padding: "0.15rem 0.5rem", fontSize: "0.64rem" }}
+              onClick={() => setAutoScroll((v) => !v)}
+            >
+              {autoScroll ? "📌 自動スクロール ON" : "📌 自動スクロール OFF"}
+            </button>
+            <button
+              type="button"
+              className="ghost-button"
+              style={{ padding: "0.15rem 0.5rem", fontSize: "0.64rem" }}
+              onClick={() => {
+                const text = logs.join("\n");
+                void navigator.clipboard.writeText(text).catch(() => {});
+              }}
+            >
+              📋 コピー
+            </button>
+          </div>
           <div
             ref={logBoxRef}
             style={{
-              background: "rgba(0,0,0,0.35)",
+              background: "rgba(0,0,0,0.45)",
               border: "1px solid rgba(237,241,250,0.1)",
               borderRadius: "6px",
               padding: "0.75rem",
-              height: "220px",
+              height: "400px",
               overflowY: "auto",
               fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
               fontSize: "0.7rem",
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               color: "rgba(237,241,250,0.75)",
             }}
           >
             {logs.length === 0 && phase === "running" && (
               <span style={{ color: "rgba(237,241,250,0.35)" }}>学習開始中...</span>
             )}
-            {logs.map((line, i) => (
-              <div key={i} style={{
-                color: line.startsWith("[ERROR]") ? "#ff6b6b"
-                  : line.includes("Results saved") || line.includes("best.pt") ? "#7cf0ba"
-                  : "inherit",
-              }}>{line}</div>
-            ))}
+            {logs.map((line, i) => {
+              let color = "rgba(237,241,250,0.72)";
+              if (line.startsWith("[ERROR]") || /\berror\b/i.test(line) || /traceback/i.test(line)) {
+                color = "#ff6b6b";
+              } else if (/results saved|best\.pt|saving/i.test(line)) {
+                color = "#7cf0ba";
+              } else if (/\bEpoch\b.+\d+\/\d+/.test(line)) {
+                color = "#7ee8fa";
+              } else if (/mAP|precision|recall/i.test(line)) {
+                color = "#89b4fa";
+              } else if (line.startsWith("[WARNING]") || /userwarning/i.test(line)) {
+                color = "#f1c40f";
+              } else if (line.startsWith("[INFO]")) {
+                color = "rgba(237,241,250,0.5)";
+              }
+              return (
+                <div key={i} style={{ color, wordBreak: "break-all" }}>{line}</div>
+              );
+            })}
             {phase === "running" && (
               <div style={{ color: "rgba(237,241,250,0.35)" }}>▊</div>
             )}
@@ -1018,55 +1147,25 @@ function TrainingTab({
 }
 
 /* ─── 結果確認タブ ─── */
-function ResultsTab({ workspace }: { workspace: WorkspaceInfo }) {
-  const metrics = [
-    { label: "mAP50",     value: "0.874" }, { label: "mAP50-95", value: "0.651" },
-    { label: "Precision", value: "0.912" }, { label: "Recall",   value: "0.883" },
-    { label: "F1 Score",  value: "0.897" }, { label: "Inference", value: "8.4 ms" },
-  ];
-  const confusions = [
-    { cls: "defect",  tp: 312, fp: 28, fn: 41, precision: "0.918", recall: "0.884" },
-    { cls: "ok",      tp: 891, fp: 12, fn: 9,  precision: "0.987", recall: "0.990" },
-    { cls: "unknown", tp: 44,  fp: 18, fn: 22, precision: "0.710", recall: "0.667" },
-  ];
-
+function ResultsTab({ fastapiJobId }: { fastapiJobId: string | null }) {
+  if (!fastapiJobId) {
+    return (
+      <div className="studio-tab-content">
+        <div className="studio-section-header">
+          <div><p className="eyebrow">Step 5</p><h3>結果確認</h3></div>
+        </div>
+        <p style={{ padding: "2rem 0", color: "rgba(237,241,250,0.45)", textAlign: "center" }}>
+          学習を実行すると、こちらに結果が表示されます。
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="studio-tab-content">
       <div className="studio-section-header">
         <div><p className="eyebrow">Step 5</p><h3>結果確認</h3></div>
-        <span className="status ready">最新結果あり</span>
       </div>
-      <div className="studio-metrics-row" style={{ marginBottom: "1.5rem" }}>
-        {metrics.map((m) => (
-          <div key={m.label} className="summary-item studio-metric-chip">
-            <span>{m.label}</span><strong>{m.value}</strong>
-          </div>
-        ))}
-      </div>
-      <div className="panel" style={{ marginBottom: "1.5rem", padding: "1rem" }}>
-        <p className="eyebrow" style={{ marginBottom: "0.75rem" }}>クラス別評価</p>
-        <div style={{ display: "grid", gap: "0.6rem" }}>
-          <div className="studio-table-header">
-            {["クラス","TP","FP","FN","Precision","Recall"].map((h) => (
-              <span key={h} style={{ fontSize: "0.75rem", color: "rgba(237,241,250,0.6)" }}>{h}</span>
-            ))}
-          </div>
-          {confusions.map((row) => (
-            <div key={row.cls} className="studio-table-row">
-              <strong>{row.cls}</strong><span>{row.tp}</span><span>{row.fp}</span>
-              <span>{row.fn}</span><span>{row.precision}</span><span>{row.recall}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="studio-info-row">
-        <div className="summary-item"><span>チェックポイント</span><strong>{workspace.datasetFolder ?? "未設定"}\best.pt</strong></div>
-        <div className="summary-item"><span>エクスポート形式</span><strong>ONNX / TorchScript</strong></div>
-      </div>
-      <div className="workflow-actions" style={{ marginTop: "1.5rem" }}>
-        <button type="button">モデルをエクスポート</button>
-        <button type="button" className="ghost-button">レポートをダウンロード</button>
-      </div>
+      <JobResultsViewer jobId={fastapiJobId} />
     </div>
   );
 }
@@ -1076,6 +1175,7 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
   const [activeTab, setActiveTab] = useState<StudioTab>("preprocess");
   const [sharedImages, setSharedImages] = useState<AnnotateImage[]>([]);
   const [livePreprocessConfig, setLivePreprocessConfig] = useState(workspace.preprocessConfig);
+  const [trainingPhase, setTrainingPhase] = useState<"idle" | "running" | "done" | "error">("idle");
 
   const _rawModelKey = workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") ?? "";
   const initialModelKey = workspace.target === "object-detection"
@@ -1083,6 +1183,19 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
     : "";
   const [savedModelKey, setSavedModelKey] = useState(initialModelKey);
   const [savedParams, setSavedParams] = useState<ModelParams>(() => getDefaults(initialModelKey || "yolov8n"));
+
+  const [fastapiJobId, setFastapiJobId] = useState<string | null>(() => {
+    // localStorage からリロード前の fastapiJobId を復元
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`fastapiJobId_${workspace.id}`) ?? null;
+    }
+    return null;
+  });
+
+  const handleJobStarted = useCallback((id: string) => {
+    setFastapiJobId(id);
+    localStorage.setItem(`fastapiJobId_${workspace.id}`, id);
+  }, [workspace.id]);
 
   const [prepareState, setPrepareState] = useState<"idle" | "running" | "done" | "error">("idle");
   const [prepareResult, setPrepareResult] = useState<PrepareResult | null>(null);
@@ -1094,16 +1207,6 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
   };
 
   const liveWorkspace = { ...workspace, preprocessConfig: livePreprocessConfig };
-
-  const renderTab = () => {
-    switch (activeTab) {
-      case "preprocess": return <PreprocessTab workspace={liveWorkspace} onConfigSaved={setLivePreprocessConfig} />;
-      case "annotation": return <AnnotationTabWithShare workspace={liveWorkspace} onImagesChange={setSharedImages} />;
-      case "params":     return <ParamsTab workspace={workspace} onParamsSave={handleParamsSave} />;
-      case "training":   return <TrainingTab workspace={workspace} images={sharedImages} savedModelKey={savedModelKey} savedParams={savedParams} prepareState={prepareState} setPrepareState={setPrepareState} prepareResult={prepareResult} setPrepareResult={setPrepareResult} prepareError={prepareError} setPrepareError={setPrepareError} />;
-      case "results":    return <ResultsTab workspace={workspace} />;
-    }
-  };
 
   return (
     <div className="workspace-content">
@@ -1136,12 +1239,51 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
             className={`studio-tab-btn${activeTab === tab.id ? " active" : ""}`}
             onClick={() => setActiveTab(tab.id)}>
             <span className="studio-tab-index">{i + 1}</span>
-            <span>{tab.icon} {tab.label}</span>
+            <span>
+              {tab.icon} {tab.label}
+              {tab.id === "training" && trainingPhase === "running" && (
+                <span style={{
+                  display: "inline-block",
+                  marginLeft: "0.35rem",
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: "#7ee8fa",
+                  animation: "pulse-dot 1.4s infinite",
+                  verticalAlign: "middle",
+                }} />
+              )}
+            </span>
           </button>
         ))}
       </div>
 
-      <section className="panel">{renderTab()}</section>
+      <section className="panel">
+        {activeTab === "preprocess" && <PreprocessTab workspace={liveWorkspace} onConfigSaved={setLivePreprocessConfig} />}
+        {activeTab === "annotation" && <AnnotationTabWithShare workspace={liveWorkspace} onImagesChange={setSharedImages} />}
+        {activeTab === "params" && <ParamsTab workspace={workspace} onParamsSave={handleParamsSave} />}
+
+        {/* TrainingTab は常時マウント（タブ切替時も SSE 接続とログを維持） */}
+        <div style={{ display: activeTab === "training" ? undefined : "none" }}>
+          <TrainingTab
+            workspace={workspace}
+            images={sharedImages}
+            savedModelKey={savedModelKey}
+            savedParams={savedParams}
+            prepareState={prepareState}
+            setPrepareState={setPrepareState}
+            prepareResult={prepareResult}
+            setPrepareResult={setPrepareResult}
+            prepareError={prepareError}
+            setPrepareError={setPrepareError}
+            onJobStarted={handleJobStarted}
+            restoredFastapiJobId={fastapiJobId}
+            onPhaseChange={setTrainingPhase}
+          />
+        </div>
+
+        {activeTab === "results" && <ResultsTab fastapiJobId={fastapiJobId} />}
+      </section>
     </div>
   );
 }

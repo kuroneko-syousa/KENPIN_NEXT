@@ -203,7 +203,7 @@ export async function POST(
   jobs.set(jobId, job);
   startPolling(job);
 
-  return NextResponse.json({ jobId, model, epochs });
+  return NextResponse.json({ jobId, fastapiJobId, model, epochs });
 }
 
 /* --- GET: SSE stream --- */
