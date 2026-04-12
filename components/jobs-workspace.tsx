@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useT, interpolate } from "@/lib/i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -21,14 +22,6 @@ interface JobSummary {
   locked?: boolean;
 }
 
-const STATUS_LABELS: Record<JobStatus, string> = {
-  queued: "待機中",
-  running: "実行中",
-  completed: "完了",
-  failed: "失敗",
-  stopped: "停止",
-};
-
 const STATUS_COLORS: Record<JobStatus, string> = {
   queued: "#94a3b8",
   running: "#3b82f6",
@@ -37,9 +30,9 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   stopped: "#f59e0b",
 };
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString("ja-JP", {
+    return new Date(iso).toLocaleString(locale, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -51,8 +44,15 @@ function formatDate(iso: string): string {
   }
 }
 
-function StatusBadge({ status }: { status: JobStatus }) {
+function StatusBadge({ status, t }: { status: JobStatus; t: ReturnType<typeof useT> }) {
   const color = STATUS_COLORS[status] ?? "#a3a3a3";
+  const labels: Record<JobStatus, string> = {
+    queued: t.job_queued,
+    running: t.job_running,
+    completed: t.job_completed,
+    failed: t.job_failed,
+    stopped: t.job_stopped,
+  };
   return (
     <span
       style={{
@@ -67,7 +67,7 @@ function StatusBadge({ status }: { status: JobStatus }) {
         whiteSpace: "nowrap",
       }}
     >
-      {STATUS_LABELS[status] ?? status}
+      {labels[status] ?? status}
     </span>
   );
 }
@@ -94,6 +94,7 @@ function MetaChip({ label, color }: { label: string; color?: string }) {
 }
 
 export function JobsWorkspace() {
+  const t = useT();
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
   const [expandedJobIds, setExpandedJobIds] = useState<Record<string, boolean>>({});
@@ -133,17 +134,17 @@ export function JobsWorkspace() {
         const payload = (await res.json().catch(() => ({}))) as { detail?: string };
         throw new Error(payload.detail ?? `HTTP ${res.status}`);
       }
-      setMessage(job.locked ? "ジョブのロックを解除しました。" : "ジョブをロックしました。");
+      setMessage(job.locked ? t.jobs_unlocked : t.jobs_locked);
       await refetch();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "操作に失敗しました。" );
+      setMessage(e instanceof Error ? e.message : t.jobs_op_fail);
     } finally {
       setBusyJobId(null);
     }
   };
 
   const handleDelete = async (job: JobSummary) => {
-    if (!window.confirm(`ジョブ ${job.job_id} を削除しますか？`)) return;
+    if (!window.confirm(interpolate(t.jobs_del_confirm, { id: job.job_id }))) return;
     setBusyJobId(job.job_id);
     setMessage("");
     try {
@@ -154,10 +155,10 @@ export function JobsWorkspace() {
         const payload = (await res.json().catch(() => ({}))) as { detail?: string };
         throw new Error(payload.detail ?? `HTTP ${res.status}`);
       }
-      setMessage("ジョブを削除しました。");
+      setMessage(t.jobs_deleted);
       await refetch();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "削除に失敗しました。");
+      setMessage(e instanceof Error ? e.message : t.jobs_del_fail);
     } finally {
       setBusyJobId(null);
     }
@@ -174,15 +175,15 @@ export function JobsWorkspace() {
     <div className="workspace-content">
       <section className="workspace-header">
         <div>
-          <p className="eyebrow">ジョブ</p>
+          <p className="eyebrow">{t.jobs_eyebrow}</p>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <h2 style={{ margin: 0 }}>ジョブ履歴</h2>
+            <h2 style={{ margin: 0 }}>{t.jobs_h2}</h2>
             <button
               type="button"
               onClick={() => void refetch()}
               disabled={isFetching}
-              aria-label="ジョブ一覧を更新"
-              title={isFetching ? "更新中..." : "更新"}
+              aria-label={t.jobs_refresh_aria}
+              title={isFetching ? t.refreshing : t.refresh}
               style={{
                 width: 30,
                 height: 30,
@@ -202,7 +203,7 @@ export function JobsWorkspace() {
             </button>
           </div>
           <p className="muted">
-            ログを保存済みの完了ジョブ: {completedWithLogs}件
+            {interpolate(t.jobs_with_logs, { count: completedWithLogs })}
           </p>
         </div>
       </section>
@@ -215,19 +216,19 @@ export function JobsWorkspace() {
 
       {isLoading && (
         <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
-          読み込み中...
+          {t.loading}
         </div>
       )}
 
       {isError && (
         <div className="panel" style={{ color: "#ef4444", padding: "1rem" }}>
-          エラー: {error instanceof Error ? error.message : "読み込みに失敗しました"}
+          {t.error_prefix} {error instanceof Error ? error.message : t.jobs_load_fail}
         </div>
       )}
 
       {!isLoading && !isError && jobs.length === 0 && (
         <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
-          ジョブはありません
+          {t.jobs_none}
         </div>
       )}
 
@@ -275,7 +276,7 @@ export function JobsWorkspace() {
                       flexWrap: "wrap",
                     }}
                   >
-                    <StatusBadge status={job.status} />
+                    <StatusBadge status={job.status} t={t} />
                     <span
                       style={{
                         fontFamily: "monospace",
@@ -300,11 +301,11 @@ export function JobsWorkspace() {
                       fontSize: "0.76rem",
                     }}
                   >
-                    <span>進捗 {job.progress}%</span>
+                    <span>{job.progress}%</span>
                     <span>・</span>
-                    <span>{formatDate(job.created_at)}</span>
-                    {job.logs_path && <MetaChip label="ログ保存済み" color="#22c55e" />}
-                    {job.locked && <MetaChip label="ロック中" color="#f59e0b" />}
+                    <span>{formatDate(job.created_at, t.date_locale)}</span>
+                    {job.logs_path && <MetaChip label={t.jobs_meta_log_saved} color="#22c55e" />}
+                    {job.locked && <MetaChip label={t.jobs_meta_locked} color="#f59e0b" />}
                   </div>
                 </div>
 
@@ -334,7 +335,7 @@ export function JobsWorkspace() {
               >
                 <div style={{ display: "grid", gap: "0.4rem", minWidth: 0, flex: "1 1 420px" }}>
                   <div style={{ color: "var(--muted)", fontSize: "0.72rem", letterSpacing: "0.08em" }}>
-                    ジョブID
+                    {t.jobs_detail_id}
                   </div>
                   <div
                     style={{
@@ -355,18 +356,10 @@ export function JobsWorkspace() {
                       fontSize: "0.79rem",
                     }}
                   >
-                    <div>モデル: {job.model || "-"}</div>
-                    <div>データセット: {job.dataset_id || "-"}</div>
+                    <div>{t.jobs_detail_model}: {job.model || "-"}</div>
+                    <div>{t.jobs_detail_dataset}: {job.dataset_id || "-"}</div>
                     <div>YOLO: {job.yolo_version || "-"}</div>
-                    <div>作成日時: {formatDate(job.created_at)}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gap: "0.5rem", justifyItems: "end" }}>
-                  <StatusBadge status={job.status} />
-                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <MetaChip label={job.logs_path ? "ログ保存済み" : "ログ未保存"} color={job.logs_path ? "#22c55e" : undefined} />
-                    {job.locked && <MetaChip label="ロック中" color="#f59e0b" />}
+                    <div>{t.jobs_detail_created}: {formatDate(job.created_at, t.date_locale)}</div>
                   </div>
                 </div>
               </div>
@@ -382,7 +375,7 @@ export function JobsWorkspace() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  <span>進捗</span>
+                  <span>{t.jobs_detail_progress}</span>
                   <strong style={{ color: "#f5f7fb", fontSize: "0.86rem" }}>{job.progress}%</strong>
                 </div>
                 <div
@@ -417,7 +410,7 @@ export function JobsWorkspace() {
                     wordBreak: "break-word",
                   }}
                 >
-                  エラー詳細: {job.error}
+                  {t.jobs_detail_error}: {job.error}
                 </div>
               )}
 
@@ -432,10 +425,10 @@ export function JobsWorkspace() {
               >
                 <div style={{ color: "var(--muted)", fontSize: "0.76rem" }}>
                   {job.locked
-                    ? "ロック中のため削除できません"
+                    ? t.jobs_no_del_locked
                     : job.status === "running" || job.status === "queued"
-                      ? "削除前にジョブを停止してください"
-                      : "削除可能です"}
+                      ? t.jobs_no_del_running
+                      : t.jobs_can_del}
                 </div>
 
                 <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
@@ -446,7 +439,7 @@ export function JobsWorkspace() {
                     disabled={busyJobId === job.job_id}
                     style={{ padding: "0.62rem 0.85rem" }}
                   >
-                    {job.locked ? "ロック解除" : "ロック"}
+                    {job.locked ? t.jobs_btn_unlock : t.jobs_btn_lock}
                   </button>
                   <button
                     type="button"
@@ -459,14 +452,14 @@ export function JobsWorkspace() {
                     }
                     title={
                       job.locked
-                        ? "ロック解除後に削除できます"
+                        ? t.jobs_no_del_locked
                         : job.status === "running" || job.status === "queued"
-                          ? "停止後に削除できます"
+                          ? t.jobs_no_del_running
                           : ""
                     }
                     style={{ padding: "0.62rem 0.85rem" }}
                   >
-                    削除
+                    {t.delete}
                   </button>
                 </div>
               </div>

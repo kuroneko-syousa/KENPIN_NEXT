@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import JobResultsViewer from "@/components/studio/training/JobResultsViewer";
+import { useT } from "@/lib/i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -35,9 +36,9 @@ interface TrainedModel {
   device: string;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString("ja-JP", {
+    return new Date(iso).toLocaleString(locale, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -52,6 +53,7 @@ function formatDate(iso: string): string {
 export function ModelsWorkspace() {
   const [models, setModels] = useState<TrainedModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -75,7 +77,7 @@ export function ModelsWorkspace() {
         setSelectedId((prev) => prev ?? completed[0].job_id);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "取得に失敗しました");
+      setError(e instanceof Error ? e.message : t.error_prefix);
     } finally {
       setLoading(false);
     }
@@ -125,7 +127,7 @@ export function ModelsWorkspace() {
       );
       setRenameMode(false);
     } catch (e) {
-      setRenameError(e instanceof Error ? e.message : "変更に失敗しました");
+      setRenameError(e instanceof Error ? e.message : t.error_prefix);
     } finally {
       setRenaming(false);
     }
@@ -138,7 +140,7 @@ export function ModelsWorkspace() {
     try {
       const res = await fetch(`${API_BASE}/jobs/${selected.job_id}/weights`);
       if (!res.ok) {
-        let detail = "重みファイルを取得できませんでした";
+        let detail = t.models_weights_fail;
         try {
           const payload = await res.json();
           if (payload?.detail) detail = String(payload.detail);
@@ -158,7 +160,7 @@ export function ModelsWorkspace() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setDownloadError(e instanceof Error ? e.message : "ダウンロードに失敗しました");
+      setDownloadError(e instanceof Error ? e.message : t.models_dl_fail);
     } finally {
       setDownloading(false);
     }
@@ -170,13 +172,13 @@ export function ModelsWorkspace() {
         <div>
           <p className="eyebrow">Models</p>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <h2 style={{ margin: 0 }}>学習済みモデル</h2>
+            <h2 style={{ margin: 0 }}>{t.models_h2}</h2>
             <button
               type="button"
               onClick={fetchModels}
               disabled={loading}
-              aria-label="モデル一覧を更新"
-              title={loading ? "更新中..." : "更新"}
+              aria-label={t.models_refresh}
+              title={loading ? t.refreshing : t.refresh}
               style={{
                 width: 30,
                 height: 30,
@@ -195,25 +197,25 @@ export function ModelsWorkspace() {
               ↻
             </button>
           </div>
-          <p className="muted">作成したモデルの学習結果とパラメータを確認できます。</p>
+          <p className="muted">{t.models_desc}</p>
         </div>
       </section>
 
       {loading && models.length === 0 && (
         <div className="panel model-state-panel">
-          読み込み中…
+          {t.loading}
         </div>
       )}
 
       {error && (
         <div className="panel model-state-panel model-state-error">
-          エラー: {error}
+          {t.error_prefix} {error}
         </div>
       )}
 
       {!loading && !error && models.length === 0 && (
         <div className="panel model-state-panel">
-          完了済みモデルが見つかりません。学習ジョブを実行してください。
+          {t.models_none}
         </div>
       )}
 
@@ -224,7 +226,7 @@ export function ModelsWorkspace() {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Registry</p>
-                <h3>モデル一覧</h3>
+                <h3>{t.models_list_h3}</h3>
               </div>
               <span className="muted">{models.length} 件</span>
             </div>
@@ -238,7 +240,7 @@ export function ModelsWorkspace() {
                 >
                   <strong>{m.display_name || m.model.toUpperCase()}</strong>
                   <span className="model-selection-dataset">{m.model}</span>
-                  <span className="model-selection-date">{formatDate(m.created_at)}</span>
+                  <span className="model-selection-date">{formatDate(m.created_at, t.date_locale)}</span>
                 </button>
               ))}
             </div>
@@ -280,7 +282,7 @@ export function ModelsWorkspace() {
                           onClick={handleRename}
                           disabled={renaming || !renameValue.trim()}
                         >
-                          {renaming ? "保存中…" : "保存"}
+                          {renaming ? t.models_saving : t.models_save}
                         </button>
                         <button
                           type="button"
@@ -289,7 +291,7 @@ export function ModelsWorkspace() {
                           onClick={() => setRenameMode(false)}
                           disabled={renaming}
                         >
-                          キャンセル
+                          {t.cancel}
                         </button>
                         {renameError && <span style={{ fontSize: "0.75rem", color: "#f87171" }}>{renameError}</span>}
                       </div>
@@ -301,7 +303,7 @@ export function ModelsWorkspace() {
                           className="ghost-button"
                           style={{ fontSize: "0.72rem", padding: "0.15rem 0.4rem", opacity: 0.7 }}
                           onClick={() => { setRenameValue(selected.display_name || ""); setRenameMode(true); }}
-                          title="名前を変更"
+                          title={t.models_rename_btn}
                         >
                           ✎
                         </button>
@@ -314,19 +316,19 @@ export function ModelsWorkspace() {
                 {/* メタデータ */}
                 <dl className="model-detail-grid">
                   <div className="model-detail-item">
-                    <dt>ワークスペース</dt>
+                    <dt>{t.models_detail_workspace}</dt>
                     <dd>{workspaceName ?? selected.workspace_id ?? "—"}</dd>
                   </div>
                   <div className="model-detail-item">
-                    <dt>モデル</dt>
+                    <dt>{t.models_detail_model}</dt>
                     <dd>{selected.model} (YOLO {selected.yolo_version})</dd>
                   </div>
                   <div className="model-detail-item">
-                    <dt>作成日時</dt>
-                    <dd>{formatDate(selected.created_at)}</dd>
+                    <dt>{t.models_detail_created}</dt>
+                    <dd>{formatDate(selected.created_at, t.date_locale)}</dd>
                   </div>
                   <div className="model-detail-item full-span">
-                    <dt>パラメーター</dt>
+                    <dt>{t.models_detail_params}</dt>
                     <dd>
                       <div className="model-quick-metrics" style={{ marginTop: "0.25rem" }}>
                         <span className="metric-chip">epochs: {selected.epochs}</span>
@@ -353,13 +355,13 @@ export function ModelsWorkspace() {
                     onClick={handleDownloadWeights}
                     disabled={downloading}
                   >
-                    {downloading ? "ダウンロード中…" : "重みをダウンロード"}
+                    {downloading ? t.models_downloading : t.models_dl_weights}
                   </button>
                   {downloadError && <span className="model-download-error">{downloadError}</span>}
                 </div>
               </>
             ) : (
-              <p className="muted model-empty-note">左のリストからモデルを選んでください</p>
+              <p className="muted model-empty-note">{t.models_select_hint}</p>
             )}
           </article>
         </section>

@@ -13,6 +13,23 @@
   --app-input-border: rgba(255, 255, 255, 0.08);
   --app-surface-bg: rgba(10, 14, 24, 0.62);
   --app-surface-border: rgba(255, 255, 255, 0.1);
+  --sidebar-bg: rgba(8, 11, 20, 0.72);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-item-bg: rgba(255, 255, 255, 0.05);
+  --sidebar-item-bg-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-item-bg-active: rgba(255, 255, 255, 0.12);
+  --sidebar-item-text: #f5f7fb;
+  --sidebar-icon-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-toggle-color: #f7f8fc;
+  --sidebar-toggle-hover: #ffd783;
+  --app-label-text: rgba(245, 247, 251, 0.86);
+  --menu-surface-bg: rgba(10, 14, 24, 0.95);
+  --menu-border: rgba(255, 255, 255, 0.1);
+  --menu-divider: rgba(255, 255, 255, 0.1);
+  --menu-text: #f5f7fb;
+  --menu-muted: rgba(255, 255, 255, 0.6);
+  --menu-item-hover-bg: rgba(255, 255, 255, 0.08);
+  --menu-item-active-bg: rgba(255, 255, 255, 0.12);
   --app-body-bg:
     radial-gradient(circle at top left, rgba(255, 193, 106, 0.3), transparent 32%),
     radial-gradient(circle at top right, rgba(82, 143, 255, 0.24), transparent 28%),
@@ -21,6 +38,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-font-size="xs"] {
+  font-size: 12px;
 }
 
 html[data-font-size="small"] {
@@ -33,6 +54,10 @@ html[data-font-size="medium"] {
 
 html[data-font-size="large"] {
   font-size: 18px;
+}
+
+html[data-font-size="xl"] {
+  font-size: 20px;
 }
 
 * {
@@ -59,10 +84,148 @@ body[data-theme="light"] {
   --app-input-border: rgba(33, 56, 94, 0.22);
   --app-surface-bg: rgba(255, 255, 255, 0.82);
   --app-surface-border: rgba(43, 75, 123, 0.22);
+  --sidebar-bg: rgba(250, 253, 255, 0.88);
+  --sidebar-border: rgba(53, 86, 136, 0.2);
+  --sidebar-item-bg: rgba(255, 255, 255, 0.72);
+  --sidebar-item-bg-hover: rgba(242, 248, 255, 0.92);
+  --sidebar-item-bg-active: rgba(233, 242, 255, 0.96);
+  --sidebar-item-text: #1f2a3f;
+  --sidebar-icon-bg: rgba(83, 126, 197, 0.14);
+  --sidebar-toggle-color: #2c3f63;
+  --sidebar-toggle-hover: #ff9a59;
+  --app-label-text: rgba(28, 36, 52, 0.82);
+  --menu-surface-bg: rgba(252, 255, 255, 0.96);
+  --menu-border: rgba(53, 86, 136, 0.22);
+  --menu-divider: rgba(53, 86, 136, 0.16);
+  --menu-text: #1f2a3f;
+  --menu-muted: rgba(43, 62, 95, 0.66);
+  --menu-item-hover-bg: rgba(236, 244, 255, 0.9);
+  --menu-item-active-bg: rgba(225, 237, 255, 0.95);
   --app-body-bg:
     radial-gradient(circle at top left, rgba(255, 179, 87, 0.28), transparent 32%),
     radial-gradient(circle at top right, rgba(87, 139, 255, 0.2), transparent 28%),
     linear-gradient(135deg, #f4f7fc 0%, #e9eef8 46%, #dfe8f8 100%);
+}
+
+body[data-theme="midnight"] {
+  --app-text: #e8e3ff;
+  --app-muted: rgba(215, 208, 255, 0.68);
+  --app-input-text: #ddd7ff;
+  --app-input-bg: rgba(255, 255, 255, 0.07);
+  --app-input-border: rgba(160, 120, 255, 0.18);
+  --app-surface-bg: rgba(12, 7, 30, 0.65);
+  --app-surface-border: rgba(140, 90, 255, 0.2);
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(180, 90, 255, 0.3), transparent 32%),
+    radial-gradient(circle at top right, rgba(70, 50, 200, 0.26), transparent 28%),
+    linear-gradient(135deg, #0c0818 0%, #130f2a 46%, #1c1442 100%);
+}
+
+body[data-theme="forest"] {
+  --app-text: #daf2e8;
+  --app-muted: rgba(195, 235, 212, 0.68);
+  --app-input-text: #ccecdc;
+  --app-input-bg: rgba(255, 255, 255, 0.07);
+  --app-input-border: rgba(70, 185, 120, 0.18);
+  --app-surface-bg: rgba(5, 18, 11, 0.62);
+  --app-surface-border: rgba(50, 165, 100, 0.2);
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(60, 200, 110, 0.28), transparent 32%),
+    radial-gradient(circle at top right, rgba(20, 130, 70, 0.24), transparent 28%),
+    linear-gradient(135deg, #050e09 0%, #0a1f12 46%, #102a1a 100%);
+}
+
+body[data-theme="rose"] {
+  --app-text: #2e1620;
+  --app-muted: rgba(85, 35, 55, 0.65);
+  --app-input-text: #3a1824;
+  --app-input-bg: rgba(255, 255, 255, 0.88);
+  --app-input-border: rgba(210, 80, 115, 0.22);
+  --app-surface-bg: rgba(255, 243, 247, 0.82);
+  --app-surface-border: rgba(225, 90, 125, 0.2);
+  --sidebar-bg: rgba(255, 247, 250, 0.88);
+  --sidebar-border: rgba(198, 85, 123, 0.22);
+  --sidebar-item-bg: rgba(255, 255, 255, 0.68);
+  --sidebar-item-bg-hover: rgba(255, 240, 246, 0.92);
+  --sidebar-item-bg-active: rgba(255, 232, 241, 0.96);
+  --sidebar-item-text: #3a1d2a;
+  --sidebar-icon-bg: rgba(210, 80, 115, 0.14);
+  --sidebar-toggle-color: #7f304b;
+  --sidebar-toggle-hover: #d85a85;
+  --app-label-text: rgba(78, 36, 52, 0.84);
+  --menu-surface-bg: rgba(255, 250, 252, 0.96);
+  --menu-border: rgba(198, 85, 123, 0.22);
+  --menu-divider: rgba(198, 85, 123, 0.17);
+  --menu-text: #442432;
+  --menu-muted: rgba(110, 56, 78, 0.66);
+  --menu-item-hover-bg: rgba(255, 238, 246, 0.92);
+  --menu-item-active-bg: rgba(255, 227, 239, 0.96);
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(255, 130, 160, 0.32), transparent 32%),
+    radial-gradient(circle at top right, rgba(255, 90, 125, 0.22), transparent 28%),
+    linear-gradient(135deg, #fef0f4 0%, #f9e5ec 46%, #f4dbe5 100%);
+}
+
+/* ============================================================
+ * Background Style Overrides
+ * data-bg on <body> overrides --app-body-bg independently of theme.
+ * "default" means no data-bg attribute → theme controls the background.
+ * Dark-base themes: dark, midnight, forest
+ * Light-base themes: light, rose
+ * ============================================================ */
+
+/* --- aurora --- */
+body[data-bg="aurora"]:is([data-theme="dark"],[data-theme="midnight"],[data-theme="forest"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(0, 220, 130, 0.3), transparent 32%),
+    radial-gradient(circle at top right, rgba(40, 130, 255, 0.26), transparent 28%),
+    radial-gradient(ellipse at bottom, rgba(100, 50, 200, 0.16), transparent 45%),
+    linear-gradient(135deg, #080f16 0%, #0f1c2a 50%, #0a1220 100%);
+}
+body[data-bg="aurora"]:is([data-theme="light"],[data-theme="rose"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(0, 200, 120, 0.22), transparent 32%),
+    radial-gradient(circle at top right, rgba(40, 100, 255, 0.18), transparent 28%),
+    radial-gradient(ellipse at bottom, rgba(80, 40, 180, 0.1), transparent 45%),
+    linear-gradient(135deg, #f0f6ff 0%, #e8f4f0 50%, #eff5ff 100%);
+}
+
+/* --- sunset --- */
+body[data-bg="sunset"]:is([data-theme="dark"],[data-theme="midnight"],[data-theme="forest"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(255, 120, 50, 0.34), transparent 32%),
+    radial-gradient(circle at top right, rgba(200, 50, 180, 0.28), transparent 28%),
+    radial-gradient(ellipse at bottom, rgba(255, 60, 80, 0.14), transparent 45%),
+    linear-gradient(135deg, #130808 0%, #201018 50%, #180c14 100%);
+}
+body[data-bg="sunset"]:is([data-theme="light"],[data-theme="rose"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(255, 140, 60, 0.25), transparent 32%),
+    radial-gradient(circle at top right, rgba(210, 80, 180, 0.2), transparent 28%),
+    linear-gradient(135deg, #fff5f0 0%, #fce8f5 50%, #fff0fb 100%);
+}
+
+/* --- ocean --- */
+body[data-bg="ocean"]:is([data-theme="dark"],[data-theme="midnight"],[data-theme="forest"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(30, 200, 220, 0.3), transparent 32%),
+    radial-gradient(circle at top right, rgba(20, 80, 200, 0.26), transparent 28%),
+    radial-gradient(ellipse at bottom, rgba(0, 150, 180, 0.15), transparent 45%),
+    linear-gradient(135deg, #050d18 0%, #071828 50%, #0a1e30 100%);
+}
+body[data-bg="ocean"]:is([data-theme="light"],[data-theme="rose"]) {
+  --app-body-bg:
+    radial-gradient(circle at top left, rgba(30, 180, 220, 0.22), transparent 32%),
+    radial-gradient(circle at top right, rgba(20, 80, 200, 0.18), transparent 28%),
+    linear-gradient(135deg, #f0f8ff 0%, #e5f4fb 50%, #eaf6ff 100%);
+}
+
+/* --- minimal --- */
+body[data-bg="minimal"]:is([data-theme="dark"],[data-theme="midnight"],[data-theme="forest"]) {
+  --app-body-bg: linear-gradient(160deg, #0f1218 0%, #141820 100%);
+}
+body[data-bg="minimal"]:is([data-theme="light"],[data-theme="rose"]) {
+  --app-body-bg: linear-gradient(160deg, #f5f7fb 0%, #edf0f6 100%);
 }
 
 a {
@@ -228,7 +391,7 @@ button:active {
 .editor-form label {
   display: grid;
   gap: 0.45rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--app-label-text);
 }
 
 .checkbox-row {
@@ -262,8 +425,8 @@ button:active {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  background: rgba(8, 11, 20, 0.72);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   backdrop-filter: blur(22px);
   transition: padding 180ms ease, gap 180ms ease;
 }
@@ -339,7 +502,7 @@ button:active {
   width: 36px;
   height: 36px;
   padding: 0;
-  color: #f7f8fc;
+  color: var(--sidebar-toggle-color);
   background: transparent;
   border: none;
   transition: all 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -349,7 +512,7 @@ button:active {
 
 .sidebar-toggle:hover {
   transform: scale(1.1);
-  color: #ffd783;
+  color: var(--sidebar-toggle-hover);
 }
 
 .sidebar-toggle:active {
@@ -409,23 +572,23 @@ button:active {
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--sidebar-item-bg);
   border: 1px solid transparent;
   text-align: left;
-  color: #f5f7fb;
+  color: var(--sidebar-item-text);
   transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   transform: translateY(0);
 }
 
 .nav-item:hover {
   transform: translateY(-3px);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--sidebar-item-bg-hover);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .nav-item:active {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--sidebar-item-bg-active);
 }
 
 .nav-copy {
@@ -440,7 +603,7 @@ button:active {
   width: 40px;
   height: 40px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--sidebar-icon-bg);
 }
 
 .nav-icon svg {
@@ -711,14 +874,14 @@ h2 {
   margin: 0 0 0.15rem;
   font-size: 0.73rem;
   line-height: 1.2;
-  color: rgba(237, 241, 250, 0.62);
+  color: var(--app-muted);
 }
 
 .model-detail-item dd {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.35;
-  color: rgba(245, 247, 251, 0.96);
+  color: var(--app-text);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -749,7 +912,7 @@ h2 {
 .model-state-panel {
   padding: 1.2rem;
   text-align: center;
-  color: rgba(237, 241, 250, 0.72);
+  color: var(--app-muted);
 }
 
 .model-state-error {
@@ -777,7 +940,7 @@ h2 {
 .db-control {
   display: grid;
   gap: 0.45rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--app-label-text);
 }
 
 .panel-heading,
@@ -1159,7 +1322,7 @@ code {
 
 .user-info strong {
   font-size: 0.95rem;
-  color: #ffffff;
+  color: var(--app-text);
 }
 
 .user-menu {
@@ -1176,12 +1339,12 @@ code {
 .user-name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--app-text);
 }
 
 .user-email {
   font-size: 0.7rem;
-  color: rgba(255,255,255,0.6);
+  color: var(--app-muted);
 }
 
 .user-avatar {
@@ -1207,8 +1370,8 @@ code {
   width: 280px;
   z-index: 1000;
 
-  background: rgba(10, 14, 24, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--menu-surface-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1) inset;
   backdrop-filter: blur(18px);
@@ -1238,7 +1401,7 @@ code {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--menu-divider) 60%, transparent);
 }
 
 .user-avatar-large {
@@ -1258,12 +1421,12 @@ code {
 .user-name-large {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #f5f7fb;
+  color: var(--menu-text);
 }
 
 .user-email-large {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--menu-muted);
   margin-top: 2px;
 }
 
@@ -1272,7 +1435,7 @@ code {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    var(--menu-divider),
     transparent
   );
   margin: 0;
@@ -1290,7 +1453,7 @@ code {
   padding: 10px 12px;
   border: none;
   background: transparent;
-  color: #f5f7fb;
+  color: var(--menu-text);
   font-size: 0.85rem;
   cursor: pointer;
   border-radius: 10px;
@@ -1300,12 +1463,12 @@ code {
 }
 
 .user-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--menu-item-hover-bg);
   color: #ffd783;
 }
 
 .user-dropdown-item:active {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--menu-item-active-bg);
 }
 
 .user-dropdown-item.menu-item-logout:hover {
@@ -1576,7 +1739,7 @@ a, button, div {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f7f8fc;
+  color: var(--app-text);
   font-size: 0.88rem;
   font-weight: 500;
   cursor: pointer;
@@ -2610,6 +2773,113 @@ a, button, div {
 
 .settings-dirty-indicator {
   margin: 0;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  background: none;
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.theme-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.theme-card.active {
+  border-color: #ffd783;
+  box-shadow: 0 0 0 3px rgba(255, 215, 131, 0.35), 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.theme-card-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  gap: 3px;
+}
+
+.theme-card-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.theme-card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--app-text);
+  padding: 0 0.5rem 0.6rem;
+  white-space: nowrap;
+}
+
+.font-size-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.font-size-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  width: 72px;
+  height: 72px;
+  padding: 0.5rem 0.4rem 0.5rem;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  color: var(--app-text);
+  background: var(--app-input-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 150ms ease, box-shadow 150ms ease;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.font-size-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.font-size-btn.active {
+  border-color: #ffd783;
+  box-shadow: 0 0 0 3px rgba(255, 215, 131, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.font-size-btn-letter {
+  line-height: 1;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 2px;
+}
+
+.font-size-btn-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.72;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 1180px) {

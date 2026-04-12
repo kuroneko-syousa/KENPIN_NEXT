@@ -13,6 +13,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { useT } from "@/lib/i18n";
 
 type LoginFormProps = {
   callbackUrl: string;
@@ -20,21 +21,19 @@ type LoginFormProps = {
 
 export function LoginForm({ callbackUrl }: LoginFormProps) {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("admin@kenpin.ai");
   const [password, setPassword] = useState("demo1234");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // フォーム送信時のハンドラー（ログイン処理）
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // ページリロードを防ぐ
-    setIsSubmitting(true); // ボタンをディセーブル
-    setError(""); // 前のエラーをクリア
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
 
-    // try-catch でエラーハンドリング
     try {
-      // NextAuth.js の signIn() で認証リクエストを送信
       const result = await signIn("credentials", {
         email,
         password,
@@ -43,7 +42,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       });
 
       if (!result || result.error || !result.url) {
-        setError("ログインに失敗しました。入力内容と環境変数を確認してください。");
+        setError(t.login_err_fail);
         setIsSubmitting(false);
         return;
       }
@@ -51,7 +50,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       router.push(result.url);
       router.refresh();
     } catch {
-      setError("ログイン処理でエラーが発生しました。もう一度お試しください。");
+      setError(t.login_err_exc);
       setIsSubmitting(false);
     }
   };
@@ -59,7 +58,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <label>
-        メール
+        {t.login_email}
         <input
           type="email"
           value={email}
@@ -70,7 +69,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
       </label>
 
       <label>
-        パスワード
+        {t.login_password}
         <input
           type="password"
           value={password}
@@ -86,12 +85,12 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
           checked={rememberMe}
           onChange={(event) => setRememberMe(event.target.checked)}
         />
-        <span>ログイン状態を保持する</span>
+        <span>{t.login_remember}</span>
       </label>
 
       {error ? <p className="form-error">{error}</p> : null}
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "ログイン中..." : "ログインして続行"}
+        {isSubmitting ? t.login_submitting : t.login_submit}
       </button>
     </form>
   );

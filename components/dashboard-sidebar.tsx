@@ -12,6 +12,7 @@
 import { navItems } from "@/lib/dashboard-data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 type DashboardSidebarProps = {
   collapsed: boolean;
@@ -101,6 +102,7 @@ export function DashboardSidebar({
   onToggle,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <aside className={collapsed ? "workspace-sidebar collapsed" : "workspace-sidebar"}>
@@ -109,7 +111,7 @@ export function DashboardSidebar({
           type="button"
           className="sidebar-toggle"
           onClick={onToggle}
-          aria-label={collapsed ? "サイドバーを展開" : "サイドバーを収納"}
+          aria-label={collapsed ? t.sidebar_expand : t.sidebar_collapse}
           aria-expanded={!collapsed}
         >
           <span className="toggle-rail" aria-hidden="true">
@@ -126,29 +128,30 @@ export function DashboardSidebar({
       </div>
 
       <div className="sidebar-brand">
-        <p className="eyebrow">AI スタジオ</p>
+        <p className="eyebrow">{t.sidebar_eyebrow}</p>
         <h1>KENPIN_NEXT</h1>
-        <p className="muted">
-          KENPIN NEXTは、画像AIの構築から学習、運用管理までを一貫して支える統合ワークスペースです。
-        </p>
+        <p className="muted">{t.sidebar_desc}</p>
       </div>
 
       <nav className="nav-list" aria-label="Dashboard Navigation">
         {navItems.map((item) => {
           const active = pathname === item.href;
+          const iconKey = item.icon.replace("-", "_");
+          const label = (t[`nav_${iconKey}` as keyof typeof t] as string) ?? item.label;
+          const desc = (t[`nav_${iconKey}_desc` as keyof typeof t] as string) ?? item.description;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={active ? "nav-item active" : "nav-item"}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <span className="nav-icon" aria-hidden="true">
                 <NavGlyph icon={item.icon} />
               </span>
               <div className="nav-copy">
-                <strong>{item.label}</strong>
-                <span>{item.description}</span>
+                <strong>{label}</strong>
+                <span>{desc}</span>
               </div>
             </Link>
           );

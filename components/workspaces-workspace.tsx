@@ -14,6 +14,7 @@ import {
   type WorkflowStepStatus,
 } from "@/lib/dashboard-data";
 import type { ImageDatabaseConnectionRecord } from "@/lib/image-database";
+import { useT } from "@/lib/i18n";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -37,14 +38,14 @@ type PageStep = "model" | "folder";
 
 type TargetOption = {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
 };
 
 type DatabaseTypeOption = {
   id: string;
-  label: string;
-  helper: string;
+  labelKey: string;
+  helperKey: string;
 };
 
 type RegisteredMountTarget = {
@@ -61,102 +62,74 @@ const MODEL_OPTIONAL_VALUE = "__unset_model__";
 const targetOptions: TargetOption[] = [
   {
     id: "object-detection",
-    label: "物体検出",
-    description: "部品や製品、欠品対象などの位置と種類を検出します。",
+    labelKey: "ws_target_object_detection",
+    descriptionKey: "ws_target_object_detection_desc",
   },
   {
     id: "anomaly-detection",
-    label: "異常検知",
-    description: "傷、欠け、汚れ、変色などの異常を検出します。",
+    labelKey: "ws_target_anomaly_detection",
+    descriptionKey: "ws_target_anomaly_detection_desc",
   },
   {
     id: "segmentation",
-    label: "セグメンテーション",
-    description: "領域単位で対象を切り分けて形状や面積を扱います。",
+    labelKey: "ws_target_segmentation",
+    descriptionKey: "ws_target_segmentation_desc",
   },
   {
     id: "ocr-inspection",
-    label: "OCR・文字検査",
-    description: "ラベル、印字、賞味期限、シリアルなどの文字検査を行います。",
+    labelKey: "ws_target_ocr_inspection",
+    descriptionKey: "ws_target_ocr_inspection_desc",
   },
   {
     id: "pose-keypoint",
-    label: "姿勢推定・キーポイント",
-    description: "位置関係や向き、組付け姿勢をキーポイントで確認します。",
+    labelKey: "ws_target_pose_keypoint",
+    descriptionKey: "ws_target_pose_keypoint_desc",
   },
 ];
 
-const modelTypeOptions: Record<string, Array<{ id: string; label: string; description: string }>> = {
+const modelTypeOptions: Record<string, Array<{ id: string; label: string; descriptionKey: string }>> = {
   "object-detection": [
-    { id: "yolo", label: "YOLO", description: "リアルタイム推論向け1ステージ検出器。速度と精度のバランスに優れます。" },
-    { id: "rt-detr", label: "RT-DETR", description: "Transformerベースのリアルタイム検出器。高精度かつ高速です。" },
-    { id: "faster-rcnn", label: "Faster R-CNN", description: "2ステージ検出の代表。精度重視の用途に適しています。" },
+    { id: "yolo", label: "YOLO", descriptionKey: "ws_model_yolo_desc" },
+    { id: "rt-detr", label: "RT-DETR", descriptionKey: "ws_model_rtdetr_desc" },
+    { id: "faster-rcnn", label: "Faster R-CNN", descriptionKey: "ws_model_fasterrcnn_desc" },
   ],
   "anomaly-detection": [
-    { id: "patchcore", label: "PatchCore", description: "メモリバンクを用いた高精度な異常検知。教師ありラベル不要です。" },
-    { id: "fastflow", label: "FastFlow", description: "正規化フローベースの高速異常検知モデルです。" },
-    { id: "padim", label: "PaDiM", description: "パッチディストリビューションモデリングによる異常検知です。" },
+    { id: "patchcore", label: "PatchCore", descriptionKey: "ws_model_patchcore_desc" },
+    { id: "fastflow", label: "FastFlow", descriptionKey: "ws_model_fastflow_desc" },
+    { id: "padim", label: "PaDiM", descriptionKey: "ws_model_padim_desc" },
   ],
   "segmentation": [
-    { id: "yolo-seg", label: "YOLO-seg", description: "YOLOベースのインスタンスセグメンテーション。高速です。" },
-    { id: "mask-rcnn", label: "Mask R-CNN", description: "精度の高いインスタンスセグメンテーションの定番モデルです。" },
-    { id: "sam", label: "SAM", description: "Segment Anything Model。汎用性が高いセグメンテーションです。" },
+    { id: "yolo-seg", label: "YOLO-seg", descriptionKey: "ws_model_yoloseg_desc" },
+    { id: "mask-rcnn", label: "Mask R-CNN", descriptionKey: "ws_model_maskrcnn_desc" },
+    { id: "sam", label: "SAM", descriptionKey: "ws_model_sam_desc" },
   ],
   "ocr-inspection": [
-    { id: "paddleocr", label: "PaddleOCR", description: "多言語対応のOCRフレームワーク。日本語に強みがあります。" },
-    { id: "crnn", label: "CRNN + Detector", description: "文字認識と検出を組み合わせた構成です。" },
-    { id: "yolo-ocr", label: "YOLO + OCR", description: "YOLOで文字領域を検出しOCRで認識する2段構成です。" },
+    { id: "paddleocr", label: "PaddleOCR", descriptionKey: "ws_model_paddleocr_desc" },
+    { id: "crnn", label: "CRNN + Detector", descriptionKey: "ws_model_crnn_desc" },
+    { id: "yolo-ocr", label: "YOLO + OCR", descriptionKey: "ws_model_yoloocr_desc" },
   ],
   "pose-keypoint": [
-    { id: "yolo-pose", label: "YOLO-pose", description: "YOLOベースの高速キーポイント検出です。" },
-    { id: "hrnet", label: "HRNet", description: "高解像度表現を保持したキーポイント検出の高精度モデルです。" },
-    { id: "openpose", label: "OpenPose", description: "マルチパーソン姿勢推定の定番フレームワークです。" },
-  ],
-};
-
-const modelSuggestions: Record<string, string[]> = {
-  "object-detection": [
-    "YOLOv8m-det (仮設定)",
-    "YOLO11m-det (仮設定)",
-    "RT-DETR-R50 (仮設定)",
-  ],
-  "anomaly-detection": [
-    "PatchCore + ResNet50 (仮設定)",
-    "FastFlow (仮設定)",
-    "PaDiM (仮設定)",
-  ],
-  segmentation: [
-    "YOLOv8m-seg (仮設定)",
-    "YOLO11m-seg (仮設定)",
-    "Mask R-CNN R50 (仮設定)",
-  ],
-  "ocr-inspection": [
-    "PaddleOCR + DBNet (仮設定)",
-    "CRNN + Detector (仮設定)",
-    "YOLO11n-det + OCR (仮設定)",
-  ],
-  "pose-keypoint": [
-    "YOLO11m-pose (仮設定)",
-    "YOLOv8m-pose (仮設定)",
-    "HRNet-W32 (仮設定)",
+    { id: "yolo-pose", label: "YOLO-pose", descriptionKey: "ws_model_yolopose_desc" },
+    { id: "hrnet", label: "HRNet", descriptionKey: "ws_model_hrnet_desc" },
+    { id: "openpose", label: "OpenPose", descriptionKey: "ws_model_openpose_desc" },
   ],
 };
 
 const databaseTypeOptions: DatabaseTypeOption[] = [
   {
     id: "local-mounted",
-    label: "ローカルタイプ",
-    helper: "ローカルで登録済みの画像DB接続先を選択します。",
+    labelKey: "ws_db_local",
+    helperKey: "ws_db_local_helper",
   },
   {
     id: "nas-mounted",
-    label: "NAS",
-    helper: "NAS で登録済みの画像DB接続先を選択します。",
+    labelKey: "ws_db_nas",
+    helperKey: "ws_db_nas_helper",
   },
   {
     id: "cloud-mounted",
-    label: "クラウド",
-    helper: "クラウドで登録済みの画像DB接続先を選択します。",
+    labelKey: "ws_db_cloud",
+    helperKey: "ws_db_cloud_helper",
   },
 ];
 
@@ -184,16 +157,16 @@ const registeredMountTargets: RegisteredMountTarget[] = [
   },
 ];
 
-const pageSteps: Array<{ id: PageStep; title: string; summary: string }> = [
+const pageSteps: Array<{ id: PageStep; titleKey: string; summaryKey: string }> = [
   {
     id: "model",
-    title: "基本設定",
-    summary: "ワークスペース名、手法、モデル候補を設定します。",
+    titleKey: "ws_step_model_title",
+    summaryKey: "ws_step_model_summary",
   },
   {
     id: "folder",
-    title: "接続設定",
-    summary: "DBタイプと登録済みマウント対象を選択します。",
+    titleKey: "ws_step_folder_title",
+    summaryKey: "ws_step_folder_summary",
   },
 ];
 
@@ -204,10 +177,6 @@ function slugifyWorkspaceName(value: string) {
 
 function getOutputFolderPath(name: string) {
   return `${APP_TEMP_OUTPUT_ROOT}\\${slugifyWorkspaceName(name)}`;
-}
-
-function getModelsForTarget(targetId: string) {
-  return modelSuggestions[targetId] ?? modelSuggestions["object-detection"];
 }
 
 function getModelTypesForTarget(targetId: string) {
@@ -279,10 +248,10 @@ function statusClass(status: WorkflowStepStatus) {
   return "status draft";
 }
 
-function statusLabel(status: WorkflowStepStatus) {
-  if (status === "completed") return "完了";
-  if (status === "running") return "入力中";
-  return "未着手";
+function statusLabel(status: WorkflowStepStatus, t: ReturnType<typeof useT>) {
+  if (status === "completed") return t.ws_status_completed;
+  if (status === "running") return t.ws_status_running;
+  return t.ws_status_pending;
 }
 
 function getStepStatus(stepId: PageStep, form: WorkspaceFormState): WorkflowStepStatus {
@@ -294,33 +263,12 @@ function getStepStatus(stepId: PageStep, form: WorkspaceFormState): WorkflowStep
   return connectionReady ? "completed" : "running";
 }
 
-function createWorkspaceFromForm(
-  form: WorkspaceFormState,
-  ownerId: string,
-  ownerName: string,
-  ownerEmail: string,
-): WorkspacePipeline {
-  return {
-    id: `workspace-${Date.now()}`,
-    name: form.name || "新しいワークスペース",
-    ownerId,
-    ownerName,
-    ownerEmail,
-    target: form.target,
-    selectedModel: form.selectedModel,
-    imageFolder: form.imageFolder,
-    datasetFolder: getOutputFolderPath(form.name || "new-workspace"),
-    databaseId: form.databaseId,
-    databaseType: form.databaseType,
-    steps: [],
-  };
-}
-
 export function WorkspacesWorkspace({
   currentUserEmail,
   currentUserName,
   initialWorkspaces,
 }: WorkspacesWorkspaceProps) {
+  const t = useT();
   const [registeredConnections, setRegisteredConnections] = useState<ImageDatabaseConnectionRecord[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspacePipeline[]>(initialWorkspaces);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(initialWorkspaces[0]?.id ?? "");
@@ -386,20 +334,21 @@ export function WorkspacesWorkspace({
 
   const isFormMode = isCreating || isEditing;
   const effectiveForm = isFormMode ? draftForm : toEditableForm(selectedWorkspace, allMountTargets);
-  const suggestedModels = getModelsForTarget(effectiveForm.target);
   const selectedTarget = targetOptions.find((option) => option.id === effectiveForm.target) ?? targetOptions[0];
   const mountTargets = allMountTargets.filter((target) => target.type === effectiveForm.databaseType);
   const selectedMountTarget =
     mountTargets.find((target) => target.databaseId === effectiveForm.databaseId) ?? mountTargets[0] ?? null;
   const selectedMountType =
     databaseTypeOptions.find((option) => option.id === effectiveForm.databaseType) ?? databaseTypeOptions[0];
-  const selectedDatabaseName = selectedMountTarget?.name ?? "未選択";
+  const selectedDatabaseName = selectedMountTarget?.name ?? t.ws_not_selected;
   const selectedModelTypeLabel =
     getModelTypesForTarget(effectiveForm.target).find((opt) => opt.id === effectiveForm.selectedModel)?.label ??
-    (effectiveForm.selectedModel || "未選択");
+    (effectiveForm.selectedModel || t.ws_not_selected);
 
   const stepCards = pageSteps.map((step) => ({
-    ...step,
+    id: step.id,
+    title: t[step.titleKey as keyof typeof t] as string,
+    summary: t[step.summaryKey as keyof typeof t] as string,
     status: getStepStatus(step.id, effectiveForm),
   }));
 
@@ -407,13 +356,13 @@ export function WorkspacesWorkspace({
 
   const wizardFields: Record<PageStep, Array<{ key: keyof WorkspaceFormState; label: string }>> = {
     model: [
-      { key: "name", label: "ワークスペース名" },
-      { key: "target", label: "ターゲット選択" },
-      { key: "selectedModel", label: "モデルタイプ" },
+      { key: "name", label: t.ws_field_name },
+      { key: "target", label: t.ws_field_target },
+      { key: "selectedModel", label: t.ws_field_model },
     ],
     folder: [
-      { key: "databaseType", label: "リソースタイプ" },
-      { key: "databaseId", label: "対象フォルダ" },
+      { key: "databaseType", label: t.ws_field_resource_type },
+      { key: "databaseId", label: t.ws_field_target_folder },
     ],
   };
 
@@ -564,7 +513,7 @@ export function WorkspacesWorkspace({
   };
 
   const deleteWorkspace = async (workspaceId: string) => {
-    if (!confirm('このワークスペースを削除しますか？この操作は取り消せません。')) return;
+    if (!confirm(t.ws_delete_confirm)) return;
 
     setDeletingWorkspaceId(workspaceId);
 
@@ -586,7 +535,7 @@ export function WorkspacesWorkspace({
         setDeletingWorkspaceId(null);
       }, 500); // fade-out アニメーション時間
     } catch (error) {
-      alert('ワークスペースの削除に失敗しました。');
+      alert(t.ws_delete_failed);
       setDeletingWorkspaceId(null);
     }
   };
@@ -716,7 +665,7 @@ export function WorkspacesWorkspace({
         setDraftForm(createInitialForm(allMountTargets));
       }, 300);
     } catch (error) {
-      alert('ワークスペースの更新に失敗しました。');
+      alert(t.ws_update_failed);
     } finally {
       setIsSaving(false);
     }
@@ -728,7 +677,7 @@ export function WorkspacesWorkspace({
         <input
           value={effectiveForm.name}
           onChange={(event) => handleFieldChange(event.target.value)}
-          placeholder="例: Retail YOLO Project"
+          placeholder={t.ws_name_placeholder}
         />
       );
     }
@@ -752,7 +701,7 @@ export function WorkspacesWorkspace({
           value={effectiveForm.selectedModel}
           onChange={(event) => handleFieldChange(event.target.value)}
         >
-          <option value="">選択してください</option>
+          <option value="">{t.ws_select_please}</option>
           {modelTypes.map((option) => (
             <option key={option.id} value={option.id}>
               {option.label}
@@ -770,7 +719,7 @@ export function WorkspacesWorkspace({
         >
           {databaseTypeOptions.map((option) => (
             <option key={option.id} value={option.id}>
-              {option.label}
+              {t[option.labelKey as keyof typeof t] as string}
             </option>
           ))}
         </select>
@@ -784,7 +733,7 @@ export function WorkspacesWorkspace({
           onChange={(event) => handleFieldChange(event.target.value)}
         >
           {mountTargets.length === 0 ? (
-            <option value="">登録済みの接続先がありません</option>
+            <option value="">{t.ws_no_registered_connection}</option>
           ) : (
             mountTargets.map((target) => (
               <option key={target.id} value={target.databaseId}>
@@ -803,37 +752,24 @@ export function WorkspacesWorkspace({
     <div className="workspace-content">
       <section className="hero-card">
         <div>
-          <p className="eyebrow">Workspace Manager</p>
-          <h2>ワークスペース一覧と作成フロー</h2>
+          <p className="eyebrow">{t.ws_mgr_eyebrow}</p>
+          <h2>{t.ws_mgr_h2}</h2>
           <p className="muted">
-            この画面では、ワークスペース一覧管理と、作成に必要な 2 工程だけを順に設定できます。
+            {t.ws_mgr_desc}
           </p>
         </div>
 
-        <div className="hero-stats">
-          <div className="stat-chip">
-            <span>👤 ログインユーザー</span>
-            <strong>{currentUser.name}</strong>
-          </div>
-          <div className="stat-chip">
-            <span>📁 ワークスペース数</span>
-            <strong>{workspaces.length}</strong>
-          </div>
-          <div className="stat-chip">
-            <span>⚡ 現在の状態</span>
-            <strong>{isCreating ? "作成中" : isEditing ? "編集中" : "一覧表示"}</strong>
-          </div>
-        </div>
+
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Workspace List</p>
-            <h3>ワークスペース一覧</h3>
+            <p className="eyebrow">{t.ws_list_eyebrow}</p>
+            <h3>{t.ws_list_h3}</h3>
           </div>
           <button type="button" onClick={beginCreateWorkspace}>
-            新規作成
+            {t.ws_new}
           </button>
         </div>
 
@@ -841,7 +777,7 @@ export function WorkspacesWorkspace({
           <div className="selection-list">
             {workspaces.map((workspace) => {
               const targetLabel =
-                targetOptions.find((option) => option.id === normalizeTarget(workspace.target))?.label ??
+                t[(targetOptions.find((option) => option.id === normalizeTarget(workspace.target))?.labelKey ?? "ws_not_selected") as keyof typeof t] ??
                 workspace.target;
               const modelTypeLabel =
                 getModelTypesForTarget(workspace.target).find((opt) => opt.id === workspace.selectedModel)?.label ??
@@ -862,8 +798,8 @@ export function WorkspacesWorkspace({
                     <div style={{ flex: 1 }}>
                       <strong>{workspace.name}</strong>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#f7f8fc' }}>
-                        <div><strong>手法:</strong> {targetLabel}{modelTypeLabel ? ` / ${modelTypeLabel}` : ""}</div>
-                        <div><strong>リソースアクセス:</strong> {(() => { const t = allMountTargets.find((target) => target.databaseId === workspace.databaseId); const name = t?.name ?? workspace.databaseId ?? "未設定"; const path = workspace.imageFolder; return path ? `${name} (${path})` : name; })()}</div>
+                        <div><strong>{t.ws_method}:</strong> {targetLabel}{modelTypeLabel ? ` / ${modelTypeLabel}` : ""}</div>
+                        <div><strong>{t.ws_resource_access}:</strong> {(() => { const mt = allMountTargets.find((target) => target.databaseId === workspace.databaseId); const name = mt?.name ?? workspace.databaseId ?? t.ws_not_set; const path = workspace.imageFolder; return path ? `${name} (${path})` : name; })()}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -881,7 +817,7 @@ export function WorkspacesWorkspace({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        スタジオを開く
+                        {t.ws_open_studio}
                       </Link>
                       <button
                         type="button"
@@ -892,7 +828,7 @@ export function WorkspacesWorkspace({
                         }}
                         style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
                       >
-                        編集
+                        {t.edit}
                       </button>
                       <button
                         type="button"
@@ -903,7 +839,7 @@ export function WorkspacesWorkspace({
                         }}
                         style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', color: '#ef4444' }}
                       >
-                        削除
+                        {t.delete}
                       </button>
                     </div>
                   </div>
@@ -913,8 +849,8 @@ export function WorkspacesWorkspace({
           </div>
         ) : (
           <div className="empty-state">
-            <strong>ワークスペースがまだありません</strong>
-            <span>「新規作成」を押すと下部に作成フローが表示されます。</span>
+            <strong>{t.ws_empty_title}</strong>
+            <span>{t.ws_empty_desc}</span>
           </div>
         )}
       </section>
@@ -923,8 +859,8 @@ export function WorkspacesWorkspace({
         <section className={`panel ${isAnimatingOut ? 'slide-out-down' : 'slide-in-up'}`}>
           <div className="panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p className="eyebrow">Pipeline</p>
-              <h3>{isEditing ? 'ワークスペース編集' : 'ワークスペース作成フロー'}</h3>
+              <p className="eyebrow">{t.ws_pipeline_eyebrow}</p>
+              <h3>{isEditing ? t.ws_edit_h3 : t.ws_create_h3}</h3>
             </div>
             <button
               type="button"
@@ -932,11 +868,11 @@ export function WorkspacesWorkspace({
               onClick={cancelCreateWorkspace}
               style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
             >
-              キャンセル
+              {t.cancel}
             </button>
           </div>
 
-          <div className="workflow-tabs" role="tablist" aria-label="作成フロー工程">
+          <div className="workflow-tabs" role="tablist" aria-label={t.ws_flow_aria}>
             {stepCards.map((step, index) => (
               <button
                 key={step.id}
@@ -967,52 +903,52 @@ export function WorkspacesWorkspace({
                     <strong>{activeStep.title}</strong>
                     <p className="muted workflow-summary">{activeStep.summary}</p>
                   </div>
-                  <span className={statusClass(activeStep.status)}>{statusLabel(activeStep.status)}</span>
+                  <span className={statusClass(activeStep.status)}>{statusLabel(activeStep.status, t)}</span>
                 </div>
 
                 <div className="workflow-paths">
                   <span className={activeField.key === "name" ? "active" : ""}>
-                    ワークスペース名: <code>{effectiveForm.name || "未入力"}</code>
+                    {t.ws_field_name}: <code>{effectiveForm.name || t.ws_not_entered}</code>
                   </span>
                   <span className={activeField.key === "target" ? "active" : ""}>
-                    ターゲット: <code>{selectedTarget.label}</code>
+                    {t.ws_field_target}: <code>{t[selectedTarget.labelKey as keyof typeof t] as string}</code>
                   </span>
                   <span className={activeField.key === "selectedModel" ? "active" : ""}>
-                    モデルタイプ: <code>{selectedModelTypeLabel}</code>
+                    {t.ws_field_model}: <code>{selectedModelTypeLabel}</code>
                   </span>
                   <span className={activeField.key === "databaseType" ? "active" : ""}>
-                    リソースタイプ: <code>{selectedMountType.label}</code>
+                    {t.ws_field_resource_type}: <code>{t[selectedMountType.labelKey as keyof typeof t] as string}</code>
                   </span>
                   <span className={activeField.key === "databaseId" ? "active" : ""}>
-                    対象フォルダ: <code>{selectedDatabaseName}</code>
+                    {t.ws_field_target_folder}: <code>{selectedDatabaseName}</code>
                   </span>
                 </div>
 
                 <div className="wizard-card">
-                  <p className="eyebrow">Current Input</p>
+                  <p className="eyebrow">{t.ws_current_input}</p>
                   <label className="wizard-field">
                     <span>{activeField.label}</span>
                     {renderField()}
                   </label>
 
                   {activeField.key === "target" ? (
-                    <p className="muted">{selectedTarget.description}</p>
+                    <p className="muted">{t[selectedTarget.descriptionKey as keyof typeof t] as string}</p>
                   ) : null}
 
                   {activeField.key === "selectedModel" ? (
                     <p className="muted">
-                      {getModelTypesForTarget(effectiveForm.target).find((opt) => opt.id === effectiveForm.selectedModel)?.description
-                        ?? "ターゲットに合わせた代表的なモデルアーキテクチャを選択します。モデルサイズはパラメーターチューニングで設定できます。"}
+                      {(t[(getModelTypesForTarget(effectiveForm.target).find((opt) => opt.id === effectiveForm.selectedModel)?.descriptionKey ?? "ws_model_fallback_desc") as keyof typeof t] as string)
+                        ?? t.ws_model_fallback_desc}
                     </p>
                   ) : null}
 
                   {activeField.key === "databaseType" ? (
-                    <p className="muted">{selectedMountType.helper}</p>
+                    <p className="muted">{t[selectedMountType.helperKey as keyof typeof t] as string}</p>
                   ) : null}
 
                   {activeField.key === "databaseId" ? (
                     <p className="muted">
-                      画像DB設定ページで登録済みの接続先から、選んだタイプに合うものだけを表示しています。
+                      {t.ws_database_hint}
                     </p>
                   ) : null}
 
@@ -1022,12 +958,12 @@ export function WorkspacesWorkspace({
                       onClick={goPreviousField}
                       disabled={activeStep.id === "model" && createFieldIndex === 0}
                     >
-                      戻る
+                      {t.ws_back}
                     </button>
 
                     {activeStep.id === "folder" && createFieldIndex === activeFields.length - 1 ? (
                       <button type="button" onClick={isEditing ? commitEditWorkspace : commitDraftWorkspace} disabled={!canCreateWorkspace || isSaving}>
-                        {isSaving ? "保存中..." : isEditing ? "ワークスペースを更新" : "ワークスペースを作成"}
+                        {isSaving ? t.idb_saving : isEditing ? t.ws_update : t.ws_create}
                       </button>
                     ) : (
                       <button
@@ -1039,7 +975,7 @@ export function WorkspacesWorkspace({
                           !canMoveToFolder
                         }
                       >
-                        次へ
+                        {t.ws_next}
                       </button>
                     )}
                   </div>

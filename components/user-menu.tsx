@@ -14,6 +14,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
+import { useT } from "@/lib/i18n";
 
 type UserMenuItemType = "action" | "divider";
 
@@ -35,27 +36,26 @@ export function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   // メニューアイテムの定義（拡張可能な構造）
   const menuItems: UserMenuItem[] = [
     {
       id: "profile",
       type: "action",
-      label: "プロフィール設定",
+      label: t.user_profile,
       icon: "user",
       onClick: () => {
         setOpen(false);
-        // 将来の実装: プロフィール設定画面への遷移
       },
     },
     {
       id: "theme",
       type: "action",
-      label: "UIデザイン変更",
+      label: t.user_ui,
       icon: "palette",
       onClick: () => {
         setOpen(false);
-        // 将来の実装: UIテーマ選択画面
       },
     },
     {
@@ -65,7 +65,7 @@ export function UserMenu({
     {
       id: "logout",
       type: "action",
-      label: "ログアウト",
+      label: t.user_signout,
       icon: "sign-out",
       onClick: () => signOut({ callbackUrl: "/" }),
       className: "menu-item-logout",

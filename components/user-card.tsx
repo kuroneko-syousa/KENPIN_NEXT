@@ -11,6 +11,7 @@
 "use client";
 
 import { SignOutButton } from "@/components/sign-out-button";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   userName: string;
@@ -18,9 +19,10 @@ type Props = {
 };
 
 export function UserCard({ userName, userEmail }: Props) {
+  const t = useT();
   return (
     <div className="sidebar-card user-card">
-      <p className="card-label">ログイン中</p>
+      <p className="card-label">{t.user_signedin}</p>
       <strong>{userName}</strong>
       <p>{userEmail}</p>
       <SignOutButton />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT, interpolate } from "@/lib/i18n";
 
 // ─── API レスポンス型定義 ───────────────────────────────────────────────────
 
@@ -70,18 +71,18 @@ function statusClass(status: string): string {
   }
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, t: ReturnType<typeof useT>): string {
   switch (status) {
-    case "running":   return "実行中";
-    case "completed": return "完了";
-    case "failed":    return "失敗";
-    case "queued":    return "待機中";
+    case "running":   return t.job_running;
+    case "completed": return t.job_completed;
+    case "failed":    return t.job_failed;
+    case "queued":    return t.job_queued;
     default:          return status;
   }
 }
 
-function formatDate(isoString: string): string {
-  return new Date(isoString).toLocaleString("ja-JP", {
+function formatDate(isoString: string, locale: string): string {
+  return new Date(isoString).toLocaleString(locale, {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -239,6 +240,7 @@ function DonutChart({
 // ─── コンポーネント ────────────────────────────────────────────────────────
 
 export function DashboardOverview({ userName, userEmail, userRole, workspaceStats, annotationProgress: initialAnnotationProgress }: Props) {
+  const t = useT();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -255,7 +257,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
           cache: "no-store",
         });
         if (!res.ok) {
-          throw new Error(`サーバーエラー: ${res.status} ${res.statusText}`);
+          throw new Error(`${res.status} ${res.statusText}`);
         }
         const data: DashboardSummary = await res.json();
         if (!cancelled) {
@@ -266,7 +268,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
           setError(
             err instanceof Error
               ? err.message
-              : "ダッシュボードデータの取得に失敗しました"
+              : t.overview_fetch_error
           );
         }
       } finally {
@@ -319,7 +321,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
       {/* ─── グリーティングヒーロー ─── */}
       <section className="overview-hero panel">
         <div className="overview-greeting">
-          <h2>おかえり、{userName} さん</h2>
+          <h2>{interpolate(t.overview_greeting, { name: userName })}</h2>
           <p className="muted">
             {userEmail}
             {userRole && userRole !== "User" && (
@@ -344,7 +346,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
           role="alert"
         >
           <p style={{ margin: 0, color: "var(--clr-error, #ef4444)", fontWeight: 600 }}>
-            データの取得に失敗しました
+            {t.overview_fetch_error}
           </p>
           <p className="muted" style={{ margin: "0.25rem 0 0" }}>
             {error}
@@ -356,16 +358,16 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
       <section className="overview-top-grid">
         {loading || error || !summary ? (
           <>
-            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
-            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
-            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
-            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">{t.overview_unavailable}</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">{t.overview_unavailable}</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">{t.overview_unavailable}</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">{t.overview_unavailable}</p>}</div></article>
           </>
         ) : (
           <>
             <DonutChart
-              title="ユーザー作成ワークスペース"
-              centerLabel="作成数"
+              title={t.overview_ws_donut}
+              centerLabel={t.overview_ws_center}
               centerValue={workspaceStats.own}
               segments={
                 workspaceStats.ownByGenre.length > 0
@@ -374,28 +376,28 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                       value: genre.value,
                       color: ["#66d8ff", "#7cf0ba", "#ffc57c", "#a9b8ff", "#ff9bb4", "#58d2ff"][index % 6],
                     }))
-                  : [{ label: "未作成", value: 0, color: "#95a7d3" }]
+                  : [{ label: t.overview_ws_empty, value: 0, color: "#95a7d3" }]
               }
             />
 
             <DonutChart
-              title="データセット件数"
-              centerLabel="登録数"
+              title={t.overview_ds_donut}
+              centerLabel={t.overview_ds_center}
               centerValue={summary.datasets.total}
               segments={[
-                { label: "登録済み", value: summary.datasets.total, color: "#7cb4f0" },
+                { label: t.overview_ds_legend, value: summary.datasets.total, color: "#7cb4f0" },
               ]}
             />
 
             <DonutChart
-              title="ジョブ集計"
-              centerLabel="合計"
+              title={t.overview_job_donut}
+              centerLabel={t.overview_job_center}
               centerValue={summary.jobs.total}
               segments={[
-                { label: "実行中", value: summary.jobs.running, color: "#58d2ff" },
-                { label: "完了", value: summary.jobs.completed, color: "#67e1a1" },
-                { label: "待機中", value: summary.jobs.queued, color: "#ffc57c" },
-                { label: "失敗", value: summary.jobs.failed, color: "#ff8f93" },
+                { label: t.job_running, value: summary.jobs.running, color: "#58d2ff" },
+                { label: t.job_completed, value: summary.jobs.completed, color: "#67e1a1" },
+                { label: t.job_queued, value: summary.jobs.queued, color: "#ffc57c" },
+                { label: t.job_failed, value: summary.jobs.failed, color: "#ff8f93" },
               ]}
             />
 
@@ -416,12 +418,12 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
         <article className="panel">
           <div className="panel-heading compact">
             <div>
-              <h3>アノテーション進捗</h3>
+              <h3>{t.overview_anno_donut}</h3>
             </div>
           </div>
           <div className="metric-stack overview-card-stack">
             {annotationProgress.length === 0 ? (
-              <p className="muted">表示可能なアノテーション進捗データがありません</p>
+              <p className="muted">{t.overview_unavailable}</p>
             ) : (
               <div className="overview-bar-list">
                 {annotationProgress.map((dataset) => (
@@ -434,7 +436,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                       <div style={{ width: `${dataset.completionRate}%` }} />
                     </div>
                     <div className="overview-bar-footnote">
-                      <span>{dataset.completionRate}% 完了</span>
+                        <span>{dataset.completionRate}% {t.job_completed}</span>
                     </div>
                   </div>
                 ))}
@@ -446,14 +448,14 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
         <article className="panel overview-running-panel">
           <div className="panel-heading compact">
             <div>
-              <h3>実行中ジョブ</h3>
+              <h3>{t.job_running}</h3>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
               {!loading && summary && (
-                <span className="status training">{summary.jobs.running} 件</span>
+                <span className="status training">{summary.jobs.running} {t.job_running}</span>
               )}
               {!loading && summary && (
-                <span className="status draft">待機中 {summary.jobs.queued} 件</span>
+                <span className="status draft">{t.job_queued} {summary.jobs.queued}</span>
               )}
             </div>
           </div>
@@ -462,7 +464,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
             {loading ? (
               <SkeletonCard />
             ) : error ? (
-              <p className="muted">取得できませんでした</p>
+              <p className="muted">{t.overview_unavailable}</p>
             ) : summary && summary.jobs.running > 0 ? (
               <>
                 {summary.recent_jobs
@@ -472,20 +474,20 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                     <div key={job.job_id} className="job-card compact">
                       <div className="job-header">
                         <strong>{job.name}</strong>
-                        <span className="status training">実行中</span>
+                        <span className="status training">{t.job_running}</span>
                       </div>
                       <div className="progress-bar large" style={{ marginTop: "0.65rem" }}>
                         <div style={{ width: `${job.progress}%`, transition: "width 0.6s ease" }} />
                       </div>
                       <div className="job-footer">
                         <span>{job.progress}%</span>
-                        <span className="muted">{formatDate(job.created_at)}</span>
+                        <span className="muted">{formatDate(job.created_at, t.date_locale)}</span>
                       </div>
                     </div>
                   ))}
               </>
             ) : (
-              <p className="muted">実行中ジョブはありません</p>
+              <p className="muted">{t.overview_unavailable}</p>
             )}
           </div>
         </article>
@@ -495,10 +497,10 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h3>完了ジョブ</h3>
+            <h3>{t.job_completed}</h3>
           </div>
           {!loading && summary && (
-            <span className="muted">直近 {summary.recent_jobs.length} 件</span>
+            <span className="muted">{summary.recent_jobs.length}</span>
           )}
         </div>
 
@@ -510,9 +512,9 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
               <SkeletonCard />
             </>
           ) : error ? (
-            <p className="muted">取得できませんでした</p>
+            <p className="muted">{t.overview_unavailable}</p>
           ) : summary && summary.recent_jobs.length === 0 ? (
-            <p className="muted">ジョブの記録がありません</p>
+            <p className="muted">{t.overview_unavailable}</p>
           ) : summary ? (
             summary.recent_jobs.map((job) => (
               <div key={job.job_id} className="job-card">
@@ -527,7 +529,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                     </p>
                   </div>
                   <span className={`status ${statusClass(job.status)}`}>
-                    {statusLabel(job.status)}
+                    {statusLabel(job.status, t)}
                   </span>
                 </div>
 
@@ -537,7 +539,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                       <div style={{ width: `${job.progress}%` }} />
                     </div>
                     <div className="job-footer">
-                      <span>{job.progress}% 完了</span>
+                      <span>{job.progress}% {t.job_completed}</span>
                     </div>
                   </>
                 )}
@@ -546,7 +548,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                   className="muted"
                   style={{ marginTop: "0.4rem", marginBottom: 0, fontSize: "0.78rem" }}
                 >
-                  {formatDate(job.created_at)}
+                  {formatDate(job.created_at, t.date_locale)}
                 </p>
               </div>
             ))

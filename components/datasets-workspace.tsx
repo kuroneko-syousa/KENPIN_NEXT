@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useT, interpolate } from "@/lib/i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -32,9 +33,9 @@ type DatasetSampleImage = {
   split: string | null;
 };
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString("ja-JP", {
+    return new Date(iso).toLocaleString(locale, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -128,6 +129,7 @@ export function DatasetsWorkspace({
   initialWorkspaceOptions = [],
 }: DatasetsWorkspaceProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const t = useT();
   const [workspaceFilter, setWorkspaceFilter] = useState<string>("all");
   const [shareEmail, setShareEmail] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -201,12 +203,12 @@ export function DatasetsWorkspace({
       selectedDataset
         ? [
             {
-              label: "ワークスペース",
+              label: t.models_detail_workspace,
               value: getWorkspaceLabel(selectedDataset.workspace_id, workspaceNameMap),
               mono: false,
             },
             {
-              label: "リソース",
+              label: t.ds_resource_label,
               value: getResourceLabel(selectedDataset.workspace_id, workspaceOptionMap),
               mono: false,
             },
@@ -235,17 +237,17 @@ export function DatasetsWorkspace({
         const payload = (await res.json().catch(() => ({}))) as { detail?: string };
         throw new Error(payload.detail ?? `HTTP ${res.status}`);
       }
-      setMessage(ds.locked ? "データセットのロックを解除しました。" : "データセットをロックしました。");
+      setMessage(ds.locked ? t.ds_unlocked : t.ds_locked);
       await refresh();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "操作に失敗しました。");
+      setMessage(e instanceof Error ? e.message : t.ds_op_fail);
     } finally {
       setBusyId(null);
     }
   };
 
   const handleDelete = async (ds: DatasetInfo) => {
-    if (!window.confirm(`データセット ${ds.dataset_id} を削除しますか？`)) return;
+    if (!window.confirm(interpolate(t.ds_del_confirm, { id: ds.dataset_id }))) return;
     setBusyId(ds.dataset_id);
     setMessage("");
     try {
@@ -256,11 +258,11 @@ export function DatasetsWorkspace({
         const payload = (await res.json().catch(() => ({}))) as { detail?: string };
         throw new Error(payload.detail ?? `HTTP ${res.status}`);
       }
-      setMessage("データセットを削除しました。");
+      setMessage(t.ds_deleted);
       if (selectedId === ds.dataset_id) setSelectedId(null);
       await refresh();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "削除に失敗しました。");
+      setMessage(e instanceof Error ? e.message : t.ds_del_fail);
     } finally {
       setBusyId(null);
     }
@@ -269,7 +271,7 @@ export function DatasetsWorkspace({
   const handleShare = async (ds: DatasetInfo, revoke: boolean) => {
     const email = shareEmail.trim().toLowerCase();
     if (!email) {
-      setMessage("先にメールアドレスを入力してください。");
+      setMessage(t.ds_share_need_email);
       return;
     }
     setBusyId(ds.dataset_id);
@@ -287,11 +289,11 @@ export function DatasetsWorkspace({
         const payload = (await res.json().catch(() => ({}))) as { detail?: string };
         throw new Error(payload.detail ?? `HTTP ${res.status}`);
       }
-      setMessage(revoke ? "共有を解除しました。" : "共有ユーザーを追加しました。");
+      setMessage(revoke ? t.ds_unshared : t.ds_shared);
       setShareEmail("");
       await refresh();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "共有操作に失敗しました。");
+      setMessage(e instanceof Error ? e.message : t.ds_share_fail);
     } finally {
       setBusyId(null);
     }
@@ -312,13 +314,13 @@ export function DatasetsWorkspace({
           <div>
             <p className="eyebrow">データセット</p>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <h2 style={{ margin: 0 }}>データセット管理</h2>
+              <h2 style={{ margin: 0 }}>{t.ds_h2}</h2>
               <button
                 type="button"
                 onClick={() => void refetch()}
                 disabled={isFetching}
-                aria-label="データセットを更新"
-                title={isFetching ? "更新中..." : "更新"}
+                aria-label={t.ds_refresh}
+                title={isFetching ? t.refreshing : t.refresh}
                 style={{
                   width: 30,
                   height: 30,
@@ -337,7 +339,7 @@ export function DatasetsWorkspace({
                 ↻
               </button>
             </div>
-            <p className="muted">生成されたデータセットの一覧を表示します。</p>
+            <p className="muted">{t.ds_desc}</p>
           </div>
 
           <div
@@ -349,7 +351,7 @@ export function DatasetsWorkspace({
               marginTop: "0.2rem",
             }}
           >
-            <span style={{ color: "var(--muted)", fontSize: "0.82rem", whiteSpace: "nowrap" }}>ワークスペース絞り込み</span>
+            <span style={{ color: "var(--muted)", fontSize: "0.82rem", whiteSpace: "nowrap" }}>{t.ds_filter}</span>
             <select
               value={workspaceFilter}
               onChange={(e) => {
@@ -360,7 +362,7 @@ export function DatasetsWorkspace({
             >
               {workspaceOptions.map((w) => (
                 <option key={w} value={w}>
-                  {w === "all" ? "すべてのワークスペース" : getWorkspaceLabel(w, workspaceNameMap)}
+                  {w === "all" ? t.ds_all : getWorkspaceLabel(w, workspaceNameMap)}
                 </option>
               ))}
             </select>
@@ -376,19 +378,19 @@ export function DatasetsWorkspace({
 
       {isLoading && (
         <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
-          読み込み中...
+          {t.loading}
         </div>
       )}
 
       {isError && (
         <div className="panel" style={{ color: "#ef4444", padding: "1rem" }}>
-          エラー: {error instanceof Error ? error.message : "読み込みに失敗しました"}
+          {t.error_prefix} {error instanceof Error ? error.message : t.ds_load_fail}
         </div>
       )}
 
       {!isLoading && !isError && filtered.length === 0 && (
         <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
-          データセットが見つかりません
+          {t.ds_none}
         </div>
       )}
 
@@ -420,7 +422,7 @@ export function DatasetsWorkspace({
                     </strong>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
                       <ActionIconButton
-                        title={ds.locked ? "ロック解除" : "ロック"}
+                        title={ds.locked ? t.btn_unlock : t.btn_lock}
                         disabled={busyId === ds.dataset_id}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -440,7 +442,7 @@ export function DatasetsWorkspace({
                         )}
                       </ActionIconButton>
                       <ActionIconButton
-                        title={ds.locked ? "ロック中は削除できません" : "削除"}
+                        title={ds.locked ? t.ds_locked_no_del : t.delete}
                         disabled={busyId === ds.dataset_id || !!ds.locked}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -457,11 +459,11 @@ export function DatasetsWorkspace({
                   </div>
                   <span>
                     {ds.source === "workspace"
-                      ? `データセットID: ${ds.dataset_id}`
-                      : "アップロード済みデータセット"}
+                      ? interpolate(t.ds_id_label, { id: ds.dataset_id })
+                      : t.ds_uploaded}
                   </span>
                   <span>
-                    画像 {ds.image_count.toLocaleString()} 枚 / クラス {ds.classes.length} 件
+                    {interpolate(t.ds_count_summary, { images: ds.image_count.toLocaleString(), classes: ds.classes.length })}
                   </span>
                 </div>
               ))}
@@ -473,7 +475,7 @@ export function DatasetsWorkspace({
               <>
                 <div className="panel-heading">
                   <div>
-                    <p className="eyebrow">データセット詳細</p>
+                    <p className="eyebrow">{t.ds_detail_eyebrow}</p>
                     <h3 style={{ fontSize: "1rem", wordBreak: "break-word" }}>
                       {getDatasetTitle(selectedDataset, workspaceNameMap)}
                     </h3>
@@ -498,7 +500,7 @@ export function DatasetsWorkspace({
                           background: "transparent",
                         }}
                       >
-                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>画像数</p>
+                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>{t.ds_img_count}</p>
                         <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
                           {selectedDataset.image_count.toLocaleString()} 枚
                         </p>
@@ -511,7 +513,7 @@ export function DatasetsWorkspace({
                           background: "transparent",
                         }}
                       >
-                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>クラス数</p>
+                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>{t.ds_class_count}</p>
                         <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
                           {selectedDataset.classes.length} 件
                         </p>
@@ -526,7 +528,7 @@ export function DatasetsWorkspace({
                       >
                         <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>作成日時</p>
                         <p style={{ margin: "0.08rem 0 0", fontSize: "0.76rem", fontWeight: 700 }}>
-                          {formatDate(selectedDataset.created_at)}
+                          {formatDate(selectedDataset.created_at, t.date_locale)}
                         </p>
                       </div>
                     </div>
@@ -568,7 +570,7 @@ export function DatasetsWorkspace({
                     {selectedDataset.classes.length > 0 && (
                       <div>
                         <p style={{ color: "var(--muted)", fontSize: "0.66rem", margin: "0 0 0.3rem" }}>
-                          クラス一覧
+                          {t.ds_classes_label}
                         </p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", justifyContent: "flex-start" }}>
                           {selectedDataset.classes.map((cls, i) => (
@@ -599,10 +601,10 @@ export function DatasetsWorkspace({
                         alignItems: "center",
                       }}
                     >
-                      <p style={{ margin: "0 0 0.25rem", fontSize: "0.66rem", color: "var(--muted)" }}>サンプル画像</p>
+                      <p style={{ margin: "0 0 0.25rem", fontSize: "0.66rem", color: "var(--muted)" }}>{t.ds_sample_img}</p>
                       {sampleImages.length === 0 ? (
                         <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.65rem" }}>
-                          なし
+                          {t.ds_no_sample}
                         </p>
                       ) : (
                         <div
@@ -651,7 +653,7 @@ export function DatasetsWorkspace({
                 </div>
 
                 <div className="panel" style={{ padding: "0.55rem", marginBottom: "0.65rem" }}>
-                  <p style={{ margin: "0 0 0.45rem", color: "var(--muted)", fontSize: "0.8rem" }}>共有ユーザー</p>
+                  <p style={{ margin: "0 0 0.45rem", color: "var(--muted)", fontSize: "0.8rem" }}>{t.ds_shared_users}</p>
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
                     <input
                       type="email"
@@ -666,7 +668,7 @@ export function DatasetsWorkspace({
                       disabled={busyId === selectedDataset.dataset_id}
                       style={{ fontSize: "0.75rem", padding: "0.35rem 0.7rem", minHeight: "auto" }}
                     >
-                      共有追加
+                      {t.ds_share_add}
                     </button>
                     <button
                       type="button"
@@ -674,12 +676,12 @@ export function DatasetsWorkspace({
                       disabled={busyId === selectedDataset.dataset_id}
                       style={{ fontSize: "0.75rem", padding: "0.35rem 0.7rem", minHeight: "auto" }}
                     >
-                      共有解除
+                      {t.ds_share_revoke}
                     </button>
                   </div>
                   <div style={{ marginTop: "0.35rem", fontSize: "0.72rem" }}>
                     {(selectedDataset.shared_with ?? []).length === 0 ? (
-                      <span style={{ color: "var(--muted)" }}>共有ユーザーはいません</span>
+                      <span style={{ color: "var(--muted)" }}>{t.ds_no_shared}</span>
                     ) : (
                       (selectedDataset.shared_with ?? []).map((email) => (
                         <span key={email} style={{ marginRight: "0.5rem" }}>
@@ -691,7 +693,7 @@ export function DatasetsWorkspace({
                 </div>
               </>
             ) : (
-              <p style={{ color: "var(--muted)", padding: "1rem" }}>データセットを選択してください</p>
+              <p style={{ color: "var(--muted)", padding: "1rem" }}>{t.ds_select_hint}</p>
             )}
           </article>
         </section>

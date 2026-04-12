@@ -2,6 +2,7 @@
 
 import { LoginForm } from "./login-form";
 import { LoginTransition } from "./login-transition";
+import { useT } from "@/lib/i18n";
 
 type LoginShellProps = {
   callbackUrl: string;
