@@ -653,15 +653,59 @@ function TrainingTab({
   onJobStarted?: (fastapiJobId: string) => void;
   /** ページリロード後に localStorage から復元された fastapiJobId */
   restoredFastapiJobId?: string | null;
-  onPhaseChange?: (phase: "idle" | "running" | "done" | "error") => void;
+  onPhaseChange?: (phase: "idle" | "queued" | "running" | "done" | "error") => void;
 }) {
-  const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
+  const sanitizeUiLine = useCallback((line: string): string => {
+    return line
+      .replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
+      .replace(/\r/g, "")
+      .replace(/[^\x20-\x7E]/g, "")
+      .trim();
+  }, []);
+
+  const shouldKeepTrainingLog = useCallback((line: string): boolean => {
+    if (!line) return false;
+    if (line.startsWith("JSON_LOG:")) return false;
+    if (line.includes("%") && line.includes("/")) return false;
+    return (
+      line.includes("[Epoch") ||
+      line.startsWith("[INFO]") ||
+      line.includes("ERROR") ||
+      line.includes("WARNING")
+    );
+  }, []);
+
+  const appendSanitizedLog = useCallback((text: string) => {
+    const cleaned = sanitizeUiLine(text);
+    if (!shouldKeepTrainingLog(cleaned)) return;
+    setLogs((prev) => {
+      if (prev.length > 0 && prev[prev.length - 1] === cleaned) {
+        return prev;
+      }
+      const next = [...prev, cleaned];
+      return next.slice(-300);
+    });
+  }, [sanitizeUiLine, shouldKeepTrainingLog]);
+
+  const replaceSanitizedLogs = useCallback((text: string) => {
+    const cleanedRaw = text
+      .split("\n")
+      .map(sanitizeUiLine)
+      .filter(shouldKeepTrainingLog)
+      .slice(-300);
+    const cleaned = cleanedRaw.filter((line, idx, arr) => idx === 0 || line !== arr[idx - 1]);
+    setLogs(cleaned);
+  }, [sanitizeUiLine, shouldKeepTrainingLog]);
+
+  const [phase, setPhase] = useState<"idle" | "queued" | "running" | "done" | "error">("idle");
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [epoch, setEpoch] = useState(0);
   const [totalEpochs, setTotalEpochs] = useState(() => parseInt(savedParams.epochs || "100", 10));
   const [logs, setLogs] = useState<string[]>([]);
   const [trainError, setTrainError] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
+  const [suppressRestore, setSuppressRestore] = useState(false);
   // jobId: Next.js SSE ジョブ ID（localStorage で永続化して再接続に利用）
   const [jobId, setJobId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -671,6 +715,7 @@ function TrainingTab({
   });
   const evtSourceRef = useRef<EventSource | null>(null);
   const logBoxRef = useRef<HTMLDivElement>(null);
+  const lastLogSeqRef = useRef(0);
 
   const [valRatio, setValRatio] = useState(20); // val の割合 (%)
   const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
@@ -693,8 +738,18 @@ function TrainingTab({
     let gotEvent = false;
     evtSource.addEventListener("log", (e) => {
       gotEvent = true;
-      const { text } = JSON.parse(e.data) as { text: string };
-      setLogs((prev) => [...prev, text]);
+      const { text, seq } = JSON.parse(e.data) as { text: string; seq?: number };
+      if (typeof seq === "number") {
+        if (seq <= lastLogSeqRef.current) return;
+        lastLogSeqRef.current = seq;
+      }
+      appendSanitizedLog(text);
+    });
+    evtSource.addEventListener("queued", (e) => {
+      gotEvent = true;
+      const payload = JSON.parse(e.data) as { queuePosition?: number | null };
+      setPhase("queued");
+      setQueuePosition(typeof payload.queuePosition === "number" ? payload.queuePosition : null);
     });
     evtSource.addEventListener("progress", (e) => {
       gotEvent = true;
@@ -702,15 +757,23 @@ function TrainingTab({
         epoch: number; totalEpochs: number; progress: number;
       };
       setPhase("running");
+      setQueuePosition(null);
       setEpoch(ep);
       setTotalEpochs(total);
       setProgress(pct);
     });
     evtSource.addEventListener("done", (e) => {
       gotEvent = true;
-      const { success } = JSON.parse(e.data) as { success: boolean };
-      setPhase(success ? "done" : "error");
-      if (!success) setTrainError("学習が異常終了しました。ログを確認してください。");
+      const { success, stopped } = JSON.parse(e.data) as { success: boolean; stopped?: boolean };
+      if (success) {
+        setQueuePosition(null);
+        setPhase("done");
+        setTrainError("");
+      } else {
+        setQueuePosition(null);
+        setPhase("error");
+        setTrainError(stopped ? "学習を停止しました。" : "学習が異常終了しました。ログを確認してください。");
+      }
       evtSource.close();
     });
     evtSource.onerror = () => {
@@ -718,40 +781,53 @@ function TrainingTab({
       // SSE 再接続が失敗した場合（Next.js 再起動など）は FastAPI ログをフェッチ
       if (!gotEvent && restoredFastapiJobId) {
         void fetchJobLogs(restoredFastapiJobId)
-          .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+          .then((text) => { if (text) replaceSanitizedLogs(text); })
           .catch(() => {});
       }
     };
     return () => { evtSource.close(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // mount once
+  }, [appendSanitizedLog, replaceSanitizedLogs, restoredFastapiJobId, workspace.id]); // mount once
 
   // ページナビゲーション後に fastapiJobId から状態を復元
   useEffect(() => {
-    if (!restoredFastapiJobId || phase !== "idle") return;
+    if (!restoredFastapiJobId || phase !== "idle" || suppressRestore) return;
     fetchJobDetail(restoredFastapiJobId)
       .then((detail) => {
         if (detail.status === "completed") {
+          setQueuePosition(null);
           setPhase("done");
           if (detail.progress) setProgress(detail.progress);
           // 完了済みログを FastAPI から取得
           void fetchJobLogs(restoredFastapiJobId)
-            .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+            .then((text) => { if (text) replaceSanitizedLogs(text); })
             .catch(() => {});
         } else if (detail.status === "failed") {
+          setQueuePosition(null);
           setPhase("error");
           setTrainError(detail.error ?? "学習が異常終了しました。");
           void fetchJobLogs(restoredFastapiJobId)
-            .then((text) => { if (text) setLogs(text.split("\n").filter((l) => l.trim())); })
+            .then((text) => { if (text) replaceSanitizedLogs(text); })
             .catch(() => {});
+        } else if (detail.status === "stopped") {
+          setQueuePosition(null);
+          setPhase("error");
+          setTrainError("学習を停止しました。");
+          void fetchJobLogs(restoredFastapiJobId)
+            .then((text) => { if (text) replaceSanitizedLogs(text); })
+            .catch(() => {});
+        } else if (detail.status === "queued") {
+          setPhase("queued");
+          setQueuePosition(typeof detail.queue_position === "number" ? detail.queue_position : null);
         } else if (detail.status === "running") {
           setPhase("running");
+          setQueuePosition(null);
           if (detail.progress) setProgress(detail.progress);
         }
       })
       .catch(() => { /* バックエンド未起動などの場合は無視 */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restoredFastapiJobId]);
+  }, [replaceSanitizedLogs, restoredFastapiJobId, phase, suppressRestore]);
 
   // ログが追加されるたびに最下行へスクロール（autoScroll ON の場合のみ）
   useEffect(() => {
@@ -795,7 +871,10 @@ function TrainingTab({
   };
 
   const handleStartTraining = async () => {
-    setPhase("running");
+    setSuppressRestore(false);
+    lastLogSeqRef.current = 0;
+    setPhase("queued");
+    setQueuePosition(null);
     setProgress(0);
     setEpoch(0);
     setLogs([]);
@@ -813,15 +892,24 @@ function TrainingTab({
       const json = await res.json();
       if (!res.ok || !json.jobId) {
         setTrainError(json.error ?? "学習の開始に失敗しました");
+        setQueuePosition(null);
         setPhase("error");
         return;
       }
       id = json.jobId;
       setJobId(id);
       localStorage.setItem(`jobId_${workspace.id}`, id);
+      if (json.backendStatus === "running") {
+        setPhase("running");
+        setQueuePosition(null);
+      } else {
+        setPhase("queued");
+        setQueuePosition(typeof json.queuePosition === "number" ? json.queuePosition : null);
+      }
       if (json.fastapiJobId) onJobStarted?.(json.fastapiJobId);
     } catch {
       setTrainError("サーバーへの接続に失敗しました");
+      setQueuePosition(null);
       setPhase("error");
       return;
     }
@@ -830,22 +918,35 @@ function TrainingTab({
     evtSourceRef.current = evtSource;
 
     evtSource.addEventListener("log", (e) => {
-      const { text } = JSON.parse(e.data) as { text: string };
-      setLogs((prev) => [...prev, text]);
+      const { text, seq } = JSON.parse(e.data) as { text: string; seq?: number };
+      if (typeof seq === "number") {
+        if (seq <= lastLogSeqRef.current) return;
+        lastLogSeqRef.current = seq;
+      }
+      appendSanitizedLog(text);
+    });
+    evtSource.addEventListener("queued", (e) => {
+      const payload = JSON.parse(e.data) as { queuePosition?: number | null };
+      setPhase("queued");
+      setQueuePosition(typeof payload.queuePosition === "number" ? payload.queuePosition : null);
     });
     evtSource.addEventListener("progress", (e) => {
       const { epoch: ep, totalEpochs: total, progress: pct } = JSON.parse(e.data) as { epoch: number; totalEpochs: number; progress: number };
+      setPhase("running");
+      setQueuePosition(null);
       setEpoch(ep);
       setTotalEpochs(total);
       setProgress(pct);
     });
     evtSource.addEventListener("done", (e) => {
-      const { success } = JSON.parse(e.data) as { success: boolean };
+      const { success, stopped } = JSON.parse(e.data) as { success: boolean; stopped?: boolean };
+      setQueuePosition(null);
       setPhase(success ? "done" : "error");
-      if (!success) setTrainError("学習が異常終了しました。ログを確認してください。");
+      if (!success) setTrainError(stopped ? "学習を停止しました。" : "学習が異常終了しました。ログを確認してください。");
       evtSource.close();
     });
     evtSource.onerror = () => {
+      setQueuePosition(null);
       setPhase("error");
       setTrainError("サーバーとの接続が切れました。");
       evtSource.close();
@@ -854,10 +955,27 @@ function TrainingTab({
 
   const handleStopTraining = async () => {
     if (!jobId) return;
+    setSuppressRestore(true);
     evtSourceRef.current?.close();
     await fetch(`/api/workspaces/${workspace.id}/start-training?jobId=${jobId}`, { method: "DELETE" }).catch(() => {});
     setPhase("idle");
+    setQueuePosition(null);
     setJobId(null);
+    localStorage.removeItem(`jobId_${workspace.id}`);
+  };
+
+  /** 完了・エラー後に再学習できるようにリセットする（fastapiJobId は維持して結果タブは引き続き参照可） */
+  const handleRetryTraining = () => {
+    setSuppressRestore(true);
+    evtSourceRef.current?.close();
+    setPhase("idle");
+    setQueuePosition(null);
+    setLogs([]);
+    setProgress(0);
+    setEpoch(0);
+    setTrainError("");
+    setJobId(null);
+    localStorage.removeItem(`jobId_${workspace.id}`);
   };
 
   const modelLabel = (MODEL_OPTIONS.find((m) => m.value === savedModelKey)?.label ?? savedModelKey) || "未選択";
@@ -870,8 +988,8 @@ function TrainingTab({
           <p className="eyebrow">Step 4</p>
           <h3>学習</h3>
         </div>
-        <span className={phase === "done" ? "status ready" : phase === "running" ? "status training" : phase === "error" ? "status error" : "status draft"}>
-          {phase === "done" ? "完了" : phase === "running" ? "学習中" : phase === "error" ? "エラー" : "待機中"}
+        <span className={phase === "done" ? "status ready" : phase === "running" ? "status training" : phase === "queued" ? "status draft" : phase === "error" ? "status error" : "status draft"}>
+          {phase === "done" ? "完了" : phase === "running" ? "学習中" : phase === "queued" ? "実行待機中" : phase === "error" ? "エラー" : "待機中"}
         </span>
       </div>
 
@@ -916,6 +1034,15 @@ function TrainingTab({
         </div>
       </div>
 
+      {/* 待機情報 */}
+      {phase === "queued" && (
+        <div style={{ marginTop: "0.75rem", marginBottom: "0.75rem" }}>
+          <p className="muted" style={{ margin: 0 }}>
+            {queuePosition ? `学習ジョブは実行待機中です（待ち順: ${queuePosition}番目）。` : "学習ジョブは実行待機中です。"}
+          </p>
+        </div>
+      )}
+
       {/* 進捗バー */}
       {(phase === "running" || phase === "done") && (
         <div style={{ marginTop: "0.75rem", marginBottom: "0.75rem" }}>
@@ -928,7 +1055,7 @@ function TrainingTab({
       )}
 
       {/* ログ表示エリア */}
-      {(logs.length > 0 || phase === "running") && (
+      {(logs.length > 0 || phase === "running" || phase === "queued") && (
         <div style={{ marginTop: "0.75rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
             <p className="eyebrow" style={{ fontSize: "0.68rem", margin: 0 }}>学習ログ</p>
@@ -968,29 +1095,33 @@ function TrainingTab({
               color: "rgba(237,241,250,0.75)",
             }}
           >
-            {logs.length === 0 && phase === "running" && (
-              <span style={{ color: "rgba(237,241,250,0.35)" }}>学習開始中...</span>
+            {logs.length === 0 && (phase === "running" || phase === "queued") && (
+              <span style={{ color: "rgba(237,241,250,0.35)" }}>
+                {phase === "queued" ? "実行待機中..." : "学習開始中..."}
+              </span>
             )}
             {logs.map((line, i) => {
+              const cleanLine = sanitizeUiLine(line);
+              if (!cleanLine) return null;
               let color = "rgba(237,241,250,0.72)";
-              if (line.startsWith("[ERROR]") || /\berror\b/i.test(line) || /traceback/i.test(line)) {
+              if (cleanLine.startsWith("[ERROR]") || /\berror\b/i.test(cleanLine) || /traceback/i.test(cleanLine)) {
                 color = "#ff6b6b";
-              } else if (/results saved|best\.pt|saving/i.test(line)) {
+              } else if (/results saved|best\.pt|saving/i.test(cleanLine)) {
                 color = "#7cf0ba";
-              } else if (/\bEpoch\b.+\d+\/\d+/.test(line)) {
+              } else if (/\bEpoch\b.+\d+\/\d+/.test(cleanLine)) {
                 color = "#7ee8fa";
-              } else if (/mAP|precision|recall/i.test(line)) {
+              } else if (/mAP|precision|recall/i.test(cleanLine)) {
                 color = "#89b4fa";
-              } else if (line.startsWith("[WARNING]") || /userwarning/i.test(line)) {
+              } else if (cleanLine.startsWith("[WARNING]") || /userwarning/i.test(cleanLine)) {
                 color = "#f1c40f";
-              } else if (line.startsWith("[INFO]")) {
+              } else if (cleanLine.startsWith("[INFO]")) {
                 color = "rgba(237,241,250,0.5)";
               }
               return (
-                <div key={i} style={{ color, wordBreak: "break-all" }}>{line}</div>
+                <div key={`${i}-${cleanLine}`} style={{ color, wordBreak: "break-all" }}>{cleanLine}</div>
               );
             })}
-            {phase === "running" && (
+            {(phase === "running" || phase === "queued") && (
               <div style={{ color: "rgba(237,241,250,0.35)" }}>▊</div>
             )}
           </div>
@@ -1040,7 +1171,7 @@ function TrainingTab({
               type="button"
               className={device === d ? "" : "ghost-button"}
               onClick={() => setDevice(d)}
-              disabled={phase === "running"}
+              disabled={phase === "running" || phase === "queued"}
               style={{ padding: "0.3rem 0.9rem", fontSize: "0.78rem" }}
             >
               {d === "auto" ? "⚡ 自動" : d === "cpu" ? "🖥 CPU" : "🎮 GPU (CUDA)"}
@@ -1103,7 +1234,7 @@ function TrainingTab({
           type="button"
           className={prepareState === "done" ? "ghost-button" : ""}
           onClick={handlePrepareTraining}
-          disabled={prepareState === "running" || phase === "running"}
+          disabled={prepareState === "running" || phase === "running" || phase === "queued"}
         >
           {prepareState === "running" ? "準備中..." : prepareState === "done" ? "🔄 再準備する" : "📂 学習データを準備"}
         </button>
@@ -1123,24 +1254,34 @@ function TrainingTab({
           <button
             type="button"
             onClick={handleStartTraining}
-            disabled={prepareState !== "done"}
-            title={prepareState !== "done" ? "先に学習データを準備してください" : ""}
+            disabled={prepareState === "running"}
+            title={prepareState === "running" ? "学習データ準備が完了するまでお待ちください" : ""}
           >
             🚀 学習を開始
           </button>
         )}
-        {phase === "running" && (
+        {(phase === "running" || phase === "queued") && (
           <button type="button" className="ghost-button" onClick={handleStopTraining}>
-            ⏹ 学習を中断
+            ⏹ {phase === "queued" ? "待機ジョブを取り消す" : "学習を中断"}
           </button>
         )}
         {phase === "error" && (
-          <button type="button" className="ghost-button" onClick={() => { setPhase("idle"); setLogs([]); setProgress(0); setEpoch(0); }}>
-            リセット
+          <button type="button" className="ghost-button" onClick={handleRetryTraining}>
+            🔁 リセットして再学習
           </button>
         )}
         {phase === "done" && (
-          <span style={{ color: "#7cf0ba" }}>✓ 学習完了。結果確認タブで詳細を確認してください。</span>
+          <>
+            <span style={{ color: "#7cf0ba" }}>✓ 学習完了。結果確認タブで詳細を確認できます。</span>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={handleRetryTraining}
+              style={{ marginLeft: "0.5rem" }}
+            >
+              🔁 再学習する
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -1176,7 +1317,7 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
   const [activeTab, setActiveTab] = useState<StudioTab>("preprocess");
   const [sharedImages, setSharedImages] = useState<AnnotateImage[]>([]);
   const [livePreprocessConfig, setLivePreprocessConfig] = useState(workspace.preprocessConfig);
-  const [trainingPhase, setTrainingPhase] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [trainingPhase, setTrainingPhase] = useState<"idle" | "queued" | "running" | "done" | "error">("idle");
 
   const _rawModelKey = workspace.selectedModel?.toLowerCase().replace(/[\s-]/g, "") ?? "";
   const initialModelKey = workspace.target === "object-detection"
@@ -1242,7 +1383,7 @@ export function WorkspaceStudio({ workspace }: { workspace: WorkspaceInfo }) {
             <span className="studio-tab-index">{i + 1}</span>
             <span>
               {tab.icon} {tab.label}
-              {tab.id === "training" && trainingPhase === "running" && (
+              {tab.id === "training" && (trainingPhase === "running" || trainingPhase === "queued") && (
                 <span style={{
                   display: "inline-block",
                   marginLeft: "0.35rem",

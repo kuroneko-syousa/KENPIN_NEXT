@@ -16,6 +16,10 @@ type DatasetStats = {
   total: number;
 };
 
+type ModelStats = {
+  total: number;
+};
+
 type RecentJob = {
   job_id: string;
   name: string;
@@ -29,7 +33,24 @@ type RecentJob = {
 type DashboardSummary = {
   jobs: JobStats;
   datasets: DatasetStats;
+  models: ModelStats;
   recent_jobs: RecentJob[];
+};
+
+type WorkspaceStats = {
+  own: number;
+  ownByGenre: {
+    label: string;
+    value: number;
+  }[];
+};
+
+type AnnotationProgress = {
+  id: string;
+  name: string;
+  total: number;
+  annotated: number;
+  completionRate: number;
 };
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────
@@ -112,11 +133,126 @@ type Props = {
   userName: string;
   userEmail: string;
   userRole: string;
+  workspaceStats: WorkspaceStats;
+  annotationProgress: AnnotationProgress[];
 };
+
+type DonutSegment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+function DonutChart({
+  title,
+  centerLabel,
+  centerValue,
+  segments,
+}: {
+  title: string;
+  centerLabel: string;
+  centerValue: number;
+  segments: DonutSegment[];
+}) {
+  const R = 34;
+  const cx = 44;
+  const cy = 44;
+  const circumference = 2 * Math.PI * R;
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  let consumed = 0;
+
+  const arcs =
+    total > 0
+      ? segments
+          .filter((segment) => segment.value > 0)
+          .map((segment) => {
+            const arcLength = (segment.value / total) * circumference;
+            const dashOffset = circumference / 4 - consumed;
+            consumed += arcLength;
+            return {
+              ...segment,
+              arcLength,
+              dashOffset,
+            };
+          })
+      : [];
+
+  return (
+    <article className="panel overview-donut-card">
+      <div className="panel-heading compact">
+        <div>
+          <p className="eyebrow">集計</p>
+          <h3>{title}</h3>
+        </div>
+      </div>
+
+      <div className="overview-donut-layout">
+        <div
+          className="overview-donut"
+          role="img"
+          aria-label={`${title} 円グラフ`}
+        >
+          <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true">
+            <circle
+              cx={cx}
+              cy={cy}
+              r={R}
+              fill="none"
+              stroke="rgba(237,241,250,0.1)"
+              strokeWidth="11"
+            />
+            {arcs.length > 0 ? (
+              arcs.map((arc) => (
+                <circle
+                  key={arc.label}
+                  cx={cx}
+                  cy={cy}
+                  r={R}
+                  fill="none"
+                  stroke={arc.color}
+                  strokeWidth="11"
+                  strokeDasharray={`${arc.arcLength} ${Math.max(circumference - arc.arcLength, 0)}`}
+                  strokeDashoffset={arc.dashOffset}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke-dasharray 0.45s cubic-bezier(.4,0,.2,1)" }}
+                />
+              ))
+            ) : (
+              <circle
+                cx={cx}
+                cy={cy}
+                r={R}
+                fill="none"
+                stroke="rgba(237,241,250,0.1)"
+                strokeWidth="11"
+              />
+            )}
+            <text x={cx} y={cy - 4} textAnchor="middle" fill="#edf1fa" fontSize="13" fontWeight="700">
+              {centerValue}
+            </text>
+            <text x={cx} y={cy + 10} textAnchor="middle" fill="rgba(237,241,250,0.45)" fontSize="8">
+              {centerLabel}
+            </text>
+          </svg>
+        </div>
+
+        <div className="overview-donut-legend">
+          {segments.map((segment) => (
+            <div key={segment.label} className="overview-donut-legend-row">
+              <span className="overview-donut-dot" style={{ background: segment.color }} />
+              <span>{segment.label}</span>
+              <strong>{segment.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 // ─── コンポーネント ────────────────────────────────────────────────────────
 
-export function DashboardOverview({ userName, userEmail, userRole }: Props) {
+export function DashboardOverview({ userName, userEmail, userRole, workspaceStats, annotationProgress }: Props) {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,16 +340,16 @@ export function DashboardOverview({ userName, userEmail, userRole }: Props) {
                 <strong>{summary.jobs.running}</strong>
               </div>
               <div className="overview-stat-chip">
-                <span>完了ジョブ</span>
-                <strong>{summary.jobs.completed}</strong>
+                <span>待機中ジョブ</span>
+                <strong>{summary.jobs.queued}</strong>
               </div>
               <div className="overview-stat-chip">
-                <span>データセット</span>
+                <span>データセット件数</span>
                 <strong>{summary.datasets.total}</strong>
               </div>
               <div className="overview-stat-chip">
-                <span>失敗ジョブ</span>
-                <strong>{summary.jobs.failed}</strong>
+                <span>作成ワークスペース</span>
+                <strong>{workspaceStats.own}</strong>
               </div>
             </>
           ) : null}
@@ -239,86 +375,141 @@ export function DashboardOverview({ userName, userEmail, userRole }: Props) {
         </section>
       )}
 
-      {/* ─── ジョブ集計 ＋ データセット ─── */}
-      <section className="detail-grid">
-        {/* ジョブ集計 */}
-        <article className="panel">
-          <div className="panel-heading">
+      {/* ─── 実行中優先表示 ─── */}
+      <section className="overview-top-grid">
+        {loading || error || !summary ? (
+          <>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
+            <article className="panel"><div className="metric-stack overview-card-stack">{loading ? <SkeletonCard /> : <p className="muted">取得できませんでした</p>}</div></article>
+          </>
+        ) : (
+          <>
+            <DonutChart
+              title="ユーザー作成ワークスペース"
+              centerLabel="作成数"
+              centerValue={workspaceStats.own}
+              segments={
+                workspaceStats.ownByGenre.length > 0
+                  ? workspaceStats.ownByGenre.map((genre, index) => ({
+                      label: genre.label,
+                      value: genre.value,
+                      color: ["#66d8ff", "#7cf0ba", "#ffc57c", "#a9b8ff", "#ff9bb4", "#58d2ff"][index % 6],
+                    }))
+                  : [{ label: "未作成", value: 0, color: "#95a7d3" }]
+              }
+            />
+
+            <DonutChart
+              title="データセット件数"
+              centerLabel="登録数"
+              centerValue={summary.datasets.total}
+              segments={[
+                { label: "登録済み", value: summary.datasets.total, color: "#7cb4f0" },
+              ]}
+            />
+
+            <DonutChart
+              title="ジョブ集計"
+              centerLabel="合計"
+              centerValue={summary.jobs.total}
+              segments={[
+                { label: "実行中", value: summary.jobs.running, color: "#58d2ff" },
+                { label: "完了", value: summary.jobs.completed, color: "#67e1a1" },
+                { label: "待機中", value: summary.jobs.queued, color: "#ffc57c" },
+                { label: "失敗", value: summary.jobs.failed, color: "#ff8f93" },
+              ]}
+            />
+
+            <DonutChart
+              title="作成済みモデル"
+              centerLabel="モデル数"
+              centerValue={summary.models.total}
+              segments={[
+                { label: "作成済み", value: summary.models.total, color: "#7cf0ba" },
+              ]}
+            />
+          </>
+        )}
+      </section>
+
+      {/* ─── 実行中優先表示 ─── */}
+      <section className="detail-grid single-column">
+        <article className="panel overview-running-panel">
+          <div className="panel-heading compact">
             <div>
-              <p className="eyebrow">ジョブ</p>
-              <h3>ジョブ集計</h3>
+              <p className="eyebrow">優先表示</p>
+              <h3>実行中ジョブ</h3>
             </div>
-            {!loading && summary && summary.jobs.queued > 0 && (
-              <span className="status draft">
-                {summary.jobs.queued} 待機中
-              </span>
+            {!loading && summary && (
+              <span className="status training">{summary.jobs.running} 件</span>
             )}
           </div>
 
           <div className="metric-stack overview-card-stack">
             {loading ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
+              <SkeletonCard />
             ) : error ? (
               <p className="muted">取得できませんでした</p>
-            ) : summary ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {[
-                  { label: "実行中",  value: summary.jobs.running,   cls: "training" },
-                  { label: "完了",    value: summary.jobs.completed, cls: "ready"    },
-                  { label: "待機中",  value: summary.jobs.queued,    cls: "draft"    },
-                  { label: "失敗",    value: summary.jobs.failed,    cls: "error"    },
-                  { label: "合計",    value: summary.jobs.total,     cls: ""         },
-                ].map(({ label, value, cls }) => (
-                  <div
-                    key={label}
-                    className="summary-item"
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  >
-                    <span>{label}</span>
-                    <span className={cls ? `status ${cls}` : undefined} style={!cls ? { fontWeight: 700 } : undefined}>
-                      {value}
-                    </span>
+            ) : summary && summary.jobs.running > 0 ? (
+              <>
+                {summary.recent_jobs
+                  .filter((job) => job.status === "running")
+                  .slice(0, 2)
+                  .map((job) => (
+                    <div key={job.job_id} className="job-card compact">
+                      <div className="job-header">
+                        <strong>{job.name}</strong>
+                        <span className="status training">実行中</span>
+                      </div>
+                      <div className="progress-bar large" style={{ marginTop: "0.65rem" }}>
+                        <div style={{ width: `${job.progress}%` }} />
+                      </div>
+                      <div className="job-footer">
+                        <span>{job.progress}%</span>
+                        <span className="muted">{formatDate(job.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+              </>
+            ) : (
+              <p className="muted">実行中ジョブはありません</p>
+            )}
+          </div>
+        </article>
+      </section>
+
+      {/* ─── アノテーション進捗 ─── */}
+      <section className="detail-grid single-column">
+        <article className="panel">
+          <div className="panel-heading compact">
+            <div>
+              <p className="eyebrow">進捗</p>
+              <h3>要アノテーション完了率</h3>
+            </div>
+          </div>
+          <div className="metric-stack overview-card-stack">
+            {annotationProgress.length === 0 ? (
+              <p className="muted">表示可能なアノテーション進捗データがありません</p>
+            ) : (
+              <div className="overview-bar-list">
+                {annotationProgress.map((dataset) => (
+                  <div key={dataset.id} className="overview-bar-item">
+                    <div className="overview-bar-label-row">
+                      <span>{dataset.name}</span>
+                      <span className="muted">{dataset.annotated}/{dataset.total}</span>
+                    </div>
+                    <div className="progress-bar large overview-annotation-bar">
+                      <div style={{ width: `${dataset.completionRate}%` }} />
+                    </div>
+                    <div className="overview-bar-footnote">
+                      <span>{dataset.completionRate}% 完了</span>
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : null}
-          </div>
-        </article>
-
-        {/* データセット */}
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">データ</p>
-              <h3>データセット</h3>
-            </div>
-            {!loading && summary && (
-              <span className="muted">{summary.datasets.total} 件</span>
             )}
-          </div>
-
-          <div className="metric-stack overview-card-stack">
-            {loading ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
-            ) : error ? (
-              <p className="muted">取得できませんでした</p>
-            ) : summary ? (
-              <div
-                className="summary-item"
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <span>登録済みデータセット</span>
-                <strong style={{ fontSize: "2rem", lineHeight: 1 }}>
-                  {summary.datasets.total}
-                </strong>
-              </div>
-            ) : null}
           </div>
         </article>
       </section>

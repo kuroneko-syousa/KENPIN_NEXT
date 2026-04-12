@@ -3,12 +3,14 @@ Dashboard router.
 
 Endpoints
 ─────────
-  GET /dashboard/summary   — Aggregated stats for the dashboard overview
+    GET /dashboard/summary   — Aggregated stats for the dashboard overview
 
 Aggregation sources
 ───────────────────
-  * Jobs        — in-memory JobStore (data/jobs.json)
-  * Datasets    — filesystem: backend/datasets/<dataset_id>/
+    * Jobs        — in-memory JobStore (data/jobs.json)
+    * Datasets    — filesystem:
+                                    - backend/datasets/<dataset_id>/
+                                    - tmp/workspaces/<workspace_id>/dataset/
 """
 
 from __future__ import annotations
@@ -26,8 +28,12 @@ from services.job_manager import job_manager
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
-# Absolute path to the datasets directory (backend/datasets/)
-_DATASETS_DIR = Path(__file__).parent.parent / "datasets"
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+_WORKSPACE_DIR = _BACKEND_DIR.parent
+
+# Dataset locations
+_UPLOADED_DATASETS_DIR = _BACKEND_DIR / "datasets"
+_WORKSPACE_DATASETS_ROOT = _WORKSPACE_DIR / "tmp" / "workspaces"
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +57,12 @@ class DatasetStats(BaseModel):
     total: int
 
 
+class ModelStats(BaseModel):
+    """Aggregated trained model counts."""
+
+    total: int
+
+
 class RecentJob(BaseModel):
     """Slim job representation for the recent-jobs list."""
 
@@ -68,6 +80,7 @@ class DashboardSummary(BaseModel):
 
     jobs: JobStats
     datasets: DatasetStats
+    models: ModelStats
     recent_jobs: List[RecentJob]
 
 
@@ -77,18 +90,26 @@ class DashboardSummary(BaseModel):
 
 
 def _count_datasets() -> int:
-    """Return the number of valid dataset directories under backend/datasets/.
+    """Return the number of available datasets for dashboard summary.
 
-    A valid dataset directory is any immediate child directory that contains
-    a ``data.yaml`` file (indicating a successfully uploaded YOLO dataset).
+    Count both uploaded datasets and workspace-generated datasets.
     """
-    if not _DATASETS_DIR.is_dir():
-        return 0
-    count = 0
-    for entry in _DATASETS_DIR.iterdir():
-        if entry.is_dir() and any(entry.rglob("data.yaml")):
-            count += 1
-    return count
+    uploaded_count = 0
+    if _UPLOADED_DATASETS_DIR.is_dir():
+        for entry in _UPLOADED_DATASETS_DIR.iterdir():
+            if entry.is_dir() and not entry.name.startswith((".", "_")):
+                uploaded_count += 1
+
+    workspace_count = 0
+    if _WORKSPACE_DATASETS_ROOT.is_dir():
+        for workspace_dir in _WORKSPACE_DATASETS_ROOT.iterdir():
+            if not workspace_dir.is_dir():
+                continue
+            dataset_dir = workspace_dir / "dataset"
+            if dataset_dir.is_dir():
+                workspace_count += 1
+
+    return uploaded_count + workspace_count
 
 
 def _aggregate_jobs() -> tuple[JobStats, List[RecentJob]]:
@@ -125,6 +146,15 @@ def _aggregate_jobs() -> tuple[JobStats, List[RecentJob]]:
     return stats, recent
 
 
+def _count_models() -> int:
+    """Return trained model count.
+
+    Keep this aligned with models page logic: completed jobs are treated as models.
+    """
+    all_jobs = job_manager.list_jobs()
+    return sum(1 for job in all_jobs if job.status == JobStatus.COMPLETED)
+
+
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -143,16 +173,19 @@ def get_dashboard_summary() -> DashboardSummary:
     """Aggregate and return dashboard-level statistics in a single request."""
     job_stats, recent_jobs = _aggregate_jobs()
     dataset_stats = DatasetStats(total=_count_datasets())
+    model_stats = ModelStats(total=_count_models())
 
     logger.debug(
-        "Dashboard summary: jobs=%d datasets=%d recent=%d",
+        "Dashboard summary: jobs=%d datasets=%d models=%d recent=%d",
         job_stats.total,
         dataset_stats.total,
+        model_stats.total,
         len(recent_jobs),
     )
 
     return DashboardSummary(
         jobs=job_stats,
         datasets=dataset_stats,
+        models=model_stats,
         recent_jobs=recent_jobs,
     )

@@ -5,11 +5,15 @@
 ## 主な機能
 
 - **Model Registry** — LoRA / fine-tune / 推論向けモデルを整理・管理
-- **Job Tracking** — GPU キュー、進捗、レビュー待ちを継続監視
+- **Job Tracking** — GPU キュー、進捗、レビュー待ちを継続監視（FIFO 単一実行制御）
 - **Team Access** — NextAuth.js によるセキュアな認証・アクセス制御
 - **Dataset Management** — データセット品質チェックと一元管理
 - **Image Database** — 複数の画像DB接続と管理
 - **Workspace Organization** — ユーザー / ワークスペース単位での管理（Prisma 7 + SQLite）
+- **Multi-User Job Queue** — ユーザー×ワークスペース単位での成果物分離・データ保護 ✨ **[NEW 2024-04-12]**
+  - 学習成果物（`best.pt`, ログ等）を階層化して保存
+  - 複数ユーザーの同時実行でデータが混在しない
+  - API 呼び出しは `{user_id}/{workspace_id}` で統一
 
 ## 前提環境
 
@@ -246,6 +250,38 @@ npm.cmd run dev
 既に `node_modules` がある場合でも、再インストールで解消することがあります。
 
 ## 直近の更新ログ
+
+### 2026-04-12
+
+#### マルチユーザー対応・ワークスペース別成果物分離 ✨ **NEW**
+
+- **Job モデル拡張**（`backend/models/job.py`）
+  - `user_id` フィールド追加（ユーザー ID、ワークスペース階層用）
+  - `workspace_path` フィールド追加（`backend/workspaces/{user_id}/{workspace_id}/`）
+  - `JobCreate`, `JobSummary` にも同フィールド追加
+- **JobManager 改修**（`backend/services/job_manager.py`）
+  - `submit_job()` で `workspace_path` 配下に job/logs/models ディレクトリ構造を自動生成
+  - キュー内で待機中のジョブ位置を `queue_position` で可視化
+  - `get_queue_position()`, `get_queue_size()`, `get_running_job_id()` で状態クエリ対応
+- **train_worker.py 改修**（`backend/workers/train_worker.py`）
+  - params.json から `workspace_dir` を読み込み
+  - YOLO の project 出力先を `{workspace_dir}/models/` に動的指定
+  - 成果物がユーザー→ワークスペース別に自動分離
+- **start-training API 改修**（`app/api/workspaces/[id]/start-training/route.ts`）
+  - `workspace.ownerId` から user_id を取得
+  - `workspace_path = backend/workspaces/{user_id}/{workspace_id}/` を生成して送信
+  - バックエンドヘ 3 パラメータを新規送信: `user_id`, `workspace_path`, `requested_by`
+- **Jobs router 改修**（`backend/routers/jobs.py`）
+  - `create_job()` で `workspace_path` を req から受け取り
+  - フォールバック時は自動生成
+- **呼び出しインターフェース統一**
+  - ユーザー →ワークスペース → ジョブの 3 層階層で API 呼び出し
+  - 各セクション（models/datasets 一覧）は `{user_id}/{workspace_id}` で層分け対応予定
+
+**メリット:**
+- 複数ユーザーの同時実行でも成果物が混在しない
+- ワークスペース内でプロジェクト単位の分離も可能
+- 今後の API 追加でも一貫した層分け呼び出し可能
 
 ### 2026-04-11
 

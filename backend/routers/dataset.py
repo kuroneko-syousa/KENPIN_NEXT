@@ -1,89 +1,136 @@
 """
 Dataset router.
-  POST /datasets/upload  → accept a YOLO-format zip, unzip it, validate data.yaml
-  GET  /datasets         → list all datasets (sorted by created_at DESC)
-  GET  /datasets/{id}    → get a single dataset detail
+
+Endpoints
+---------
+  POST   /datasets/upload           Upload YOLO dataset zip (global dataset registry)
+  GET    /datasets                  List datasets (uploaded + workspace-generated)
+  GET    /datasets/{id}             Get one dataset detail
+  POST   /datasets/{id}/lock        Lock/unlock delete protection
+  POST   /datasets/{id}/share       Add/remove shared user email
+  DELETE /datasets/{id}             Delete dataset folder (when unlocked)
 """
 
+from __future__ import annotations
+
+import json
 import logging
+import os
 import shutil
+import tempfile
+import threading
 import uuid
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
-DATASETS_DIR = Path("datasets")
-DATASETS_DIR.mkdir(exist_ok=True)
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+_WORKSPACE_DIR = _BACKEND_DIR.parent
+DATASETS_DIR = _BACKEND_DIR / "datasets"
+WORKSPACE_DATASETS_ROOT = _WORKSPACE_DIR / "tmp" / "workspaces"
+_DATA_PATH = _BACKEND_DIR / "data"
+_DATASET_META_PATH = _DATA_PATH / "datasets_meta.json"
+_META_LOCK = threading.Lock()
 
-_MAX_ZIP_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB hard limit
+DATASETS_DIR.mkdir(parents=True, exist_ok=True)
+_DATA_PATH.mkdir(parents=True, exist_ok=True)
 
-# Image file extensions counted as "images" in a dataset
+_MAX_ZIP_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 
 
-# ---------------------------------------------------------------------------
-# Response model
-# ---------------------------------------------------------------------------
-
-
 class DatasetInfo(BaseModel):
-    """Summary information about a single dataset directory."""
-
     dataset_id: str
+    workspace_id: Optional[str] = None
+    source: str = Field(default="uploaded", description="uploaded | workspace")
     image_count: int
     classes: List[str]
     created_at: datetime
     data_yaml: Optional[str] = None
     path: str
+    locked: bool = False
+    shared_with: List[str] = Field(default_factory=list)
 
 
-# ---------------------------------------------------------------------------
-# Folder-analysis helpers
-# ---------------------------------------------------------------------------
+class DatasetLockRequest(BaseModel):
+    locked: bool
+
+
+class DatasetShareRequest(BaseModel):
+    email: str
+    revoke: bool = False
+
+
+def _load_meta() -> Dict[str, Dict[str, object]]:
+    with _META_LOCK:
+        if not _DATASET_META_PATH.exists():
+            return {}
+        try:
+            raw = json.loads(_DATASET_META_PATH.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                return raw
+        except (json.JSONDecodeError, OSError):
+            pass
+        return {}
+
+
+def _save_meta(meta: Dict[str, Dict[str, object]]) -> None:
+    payload = json.dumps(meta, ensure_ascii=False, indent=2)
+    with _META_LOCK:
+        tmp_fd, tmp_path = tempfile.mkstemp(
+            dir=_DATASET_META_PATH.parent,
+            suffix=".tmp",
+            prefix="datasets_meta_",
+        )
+        try:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
+                fh.write(payload)
+            os.replace(tmp_path, _DATASET_META_PATH)
+        finally:
+            try:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            except OSError:
+                pass
+
+
+def _workspace_dataset_id(workspace_id: str) -> str:
+    return f"ws-{workspace_id}"
 
 
 def _count_images(dataset_dir: Path) -> int:
-    """Recursively count all image files inside *dataset_dir*.
-
-    Skips any file whose path component starts with ``_`` (e.g., ``_upload.zip``
-    temporary files) and skips hidden folders.
-    """
     count = 0
     try:
         for p in dataset_dir.rglob("*"):
             if p.is_file() and p.suffix.lower() in _IMAGE_SUFFIXES:
-                # Skip temporary / hidden entries
                 if any(part.startswith("_") or part.startswith(".") for part in p.parts):
                     continue
                 count += 1
     except OSError as exc:
-        logger.warning("Image-count walk failed for %s: %s", dataset_dir, exc)
+        logger.warning("Image count failed for %s: %s", dataset_dir, exc)
     return count
 
 
 def _read_classes_txt(classes_txt: Path) -> List[str]:
-    """Parse a ``classes.txt`` file (one class name per line)."""
     try:
-        lines = classes_txt.read_text(encoding="utf-8").splitlines()
-        return [line.strip() for line in lines if line.strip()]
+        return [
+            line.strip()
+            for line in classes_txt.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
     except OSError:
         return []
 
 
 def _read_classes_yaml(data_yaml_path: Path) -> List[str]:
-    """Extract class names from a YOLO ``data.yaml``.
-
-    Handles both list form ``names: [cat, dog]`` and dict form
-    ``names: {0: cat, 1: dog}``.
-    """
     try:
         with data_yaml_path.open("r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
@@ -91,75 +138,101 @@ def _read_classes_yaml(data_yaml_path: Path) -> List[str]:
             return []
         names = data.get("names", [])
         if isinstance(names, list):
-            return [str(n) for n in names]
+            return [str(v) for v in names]
         if isinstance(names, dict):
-            # Keys are integer class indices; return values in sorted key order
             return [str(v) for _, v in sorted(names.items())]
-    except Exception as exc:
-        logger.debug("Failed to parse %s for classes: %s", data_yaml_path, exc)
+    except Exception:
+        pass
     return []
 
 
 def _get_classes(dataset_dir: Path) -> List[str]:
-    """Return class names for a dataset, trying multiple sources in order:
-
-    1. ``classes.txt`` at the dataset root
-    2. Any ``classes.txt`` found recursively (first match, shallowest path)
-    3. Any ``data.yaml`` found recursively (first match, shallowest path)
-    """
-    # 1. Root-level classes.txt
-    root_classes_txt = dataset_dir / "classes.txt"
-    if root_classes_txt.is_file():
-        classes = _read_classes_txt(root_classes_txt)
+    root_classes = dataset_dir / "classes.txt"
+    if root_classes.is_file():
+        classes = _read_classes_txt(root_classes)
         if classes:
             return classes
 
-    # 2. Recursive classes.txt (sorted by depth for determinism)
-    candidates = sorted(dataset_dir.rglob("classes.txt"), key=lambda p: len(p.parts))
-    for p in candidates:
+    txt_candidates = sorted(dataset_dir.rglob("classes.txt"), key=lambda p: len(p.parts))
+    for p in txt_candidates:
         classes = _read_classes_txt(p)
         if classes:
             return classes
 
-    # 3. Recursive data.yaml
     yaml_candidates = sorted(dataset_dir.rglob("data.yaml"), key=lambda p: len(p.parts))
     for p in yaml_candidates:
         classes = _read_classes_yaml(p)
         if classes:
             return classes
-
     return []
 
 
-def _parse_dataset_folder(dataset_dir: Path) -> DatasetInfo:
-    """Derive a :class:`DatasetInfo` from the contents of *dataset_dir*.
-
-    ``created_at`` is taken from the directory's ``st_ctime`` (creation time on
-    Windows, inode-change time on POSIX).
-    """
-    dataset_id = dataset_dir.name
-
+def _parse_dataset_folder(
+    dataset_dir: Path,
+    *,
+    dataset_id: str,
+    workspace_id: Optional[str],
+    source: str,
+    meta: Dict[str, Dict[str, object]],
+) -> DatasetInfo:
     try:
-        stat = dataset_dir.stat()
-        created_at = datetime.fromtimestamp(stat.st_ctime, tz=timezone.utc)
+        created_at = datetime.fromtimestamp(dataset_dir.stat().st_ctime, tz=timezone.utc)
     except OSError:
         created_at = datetime.now(timezone.utc)
 
-    image_count = _count_images(dataset_dir)
-    classes = _get_classes(dataset_dir)
-
-    # Resolve data.yaml path (first match, shallowest)
     yaml_files = sorted(dataset_dir.rglob("data.yaml"), key=lambda p: len(p.parts))
     data_yaml = str(yaml_files[0].resolve()) if yaml_files else None
 
+    meta_row = meta.get(dataset_id, {})
+    locked = bool(meta_row.get("locked", False))
+    raw_shared = meta_row.get("shared_with", [])
+    shared_with = [str(v) for v in raw_shared] if isinstance(raw_shared, list) else []
+
     return DatasetInfo(
         dataset_id=dataset_id,
-        image_count=image_count,
-        classes=classes,
+        workspace_id=workspace_id,
+        source=source,
+        image_count=_count_images(dataset_dir),
+        classes=_get_classes(dataset_dir),
         created_at=created_at,
         data_yaml=data_yaml,
         path=str(dataset_dir.resolve()),
+        locked=locked,
+        shared_with=shared_with,
     )
+
+
+def _collect_workspace_dataset_dirs() -> List[Tuple[str, Path]]:
+    if not WORKSPACE_DATASETS_ROOT.is_dir():
+        return []
+
+    rows: List[Tuple[str, Path]] = []
+    for ws_dir in WORKSPACE_DATASETS_ROOT.iterdir():
+        if not ws_dir.is_dir():
+            continue
+        dataset_dir = ws_dir / "dataset"
+        if dataset_dir.is_dir():
+            rows.append((ws_dir.name, dataset_dir))
+    return rows
+
+
+def _resolve_dataset(dataset_id: str) -> Tuple[Path, Optional[str], str]:
+    if ".." in dataset_id or "/" in dataset_id or "\\" in dataset_id:
+        raise HTTPException(status_code=400, detail="Invalid dataset_id")
+
+    # Workspace-generated dataset id format: ws-{workspace_id}
+    if dataset_id.startswith("ws-"):
+        workspace_id = dataset_id[3:]
+        target = WORKSPACE_DATASETS_ROOT / workspace_id / "dataset"
+        if target.is_dir():
+            return target, workspace_id, "workspace"
+        raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found")
+
+    # Uploaded dataset
+    target = DATASETS_DIR / dataset_id
+    if target.is_dir():
+        return target, None, "uploaded"
+    raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found")
 
 
 @router.post("/upload", summary="Upload a YOLO-format dataset as a ZIP file")
@@ -169,13 +242,6 @@ async def upload_dataset(
         description="ZIP archive containing a YOLO dataset (must include data.yaml)",
     ),
 ):
-    """
-    Accepts a `.zip` file, unzips it into `datasets/<dataset_id>/`,
-    and validates that a `data.yaml` file is present inside.
-
-    Returns the `dataset_id` and the resolved path to `data.yaml` which can be
-    passed directly to `POST /train`.
-    """
     if not (file.filename or "").lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Only .zip files are accepted")
 
@@ -185,18 +251,13 @@ async def upload_dataset(
 
     try:
         dataset_dir.mkdir(parents=True)
-
-        # Stream zip to disk while checking size
         content = await file.read()
         if len(content) > _MAX_ZIP_SIZE_BYTES:
             raise HTTPException(status_code=413, detail="ZIP file exceeds 2 GB limit")
-
         zip_tmp.write_bytes(content)
 
-        # Validate and extract
         try:
             with zipfile.ZipFile(zip_tmp, "r") as zf:
-                # Guard against zip-slip path traversal
                 for member in zf.namelist():
                     member_path = (dataset_dir / member).resolve()
                     if not str(member_path).startswith(str(dataset_dir.resolve())):
@@ -211,28 +272,20 @@ async def upload_dataset(
             if zip_tmp.exists():
                 zip_tmp.unlink()
 
-        # Locate data.yaml (search recursively)
         yaml_files = list(dataset_dir.rglob("data.yaml"))
         if not yaml_files:
             raise HTTPException(
                 status_code=422,
-                detail="data.yaml not found in the uploaded dataset. "
-                       "Ensure the ZIP follows YOLO format.",
+                detail="data.yaml not found in uploaded dataset",
             )
 
-        data_yaml_path = yaml_files[0]
-        logger.info(
-            "Dataset %s uploaded successfully | data.yaml=%s", dataset_id, data_yaml_path
-        )
-
+        logger.info("Dataset %s uploaded", dataset_id)
         return {
             "dataset_id": dataset_id,
-            "path": str(dataset_dir),
-            "data_yaml": str(data_yaml_path),
+            "path": str(dataset_dir.resolve()),
+            "data_yaml": str(yaml_files[0].resolve()),
         }
-
     except HTTPException:
-        # Clean up partial directory on expected errors
         if dataset_dir.exists():
             shutil.rmtree(dataset_dir, ignore_errors=True)
         raise
@@ -243,47 +296,51 @@ async def upload_dataset(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-# ---------------------------------------------------------------------------
-# GET /datasets  — list all datasets
-# ---------------------------------------------------------------------------
-
-
 @router.get(
     "/",
     response_model=List[DatasetInfo],
-    summary="List all datasets (newest first)",
+    summary="List datasets (uploaded + workspace-generated)",
 )
 def list_datasets() -> List[DatasetInfo]:
-    """
-    Scans the ``datasets/`` directory and returns one :class:`DatasetInfo`
-    record per dataset folder, sorted by **created_at descending**.
-
-    Each record includes:
-    - ``image_count`` — total image files found recursively
-    - ``classes`` — class names read from ``classes.txt`` or ``data.yaml``
-    - ``created_at`` — directory creation time (UTC)
-    """
-    if not DATASETS_DIR.is_dir():
-        return []
-
+    meta = _load_meta()
     results: List[DatasetInfo] = []
-    for entry in DATASETS_DIR.iterdir():
-        # Skip hidden / temporary entries and plain files
-        if not entry.is_dir() or entry.name.startswith(".") or entry.name.startswith("_"):
-            continue
+
+    # Uploaded datasets under backend/datasets/*
+    if DATASETS_DIR.is_dir():
+        for entry in DATASETS_DIR.iterdir():
+            if not entry.is_dir() or entry.name.startswith(".") or entry.name.startswith("_"):
+                continue
+            try:
+                results.append(
+                    _parse_dataset_folder(
+                        entry,
+                        dataset_id=entry.name,
+                        workspace_id=None,
+                        source="uploaded",
+                        meta=meta,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("Skipping dataset %s: %s", entry.name, exc)
+
+    # Workspace-generated datasets under tmp/workspaces/{workspaceId}/dataset
+    for workspace_id, dataset_dir in _collect_workspace_dataset_dirs():
+        dataset_id = _workspace_dataset_id(workspace_id)
         try:
-            info = _parse_dataset_folder(entry)
-            results.append(info)
+            results.append(
+                _parse_dataset_folder(
+                    dataset_dir,
+                    dataset_id=dataset_id,
+                    workspace_id=workspace_id,
+                    source="workspace",
+                    meta=meta,
+                )
+            )
         except Exception as exc:
-            logger.warning("Skipping dataset dir %s — parse failed: %s", entry.name, exc)
+            logger.warning("Skipping workspace dataset %s: %s", dataset_id, exc)
 
     results.sort(key=lambda d: d.created_at, reverse=True)
     return results
-
-
-# ---------------------------------------------------------------------------
-# GET /datasets/{dataset_id}  — single dataset detail
-# ---------------------------------------------------------------------------
 
 
 @router.get(
@@ -292,25 +349,96 @@ def list_datasets() -> List[DatasetInfo]:
     summary="Get details of a single dataset",
 )
 def get_dataset(dataset_id: str) -> DatasetInfo:
-    """
-    Returns the :class:`DatasetInfo` for the dataset identified by
-    *dataset_id* (the UUID folder name under ``datasets/``).
-
-    Raises **404** when the folder does not exist.
-    """
-    # Guard against path-traversal attacks
-    if ".." in dataset_id or "/" in dataset_id or "\\" in dataset_id:
-        raise HTTPException(status_code=400, detail="Invalid dataset_id")
-
-    dataset_dir = DATASETS_DIR / dataset_id
-    if not dataset_dir.is_dir():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Dataset '{dataset_id}' not found",
-        )
-
+    dataset_dir, workspace_id, source = _resolve_dataset(dataset_id)
+    meta = _load_meta()
     try:
-        return _parse_dataset_folder(dataset_dir)
+        return _parse_dataset_folder(
+            dataset_dir,
+            dataset_id=dataset_id,
+            workspace_id=workspace_id,
+            source=source,
+            meta=meta,
+        )
     except Exception as exc:
         logger.error("Failed to parse dataset %s: %s", dataset_id, exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to read dataset")
+
+
+@router.post(
+    "/{dataset_id}/lock",
+    response_model=DatasetInfo,
+    summary="Lock or unlock a dataset",
+)
+def lock_dataset(dataset_id: str, req: DatasetLockRequest) -> DatasetInfo:
+    dataset_dir, workspace_id, source = _resolve_dataset(dataset_id)
+    meta = _load_meta()
+    row = meta.setdefault(dataset_id, {})
+    row["locked"] = bool(req.locked)
+    _save_meta(meta)
+    return _parse_dataset_folder(
+        dataset_dir,
+        dataset_id=dataset_id,
+        workspace_id=workspace_id,
+        source=source,
+        meta=meta,
+    )
+
+
+@router.post(
+    "/{dataset_id}/share",
+    response_model=DatasetInfo,
+    summary="Share dataset with another user email",
+)
+def share_dataset(dataset_id: str, req: DatasetShareRequest) -> DatasetInfo:
+    dataset_dir, workspace_id, source = _resolve_dataset(dataset_id)
+    email = req.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="A valid email is required")
+
+    meta = _load_meta()
+    row = meta.setdefault(dataset_id, {})
+    shared = row.get("shared_with", [])
+    share_list = [str(v).lower() for v in shared] if isinstance(shared, list) else []
+
+    if req.revoke:
+        share_list = [v for v in share_list if v != email]
+    else:
+        if email not in share_list:
+            share_list.append(email)
+
+    row["shared_with"] = sorted(set(share_list))
+    _save_meta(meta)
+
+    return _parse_dataset_folder(
+        dataset_dir,
+        dataset_id=dataset_id,
+        workspace_id=workspace_id,
+        source=source,
+        meta=meta,
+    )
+
+
+@router.delete(
+    "/{dataset_id}",
+    status_code=204,
+    summary="Delete a dataset (requires unlocked state)",
+)
+def delete_dataset(dataset_id: str) -> None:
+    dataset_dir, _workspace_id, _source = _resolve_dataset(dataset_id)
+    meta = _load_meta()
+    row = meta.get(dataset_id, {})
+    if bool(row.get("locked", False)):
+        raise HTTPException(
+            status_code=423,
+            detail=f"Dataset '{dataset_id}' is locked. Unlock it before deleting.",
+        )
+
+    try:
+        shutil.rmtree(dataset_dir)
+    except OSError as exc:
+        logger.error("Failed to delete dataset %s: %s", dataset_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete dataset")
+
+    if dataset_id in meta:
+        meta.pop(dataset_id, None)
+        _save_meta(meta)

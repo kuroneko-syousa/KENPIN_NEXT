@@ -1,0 +1,92 @@
+TRAIN STARTED
+LOG STREAM THREAD STARTED
+TRAIN STARTED
+New https://pypi.org/project/ultralytics/8.4.37 available  Update with 'pip install -U ultralytics'
+C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\cuda\__init__.py:235: UserWarning: 
+NVIDIA GeForce RTX 5060 Ti with CUDA capability sm_120 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_50 sm_60 sm_61 sm_70 sm_75 sm_80 sm_86 sm_90.
+If you want to use the NVIDIA GeForce RTX 5060 Ti GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
+Ultralytics 8.4.36  Python-3.11.9 torch-2.5.1+cu121 CUDA:0 (NVIDIA GeForce RTX 3060 Ti, 8192MiB)
+[34m[1mengine\trainer: [0magnostic_nms=False, amp=True, angle=1.0, augment=False, auto_augment=randaugment, batch=8, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=10, cls=0.5, compile=False, conf=None, copy_paste=0.0, copy_paste_mode=flip, cos_lr=False, cutmix=0.0, data=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\1bc30854-5d00-4be4-9c34-58e8480847b2\runtime.yaml, degrees=0.0, deterministic=True, device=0, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, end2end=None, epochs=1, erasing=0.4, exist_ok=True, fliplr=0.5, flipud=0.0, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.0, mode=train, model=yolov8n.pt, momentum=0.937, mosaic=1.0, multi_scale=0.0, name=test-j2, nbs=64, nms=False, opset=None, optimize=False, optimizer=auto, overlap_mask=True, patience=50, perspective=0.0, plots=True, pose=12.0, pretrained=True, profile=False, project=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train, rect=False, resume=False, retina_masks=False, rle=1.0, save=True, save_conf=False, save_crop=False, save_dir=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2, save_frames=False, save_json=False, save_period=-1, save_txt=False, scale=0.5, seed=0, shear=0.0, show=False, show_boxes=True, show_conf=True, show_labels=True, simplify=True, single_cls=False, source=None, split=val, stream_buffer=False, task=detect, time=None, tracker=botsort.yaml, translate=0.1, val=True, verbose=True, vid_stride=1, visualize=False, warmup_bias_lr=0.1, warmup_epochs=3.0, warmup_momentum=0.8, weight_decay=0.0005, workers=8, workspace=None
+Overriding model.yaml nc=80 with nc=1
+
+                   from  n    params  module                                       arguments                     
+  0                  -1  1       464  ultralytics.nn.modules.conv.Conv             [3, 16, 3, 2]                 
+  1                  -1  1      4672  ultralytics.nn.modules.conv.Conv             [16, 32, 3, 2]                
+  2                  -1  1      7360  ultralytics.nn.modules.block.C2f             [32, 32, 1, True]             
+  3                  -1  1     18560  ultralytics.nn.modules.conv.Conv             [32, 64, 3, 2]                
+  4                  -1  2     49664  ultralytics.nn.modules.block.C2f             [64, 64, 2, True]             
+  5                  -1  1     73984  ultralytics.nn.modules.conv.Conv             [64, 128, 3, 2]               
+  6                  -1  2    197632  ultralytics.nn.modules.block.C2f             [128, 128, 2, True]           
+  7                  -1  1    295424  ultralytics.nn.modules.conv.Conv             [128, 256, 3, 2]              
+  8                  -1  1    460288  ultralytics.nn.modules.block.C2f             [256, 256, 1, True]           
+  9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]                 
+ 10                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 12                  -1  1    148224  ultralytics.nn.modules.block.C2f             [384, 128, 1]                 
+ 13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 14             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 15                  -1  1     37248  ultralytics.nn.modules.block.C2f             [192, 64, 1]                  
+ 16                  -1  1     36992  ultralytics.nn.modules.conv.Conv             [64, 64, 3, 2]                
+ 17            [-1, 12]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 18                  -1  1    123648  ultralytics.nn.modules.block.C2f             [192, 128, 1]                 
+ 19                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]              
+ 20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]                 
+ 22        [15, 18, 21]  1    751507  ultralytics.nn.modules.head.Detect           [1, 16, None, [64, 128, 256]] 
+Model summary: 130 layers, 3,011,043 parameters, 3,011,027 gradients, 8.2 GFLOPs
+
+Transferred 319/355 items from pretrained weights
+Freezing layer 'model.22.dfl.conv.weight'
+[34m[1mAMP: [0mrunning Automatic Mixed Precision (AMP) checks...
+[34m[1mAMP: [0mchecks passed 
+[34m[1mtrain: [0mFast image access  (ping: 0.00.0 ms, read: 5.42.8 MB/s, size: 3.2 KB)
+
+[K[34m[1mtrain: [0mScanning C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\1bc30854-5d00-4be4-9c34-58e8480847b2\dataset\labels\train... 81 images, 0 backgrounds, 0 corrupt: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 81/81 3.2Kit/s 0.0s
+[34m[1mtrain: [0mNew cache created: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\1bc30854-5d00-4be4-9c34-58e8480847b2\dataset\labels\train.cache
+[34m[1mval: [0mFast image access  (ping: 0.10.0 ms, read: 3.60.9 MB/s, size: 3.2 KB)
+
+[K[34m[1mval: [0mScanning C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\1bc30854-5d00-4be4-9c34-58e8480847b2\dataset\labels\val... 20 images, 0 backgrounds, 0 corrupt: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 20/20 1.5Kit/s 0.0s
+[34m[1mval: [0mNew cache created: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\1bc30854-5d00-4be4-9c34-58e8480847b2\dataset\labels\val.cache
+[34m[1moptimizer:[0m 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically... 
+[34m[1moptimizer:[0m AdamW(lr=0.002, momentum=0.9) with parameter groups 57 weight(decay=0.0), 64 weight(decay=0.0005), 63 bias(decay=0.0)
+Plotting labels to C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2\labels.jpg... 
+Image sizes 640 train, 640 val
+Using 8 dataloader workers
+Logging results to [1mC:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2[0m
+Starting training for 1 epochs...
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K        1/1      1.04G      3.508      4.095      3.491         18        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/11  1.4s
+[K        1/1      1.04G       3.52      4.356       3.44         12        640: 9% 笏≫楳笏笏笏笏笏笏笏笏笏笏 1/11 1.9it/s 1.6s<5.4s
+[K        1/1      1.04G      3.583      4.515      3.513         14        640: 18% 笏≫煤笏笏笏笏笏笏笏笏笏笏 2/11 3.6it/s 1.7s<2.5s
+[K        1/1      1.04G      3.479      4.302      3.439         26        640: 27% 笏≫煤笏≫楳笏笏笏笏笏笏笏笏 3/11 5.3it/s 1.8s<1.5s
+[K        1/1      1.04G      3.452      4.271      3.398         17        640: 45% 笏≫煤笏≫煤笏≫楳笏笏笏笏笏笏 5/11 7.7it/s 2.0s<0.8s
+[K        1/1      1.04G      3.378      4.366      3.386         13        640: 64% 笏≫煤笏≫煤笏≫煤笏≫丙笏笏笏笏 7/11 9.5it/s 2.1s<0.4s
+[K        1/1      1.05G       3.35      4.359       3.34         18        640: 82% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫丙笏笏 9/11 11.5it/s 2.3s<0.2s
+[K        1/1      1.07G      3.362      4.756      3.376          1        640: 91% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笊ｸ笏 10/11 10.2it/s 2.4s<0.1s
+[K        1/1      1.07G      3.362      4.756      3.376          1        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 11/11 4.6it/s 2.4s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 1/2 2.7it/s 0.1s<0.4s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 2/2 8.5it/s 0.2s
+                   all         20         20    0.00117       0.35     0.0084    0.00097
+[Epoch 1/1]  GPU=1.20G  box_loss=3.4906  cls_loss=8.7220  dfl_loss=3.7364  P=0.0012  R=0.3500  mAP50=0.0084  mAP50-95=0.0010  lr/pg0=2.00e-04  lr/pg1=2.00e-04  lr/pg2=2.00e-04
+JSON_LOG:{"epoch": 1, "total_epoch": 1, "box_loss": 3.490584, "cls_loss": 8.721965, "dfl_loss": 3.736357, "map50": 0.0084, "map": 0.00097, "precision": 0.00117, "recall": 0.35, "lr": 0.0002}
+
+1 epochs completed in 0.001 hours.
+Optimizer stripped from C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2\weights\last.pt, 6.2MB
+Optimizer stripped from C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2\weights\best.pt, 6.2MB
+
+Validating C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2\weights\best.pt...
+Ultralytics 8.4.36  Python-3.11.9 torch-2.5.1+cu121 CUDA:0 (NVIDIA GeForce RTX 3060 Ti, 8192MiB)
+Model summary (fused): 73 layers, 3,005,843 parameters, 0 gradients, 8.1 GFLOPs
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 2/2 17.2it/s 0.1s
+                   all         20         20    0.00133        0.4     0.0101    0.00118
+Speed: 0.3ms preprocess, 2.0ms inference, 0.0ms loss, 1.1ms postprocess per image
+Results saved to [1mC:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\test-j2[0m
+[Epoch 1/1]  GPU=1.20G  box_loss=3.4906  cls_loss=8.7220  dfl_loss=3.7364  P=0.0013  R=0.4000  mAP50=0.0101  mAP50-95=0.0012  lr/pg0=2.00e-04  lr/pg1=2.00e-04  lr/pg2=2.00e-04
+JSON_LOG:{"epoch": 1, "total_epoch": 1, "box_loss": 3.490584, "cls_loss": 8.721965, "dfl_loss": 3.736357, "map50": 0.010128, "map": 0.001176, "precision": 0.001333, "recall": 0.4, "lr": 0.0002}

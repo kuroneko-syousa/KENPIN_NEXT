@@ -14,6 +14,7 @@ import logging
 import os
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -57,21 +58,35 @@ class JobStore:
         """Serialize cache to disk atomically.  Caller must hold self._lock."""
         data = {k: v.model_dump(mode="json") for k, v in self._cache.items()}
         payload = json.dumps(data, ensure_ascii=False, indent=2, default=str)
-
-        # Write to a temp file in the same directory, then rename (atomic on POSIX)
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            dir=self._path.parent, suffix=".tmp", prefix="jobs_"
-        )
-        try:
-            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-                f.write(payload)
-            os.replace(tmp_path, self._path)
-        except OSError:
+        last_perm_error: Optional[PermissionError] = None
+        for attempt in range(3):
+            # Write to a temp file in the same directory, then rename atomically.
+            tmp_fd, tmp_path = tempfile.mkstemp(
+                dir=self._path.parent, suffix=".tmp", prefix="jobs_"
+            )
             try:
-                os.unlink(tmp_path)
+                with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                    f.write(payload)
+                os.replace(tmp_path, self._path)
+                return
+            except PermissionError as exc:
+                last_perm_error = exc
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                if attempt < 2:
+                    time.sleep(0.05 * (attempt + 1))
+                    continue
             except OSError:
-                pass
-            raise
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
+
+        if last_perm_error is not None:
+            raise last_perm_error
 
     # ------------------------------------------------------------------
     # CRUD

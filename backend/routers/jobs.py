@@ -8,6 +8,7 @@ Endpoints
   GET    /jobs/{job_id}           Get a single job (full detail)
   GET    /jobs/{job_id}/logs      Stream the raw train.log content
   POST   /jobs/{job_id}/cancel    Cancel a queued or running job
+  POST   /jobs/{job_id}/stop      Gracefully stop a running job
   DELETE /jobs/{job_id}           Delete a job record (not the log files)
 
 Job lifecycle managed by JobManager.submit_job():
@@ -26,7 +27,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
-from models.job import Job, JobCreate, JobSummary
+from models.job import Job, JobCreate, JobStatus, JobSummary
 from services.job_manager import job_manager
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,19 @@ class JobResults(BaseModel):
     images: List[str] = Field(default_factory=list)
     metrics: Dict[str, Any] = Field(default_factory=dict)
     metrics_history: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class JobLockRequest(BaseModel):
+    locked: bool = Field(..., description="True to lock, false to unlock")
+
+
+class JobQueueStatus(BaseModel):
+    job_id: str
+    status: JobStatus
+    queue_position: Optional[int] = None
+    queued_ahead: int = 0
+    queue_size: int = 0
+    running_job_id: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -239,6 +253,14 @@ def create_job(req: JobCreate) -> Job:
             detail=f"Invalid device '{device}'. Allowed: auto | cpu | cuda",
         )
 
+    # Workspace path is now provided by frontend
+    # If not provided, generate fallback path
+    if not req.workspace_path:
+        backend_dir = Path(__file__).parent.parent
+        user_id = req.user_id or "default"
+        workspace_id = req.workspace_id or "workspace"
+        req.workspace_path = str(backend_dir / "workspaces" / user_id / workspace_id)
+
     job = job_manager.submit_job(req)
     logger.info("Job %s submitted", job.job_id)
     return job
@@ -257,8 +279,8 @@ def create_job(req: JobCreate) -> Job:
 def list_jobs(
     status: Optional[str] = Query(
         None,
-        description="Filter by job status. Allowed values: queued | running | completed | failed",
-        pattern="^(queued|running|completed|failed)$",
+        description="Filter by job status. Allowed values: queued | running | completed | failed | stopped",
+        pattern="^(queued|running|completed|failed|stopped)$",
     ),
     limit: Optional[int] = Query(
         None,
@@ -278,7 +300,7 @@ def list_jobs(
     ### Filtering
 
     - **status** — return only jobs in the given state
-      (``queued`` | ``running`` | ``completed`` | ``failed``).
+      (``queued`` | ``running`` | ``completed`` | ``failed`` | ``stopped``).
 
     ### Pagination
 
@@ -300,6 +322,8 @@ def list_jobs(
     return [
         JobSummary(
             job_id=j.job_id,
+            workspace_id=j.workspace_id,
+            requested_by=j.requested_by,
             dataset_id=j.dataset_id,
             model=j.model,
             yolo_version=j.yolo_version,
@@ -309,9 +333,34 @@ def list_jobs(
             logs_path=j.logs_path,
             results_path=j.results_path,
             error=j.error,
+            locked=j.locked,
         )
         for j in jobs
     ]
+
+
+@router.get(
+    "/{job_id}/queue-status",
+    response_model=JobQueueStatus,
+    summary="Get queue status for a job",
+)
+def get_job_queue_status(job_id: str) -> JobQueueStatus:
+    """Return waiting position for queued jobs so UI can show reservation state."""
+    job = job_manager.get_job_model(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+
+    queue_position = job_manager.get_queue_position(job_id)
+    queue_size = job_manager.get_queue_size()
+
+    return JobQueueStatus(
+        job_id=job_id,
+        status=job.status,
+        queue_position=queue_position,
+        queued_ahead=max((queue_position or 1) - 1, 0) if queue_position else 0,
+        queue_size=queue_size,
+        running_job_id=job_manager.get_running_job_id(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -599,6 +648,39 @@ def cancel_job(job_id: str) -> Job:
     return full_job
 
 
+@router.post(
+    "/{job_id}/stop",
+    response_model=Job,
+    summary="Gracefully stop a running job",
+)
+def stop_job(job_id: str) -> Job:
+    """
+    Requests graceful stop by setting a stop flag read by train_worker.py
+    at epoch boundaries. Job status transitions to ``stopped`` when worker
+    exits through the stop path.
+    """
+    job = job_manager.stop_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    full_job = job_manager.get_job_model(job_id)
+    if full_job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return full_job
+
+
+@router.post(
+    "/{job_id}/lock",
+    response_model=Job,
+    summary="Lock or unlock a job",
+)
+def lock_job(job_id: str, req: JobLockRequest) -> Job:
+    """Toggle delete protection for a job."""
+    updated = job_manager.set_job_locked(job_id, req.locked)
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return updated
+
+
 # ---------------------------------------------------------------------------
 # DELETE /jobs/{job_id}  — delete job record
 # ---------------------------------------------------------------------------
@@ -616,6 +698,20 @@ def delete_job(job_id: str) -> None:
 
     Returns 404 if the job does not exist.
     """
+    job = job_manager.get_job_model(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    if job.locked:
+        raise HTTPException(
+            status_code=423,
+            detail=f"Job '{job_id}' is locked. Unlock it before deleting.",
+        )
+    if job.status in {JobStatus.RUNNING, JobStatus.QUEUED}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Job '{job_id}' is {job.status}. Stop/cancel it before deleting.",
+        )
+
     deleted = job_manager.delete_job(job_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")

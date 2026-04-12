@@ -55,8 +55,10 @@ Exit codes
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 
@@ -73,6 +75,7 @@ def _write_progress(
     log: str | None = None,
     error: str | None = None,
     results_path: str | None = None,
+    status: str | None = None,
 ) -> None:
     """Overwrite progress.json with the latest status snapshot."""
     if _progress_path is None:
@@ -84,6 +87,8 @@ def _write_progress(
         data["error"] = error
     if results_path is not None:
         data["results_path"] = results_path
+    if status is not None:
+        data["status"] = status
     try:
         _progress_path.write_text(json.dumps(data), encoding="utf-8")
     except OSError:
@@ -258,6 +263,8 @@ def _resolve_device(requested: str) -> str:
 
 def _train(params: dict) -> None:
     from ultralytics import YOLO  # type: ignore[import-untyped]
+    class StopTraining(Exception):
+        """Raised when stop.request is detected."""
 
     job_id: str = params["job_id"]
     model_key: str = params["model"]
@@ -269,6 +276,8 @@ def _train(params: dict) -> None:
     optimizer: str = str(params.get("optimizer", "auto"))
     lr0: float = float(params.get("lr0", 0.01))
     lrf: float = float(params.get("lrf", 0.01))
+    stop_path_raw: str = str(params.get("stop_path", ""))
+    stop_path = Path(stop_path_raw) if stop_path_raw else None
 
     device = _resolve_device(params.get("device", "auto"))
 
@@ -320,39 +329,157 @@ def _train(params: dict) -> None:
         _write_progress(0, log=f"[INFO] Legacy mode — using data_yaml directly: {data_yaml}")
 
     _write_progress(10, log=f"[INFO] device={device}  model={model_key}  epochs={epochs}")
+    print("TRAIN STARTED", flush=True)
 
-    # Build project/name so results land in backend/runs/train/<name>
-    project = str(backend_dir / "runs" / "train")
+    # Determine output directory structure
+    # If workspace_dir is provided, use workspace_dir/models; otherwise use legacy backend/runs/train
+    workspace_dir_raw = str(params.get("workspace_dir", ""))
+    if workspace_dir_raw:
+        workspace_dir = Path(workspace_dir_raw)
+        models_dir = workspace_dir / "models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+        project = str(models_dir)
+        _write_progress(10, log=f"[INFO] Output directory: {project}")
+    else:
+        # Legacy fallback
+        project = str(backend_dir / "runs" / "train")
+        _write_progress(10, log=f"[INFO] Legacy output directory: {project}")
 
     model = YOLO(model_key)
+    if stop_path is not None and stop_path.exists():
+        print("STOP REQUEST DETECTED", flush=True)
+        _write_progress(100, log="Training stopped by user", status="stopped")
+        return
 
     # ------------------------------------------------------------------
-    # Epoch callback — updates progress.json after each epoch
+    # Epoch callback — updates progress.json after each epoch (incl. val)
     # Progress range: 10 → 100 (first 10% used by dataset prep)
+    # on_fit_epoch_end fires after both train AND validation, so
+    # trainer.metrics contains mAP / P / R / val-loss values.
     # ------------------------------------------------------------------
-    def _on_epoch_end(trainer) -> None:  # type: ignore[no-untyped-def]
+    def _on_fit_epoch_end(trainer) -> None:  # type: ignore[no-untyped-def]
+        if stop_path is not None and stop_path.exists():
+            print("STOP REQUEST DETECTED", flush=True)
+            raise StopTraining()
+
         epoch: int = trainer.epoch + 1
         total: int = trainer.epochs
         pct = 10 + round(epoch / total * 90) if total > 0 else 10
-        msg = f"Epoch {epoch}/{total} complete"
-        _write_progress(pct, log=msg)
 
-    model.add_callback("on_train_epoch_end", _on_epoch_end)
+        # ── Training losses ──────────────────────────────────────────
+        loss_names = list(getattr(trainer, "loss_names", ("box_loss", "cls_loss", "dfl_loss")))
+        loss_items = getattr(trainer, "loss_items", None)
+        loss_parts: list = []
+        if loss_items is not None:
+            try:
+                for lname, lval in zip(loss_names, loss_items):
+                    loss_parts.append(f"{lname}={float(lval):.4f}")
+            except Exception:
+                pass
 
-    model.train(
-        data=data_yaml,
-        epochs=epochs,
-        imgsz=imgsz,
-        batch=batch,
-        device=device,
-        project=project,
-        name=name,
-        patience=patience,
-        optimizer=optimizer,
-        lr0=lr0,
-        lrf=lrf,
-        exist_ok=True,
-    )
+        # ── Validation metrics ───────────────────────────────────────
+        metrics: dict = getattr(trainer, "metrics", {}) or {}
+        metric_pairs = [
+            ("metrics/precision(B)", "P"),
+            ("metrics/recall(B)",    "R"),
+            ("metrics/mAP50(B)",     "mAP50"),
+            ("metrics/mAP50-95(B)",  "mAP50-95"),
+        ]
+        metric_parts: list = []
+        for mkey, mshort in metric_pairs:
+            if mkey in metrics:
+                metric_parts.append(f"{mshort}={float(metrics[mkey]):.4f}")
+
+        # ── Learning rates ───────────────────────────────────────────
+        lr: dict = getattr(trainer, "lr", {}) or {}
+        lr_parts = [f"lr/pg{i}={v:.2e}" for i, v in enumerate(lr.values())]
+
+        # ── GPU memory ───────────────────────────────────────────────
+        gpu_part = ""
+        try:
+            import torch as _torch
+            if _torch.cuda.is_available():
+                mem_gb = _torch.cuda.memory_reserved() / 1e9
+                gpu_part = f"GPU={mem_gb:.2f}G"
+            else:
+                gpu_part = "CPU"
+        except Exception:
+            pass
+
+        # ── Format line ──────────────────────────────────────────────
+        epoch_field = f"[Epoch {epoch}/{total}]"
+        fields = [epoch_field]
+        if gpu_part:
+            fields.append(gpu_part)
+        fields.extend(loss_parts)
+        fields.extend(metric_parts)
+        fields.extend(lr_parts)
+        line = "  ".join(fields)
+
+        # Print to stdout → captured to backend/logs/{job_id}.log
+        print(line, flush=True)
+
+        # ── JSON_LOG for frontend graph ──────────────────────────────
+        try:
+            loss_by_name: dict = {}
+            if loss_items is not None:
+                for lname, lval in zip(loss_names, loss_items):
+                    try:
+                        loss_by_name[lname] = round(float(lval), 6)
+                    except Exception:
+                        loss_by_name[lname] = 0.0
+
+            lr_val = 0.0
+            if hasattr(trainer, "optimizer") and trainer.optimizer:
+                try:
+                    lr_val = float(trainer.optimizer.param_groups[0].get("lr", 0))
+                except Exception:
+                    pass
+
+            log_data = {
+                "epoch": epoch,
+                "total_epoch": total,
+                "box_loss": loss_by_name.get("box_loss", 0.0),
+                "cls_loss": loss_by_name.get("cls_loss", 0.0),
+                "dfl_loss": loss_by_name.get("dfl_loss", 0.0),
+                "map50":    round(float(metrics.get("metrics/mAP50(B)",     0) or 0), 6),
+                "map":      round(float(metrics.get("metrics/mAP50-95(B)",  0) or 0), 6),
+                "precision":round(float(metrics.get("metrics/precision(B)", 0) or 0), 6),
+                "recall":   round(float(metrics.get("metrics/recall(B)",    0) or 0), 6),
+                "lr": round(lr_val, 8),
+            }
+            print("JSON_LOG:" + json.dumps(log_data), flush=True)
+        except Exception:
+            pass
+
+        # progress.json summary (used by job-list UI)
+        summary = f"Epoch {epoch}/{total}"
+        if metric_parts:
+            summary += "  " + "  ".join(metric_parts)
+        _write_progress(pct, log=summary)
+
+    model.add_callback("on_fit_epoch_end", _on_fit_epoch_end)
+
+    try:
+        model.train(
+            data=data_yaml,
+            epochs=epochs,
+            imgsz=imgsz,
+            batch=batch,
+            device=device,
+            project=project,
+            name=name,
+            patience=patience,
+            optimizer=optimizer,
+            lr0=lr0,
+            lrf=lrf,
+            exist_ok=True,
+            verbose=True,
+        )
+    except StopTraining:
+        print("TRAINING STOPPED BY USER", flush=True)
+        _write_progress(100, log="Training stopped by user", status="stopped")
+        return
 
     best_weights = str(Path(project) / name / "weights" / "best.pt")
     _write_progress(100, log="Training complete", results_path=best_weights)
@@ -376,6 +503,15 @@ def main() -> None:
 
     params: dict = json.loads(params_path.read_text(encoding="utf-8"))
     _progress_path = Path(params["progress_path"])
+
+    # Temporary realtime streaming sanity check mode:
+    # set KENPIN_TEST_LOG_STREAM=1 to verify one-line-per-second delivery.
+    if os.getenv("KENPIN_TEST_LOG_STREAM") == "1":
+        for i in range(5):
+            print(f"TEST LOG {i}", flush=True)
+            time.sleep(1)
+        _write_progress(100, log="Test log stream complete")
+        return
 
     _write_progress(0, log="[INFO] Worker started")
 

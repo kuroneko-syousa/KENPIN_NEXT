@@ -81,21 +81,84 @@ FastAPI バックエンドで管理されるジョブレコード。`backend/dat
 
 ```python
 class Job(BaseModel):
-    job_id: str           # UUID
-    name: str             # 学習ラン名（例: "train20260411_001"）
-    status: JobStatus     # queued | running | completed | failed | cancelled
-    progress: int         # 0〜100（エポック進捗 %）
+    job_id: str                        # UUID
+    workspace_id: Optional[str]        # ワークスペース ID
+    requested_by: Optional[str]        # リクエスタ（ユーザーメール）
+    user_id: Optional[str]             # ユーザー ID（ワークスペース階層用）
+    workspace_path: Optional[str]      # ワークスペース作業ディレクトリ
+                                       # 例: /path/to/backend/workspaces/{user_id}/{workspace_id}/
+    dataset_id: str                    # 使用データセット ID
+    model: str                         # YOLO モデルキー（例: "yolov8n"）
+    yolo_version: str                  # venv内 YOLO バージョン
+    env_path: str                      # venv ルートパス
+    status: JobStatus                  # queued | running | completed | failed | stopped
+    progress: int                      # 0〜100（エポック進捗 %）
     created_at: datetime
-    started_at: Optional[datetime]
-    finished_at: Optional[datetime]
-    dataset_id: str       # 使用データセット ID
-    model: str            # YOLO モデルキー（例: "yolov8n"）
+    logs_path: Optional[str]           # train.log ファイルパス
+                                       # 例: /path/to/workspaces/{user_id}/{workspace_id}/logs/{job_id}.log
+    results_path: Optional[str]        # best.pt ファイルパス（学習完了後に設定）
+    error: Optional[str]               # エラーメッセージ
+    queue_position: Optional[int]      # 待機位置（status=queued時）
+    log_lines: List[str]               # 最新ログ（デフォルト200行）
+    log_total_lines: int               # ログ総行数（単調増加）
+    
+    # 学習ハイパーパラメータ
+    dataset_source_path: Optional[str] # データセット源ディレクトリ
     epochs: int
     imgsz: int
     batch: int
-    log_path: Optional[str]      # train.log ファイルパス
-    results_path: Optional[str]  # best.pt ファイルパス
-    error_msg: Optional[str]
+    name: str                          # ラン名（例: "exp"）
+    patience: int
+    optimizer: str
+    lr0: float
+    lrf: float
+    device: str                        # auto | cpu | cuda
+    
+    # 制御フラグ
+    cancel_requested: bool             # ユーザー停止リクエスト
+    locked: bool                       # 削除操作保護
+```
+
+### 出力構造（2024年4月12日更新）
+
+**マルチユーザー対応**による保存階層化：
+
+```
+backend/
+  workspaces/
+    {user_id}/                  # ユーザーごとのディレクトリ
+      {workspace_id}/
+        jobs/                   # ジョブ作業ファイル
+          {job_id}/
+            params.json         # 入力パラメータ
+            progress.json       # 進捗ファイル（ポーリング用）
+            stop.request        # 停止リクエストファイル
+            dataset/            # コピーされたデータセット
+        logs/                   # ジョブログ
+          {job_id}.log
+        models/                 # YOLO 訓練結果
+          exp/
+            weights/
+              best.pt           # 最適重み
+              last.pt
+              best.yaml
+            results.csv         # メトリクスCSV
+          ...
+```
+
+**API 呼び出し**（ユーザー→ワークスペース階層）：
+
+```typescript
+// フロント: start-training から送信
+POST /jobs/
+{
+  user_id: "{user_id}",
+  workspace_id: "{workspace_id}",
+  workspace_path: "backend/workspaces/{user_id}/{workspace_id}",
+  requested_by: "user@example.com",
+  dataset_id: "{dataset_id}",
+  ...
+}
 ```
 
 ---

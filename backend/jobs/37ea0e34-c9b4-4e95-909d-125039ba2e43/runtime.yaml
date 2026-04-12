@@ -1,0 +1,6 @@
+names:
+- object
+nc: 1
+path: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\37ea0e34-c9b4-4e95-909d-125039ba2e43\dataset
+train: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\37ea0e34-c9b4-4e95-909d-125039ba2e43\dataset\images\train
+val: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\37ea0e34-c9b4-4e95-909d-125039ba2e43\dataset\images\val

@@ -51,6 +51,8 @@ export function ModelsWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const fetchModels = useCallback(async () => {
     setLoading(true);
@@ -77,35 +79,90 @@ export function ModelsWorkspace() {
 
   const selected = models.find((m) => m.job_id === selectedId) ?? null;
 
+  const handleDownloadWeights = useCallback(async () => {
+    if (!selected) return;
+    setDownloadError(null);
+    setDownloading(true);
+    try {
+      const res = await fetch(`${API_BASE}/jobs/${selected.job_id}/weights`);
+      if (!res.ok) {
+        let detail = "重みファイルを取得できませんでした";
+        try {
+          const payload = await res.json();
+          if (payload?.detail) detail = String(payload.detail);
+        } catch {
+          // Fallback to generic error when response body is not JSON.
+        }
+        throw new Error(detail);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selected.model || "model"}-${selected.job_id}-best.pt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : "ダウンロードに失敗しました");
+    } finally {
+      setDownloading(false);
+    }
+  }, [selected]);
+
   return (
-    <div className="workspace-content">
+    <div className="workspace-content models-workspace">
       <section className="workspace-header">
         <div>
           <p className="eyebrow">Models</p>
-          <h2>学習済みモデル</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <h2 style={{ margin: 0 }}>学習済みモデル</h2>
+            <button
+              type="button"
+              onClick={fetchModels}
+              disabled={loading}
+              aria-label="モデル一覧を更新"
+              title={loading ? "更新中..." : "更新"}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 999,
+                border: "1px solid rgba(255,255,255,0.16)",
+                background: "rgba(255,255,255,0.04)",
+                color: "var(--muted)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: loading ? "wait" : "pointer",
+                fontSize: "0.9rem",
+                lineHeight: 1,
+              }}
+            >
+              ↻
+            </button>
+          </div>
           <p className="muted">
             完了した学習ジョブの重みファイルと学習パラメータを確認できます。
           </p>
         </div>
-        <button type="button" onClick={fetchModels} disabled={loading}>
-          {loading ? "読み込み中…" : "再読み込み"}
-        </button>
       </section>
 
       {loading && models.length === 0 && (
-        <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
+        <div className="panel model-state-panel">
           読み込み中…
         </div>
       )}
 
       {error && (
-        <div className="panel" style={{ color: "#f06060", padding: "1rem" }}>
+        <div className="panel model-state-panel model-state-error">
           エラー: {error}
         </div>
       )}
 
       {!loading && !error && models.length === 0 && (
-        <div className="panel" style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>
+        <div className="panel model-state-panel">
           完了済みモデルが見つかりません。学習ジョブを実行してください。
         </div>
       )}
@@ -113,7 +170,7 @@ export function ModelsWorkspace() {
       {models.length > 0 && (
         <section className="detail-grid">
           {/* 左パネル: モデル一覧 */}
-          <article className="panel">
+          <article className="panel model-list-panel">
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Registry</p>
@@ -121,24 +178,24 @@ export function ModelsWorkspace() {
               </div>
               <span className="muted">{models.length} 件</span>
             </div>
-            <div className="selection-list">
+            <div className="selection-list model-selection-list">
               {models.map((m) => (
                 <button
                   key={m.job_id}
                   type="button"
-                  className={selectedId === m.job_id ? "selection-card active" : "selection-card"}
+                  className={selectedId === m.job_id ? "selection-card model-selection-card active" : "selection-card model-selection-card"}
                   onClick={() => setSelectedId(m.job_id)}
                 >
                   <strong>{m.model.toUpperCase()}</strong>
-                  <span>{m.dataset_id}</span>
-                  <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>{formatDate(m.created_at)}</span>
+                  <span className="model-selection-dataset">{m.dataset_id}</span>
+                  <span className="model-selection-date">{formatDate(m.created_at)}</span>
                 </button>
               ))}
             </div>
           </article>
 
           {/* 右パネル: 詳細 */}
-          <article className="panel">
+          <article className="panel model-detail-panel">
             {selected ? (
               <>
                 <div className="panel-heading">
@@ -149,79 +206,78 @@ export function ModelsWorkspace() {
                   <span className="status ready">completed</span>
                 </div>
 
-                <dl className="editor-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem 1.5rem" }}>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>ジョブID</dt>
-                    <dd style={{ fontFamily: "monospace", fontSize: "0.82rem", wordBreak: "break-all" }}>{selected.job_id}</dd>
+                <div className="model-quick-metrics">
+                  <span className="metric-chip">YOLO {selected.yolo_version}</span>
+                  <span className="metric-chip">Epoch {selected.epochs}</span>
+                  <span className="metric-chip">img {selected.imgsz}px</span>
+                  <span className="metric-chip">batch {selected.batch}</span>
+                  <span className="metric-chip">progress {selected.progress}%</span>
+                </div>
+
+                <dl className="model-detail-grid">
+                  <div className="model-detail-item">
+                    <dt>ジョブID</dt>
+                    <dd className="mono">{selected.job_id}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>YOLOバージョン</dt>
+                  <div className="model-detail-item">
+                    <dt>YOLOバージョン</dt>
                     <dd>{selected.yolo_version}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>データセット</dt>
+                  <div className="model-detail-item">
+                    <dt>データセット</dt>
                     <dd>{selected.dataset_id}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>作成日時</dt>
+                  <div className="model-detail-item">
+                    <dt>作成日時</dt>
                     <dd>{formatDate(selected.created_at)}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>エポック数</dt>
+                  <div className="model-detail-item">
+                    <dt>エポック数</dt>
                     <dd>{selected.epochs}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>画像サイズ</dt>
+                  <div className="model-detail-item">
+                    <dt>画像サイズ</dt>
                     <dd>{selected.imgsz} px</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>バッチサイズ</dt>
+                  <div className="model-detail-item">
+                    <dt>バッチサイズ</dt>
                     <dd>{selected.batch}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>オプティマイザ</dt>
+                  <div className="model-detail-item">
+                    <dt>オプティマイザ</dt>
                     <dd>{selected.optimizer}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>初期学習率 (lr0)</dt>
+                  <div className="model-detail-item">
+                    <dt>初期学習率 (lr0)</dt>
                     <dd>{selected.lr0}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>最終学習率 (lrf)</dt>
+                  <div className="model-detail-item">
+                    <dt>最終学習率 (lrf)</dt>
                     <dd>{selected.lrf}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>デバイス</dt>
+                  <div className="model-detail-item">
+                    <dt>デバイス</dt>
                     <dd>{selected.device}</dd>
                   </div>
-                  <div>
-                    <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>進捗</dt>
+                  <div className="model-detail-item">
+                    <dt>進捗</dt>
                     <dd>{selected.progress}%</dd>
                   </div>
-                  {selected.results_path && (
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <dt style={{ fontSize: "0.78rem", opacity: 0.6, marginBottom: "0.2rem" }}>重みファイル</dt>
-                      <dd style={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
-                        {selected.results_path}
-                      </dd>
-                    </div>
-                  )}
+                  <div className="model-detail-item full-span">
+                    <dt>重みファイル</dt>
+                    <dd className="mono">{selected.results_path ?? "best.pt の場所をサーバーで探索します"}</dd>
+                  </div>
                 </dl>
 
-                {selected.results_path && (
-                  <div className="form-actions" style={{ marginTop: "1.5rem" }}>
-                    <a
-                      href={`${API_BASE}/jobs/${selected.job_id}/weights`}
-                      download
-                      className="button"
-                    >
-                      重みをダウンロード
-                    </a>
-                  </div>
-                )}
+                <div className="form-actions model-detail-actions">
+                  <button type="button" className="ghost-button" onClick={handleDownloadWeights} disabled={downloading}>
+                    {downloading ? "ダウンロード中…" : "重みをダウンロード"}
+                  </button>
+                  {downloadError && <span className="model-download-error">{downloadError}</span>}
+                </div>
               </>
             ) : (
-              <p className="muted" style={{ padding: "2rem" }}>左のリストからモデルを選んでください</p>
+              <p className="muted model-empty-note">左のリストからモデルを選んでください</p>
             )}
           </article>
         </section>

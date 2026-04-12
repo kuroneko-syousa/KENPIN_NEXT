@@ -49,14 +49,22 @@ backend/                  # FastAPI Python バックエンド
   services/
     yolo_service.py       # YOLO 学習・推論ロジック（Ultralytics ラッパー）
     job_store.py          # JSON ファイル永続化（スレッドセーフ）
-    job_manager.py        # 非同期ジョブ管理（asyncio サブプロセス、キャンセル対応）
+    job_manager.py        # FIFO ジョブキュー管理（単一ディスパッチャ、順次実行）
+  workers/
+    train_worker.py       # スタンドアロン学習ワーカー（subprocess で実行）
   utils/
     logging_config.py
   data/
     jobs.json             # ジョブレコード永続化
     settings.json         # アプリ設定永続化
   datasets/               # アップロードZIP展開先
-  runs/                   # YOLO 学習出力（runs/train/, runs/predict/）
+  runs/                   # YOLO 学習出力（後方互換：runs/train/, runs/predict/）
+  workspaces/             # **[NEW 2024-04-12]** ユーザー/ワークスペース別成果物ディレクトリ
+    {user_id}/
+      {workspace_id}/
+        jobs/             # ジョブ作業ファイル (params.json, progress.json, stop.request)
+        logs/             # ジョブログ ({job_id}.log)
+        models/           # YOLO 訓練結果（best.pt, results.csv 等）
 
 components/
   studio/
@@ -95,6 +103,8 @@ lib/
 
 ## Data Flow
 
+### フロントエンド ワークスペースフロー
+
 ```
 User → NextAuth ログイン → JWT発行
   ↓
@@ -115,15 +125,68 @@ Workspace Studio (WorkspaceStudio)
   │    → PATCH /api/workspaces/[id] (annotationData 保存)
   │    → AnnotationStats でリアルタイム整合性チェック
   │
-  └── 学習タブ
+  └── 学習タブ (TrainingTab)
        → POST /api/workspaces/[id]/prepare-training (dataset.yaml 生成)
        → POST /api/workspaces/[id]/start-training
-            → POST http://localhost:8000/train/ (FastAPI)
-            → BackgroundTasks で YOLO 学習を非同期実行
-            → jobId を返却
+            │  [NEW 2024-04-12] user_id + workspace_path を送信
+            │
+            └→ FastAPI: POST /jobs/
+                 │  JobManager: FIFO キュー登録
+                 │  work dir: backend/workspaces/{user_id}/{workspace_id}/
+                 ↓
+            return { fastapiJobId, status: "queued" }
+       
        → GET /api/workspaces/[id]/start-training?jobId=xxx (SSE)
-            → 2秒ポーリングで FastAPI GET /train/status/{job_id} を問い合わせ
-            → ログ・エポック進捗をリアルタイムでフロントへ配信
+            → 1秒ポーリングで FastAPI GET /jobs/{job_id} を問い合わせ
+            → status: queued → running → completed | failed
+            → ログ・エポック進捗・待機位置をリアルタイム配信
+            → queued フェーズ: 「待ち順: X番目」表示
+            → running フェーズ: エポック進捗 % 表示
+```
+
+### バックエンド ジョブキュー制御フロー（FIFO単一ディスパッチャ）
+
+```
+POST /jobs/ (create_job, req: JobCreate)
+  ↓
+JobManager.submit_job(req)
+  ├─ Job オブジェクト作成
+  ├─ workspace_path = "backend/workspaces/{user_id}/{workspace_id}/"
+  ├─ ディレクトリ生成
+  │   ├─ {workplace}/jobs/{job_id}/ (params.json, progress.json, stop.request)
+  │   ├─ {workplace}/logs/{job_id}.log
+  │   └─ {workplace}/models/ (YOLO 出力先)
+  ├─ params.json 書き出し { ..., workspace_dir, progress_path, stop_path }
+  ├─ Job ストア永続化 (data/jobs.json)
+  ├─ キューに push
+  └─ Job 返却 (status: queued, queue_position: 1)
+
+┌─── Dispatcher Thread (FIFO 単一実行) ───────
+│  while True:
+│    job_id = _queue.pop(0)  ← 1件ずつ取出し
+│    _run_subprocess(job_id, params_path, progress_path)
+│      ├─ subprocess.Popen([python, train_worker.py, params_path])
+│      ├─ _monitor_process() で progress.json をポーリング
+│      └─ Job ステート: queued → running → completed | failed
+│
+│  他ジョブは待機（キューに蓄積）
+└────────────────────────────────────────────
+
+Job Status Transition:
+  queued (waiting)
+    ↓ [dispatcher が取出し、subprocess 起動]
+  running (training in progress)
+    ↓ [subprocess exits normally]
+  completed (success) or failed (error)
+    ↓ [queue_position = None]
+  (Next queued job → running)
+
+GET /jobs/{job_id}
+  ↓
+  if status == queued:
+    return { status: "queued", queue_position: N, queued_ahead: N-1, queue_size: M }
+  else:
+    return { status: "running"|"completed"|"failed", progress: %, queue_position: null }
 ```
 
 ## FastAPI Backend Architecture
@@ -141,21 +204,35 @@ backend/
 
   models/
     job.py                       → Job / JobCreate / JobSummary / JobStatus Pydantic モデル
+                                   [NEW 2024-04-12] user_id, workspace_path フィールド追加
 
   services/
-    yolo_service.py
-      run_training(job_id, ...)  → YOLO モデル学習
-                                    on_train_epoch_end コールバックで
-                                    job_manager.update_progress() を呼び出し
-      run_prediction(...)        → YOLO 推論
-
     job_store.py (JobStore)      → jobs.json から読込・書込（JSON ファイル永続化、スレッドセーフ）
       save() / get() / list() / delete()
 
-    job_manager.py (JobManager)  → JobStore を ラップした非同期ジョブ管理
-      submit_job()               → キュー投入 + asyncio サブプロセスで YOLO 学習を非同期実行
-      cancel_job()               → SIGTERM でプロセス終了
-      is_busy()                  → 同時実行ジョブ数チェック
+    job_manager.py (JobManager)  → FIFO キュー制御 + JobStore ラッパー
+      [NEW 2024-04-12] 単一ディスパッチャスレッド実装
+      
+      submit_job()               → Job 作成 + キュー登録 + workspace 階層化
+                                   workspace_path= backend/workspaces/{user_id}/{workspace_id}/
+                                   jobs/ + logs/ + models/ ディレクトリ自動生成
+      
+      _dispatch_loop()           → FIFO キュー 1件ずつ取出し・実行
+                                   queued → running → completed|failed 順次遷移
+      
+      _run_subprocess()          → train_worker.py を subprocess で実行
+                                   params.json に workspace_dir を含める
+      
+      get_queue_position()       → queued ジョブの待機位置（1-indexed）
+      get_queue_size()           → 全キュー size
+      cancel_job() / stop_job()  → キュー内ジョブ除去 / running ジョブ停止
+
+    yolo_service.py              → [後方互換] YOLO 学習・推論ラッパー
+
+  workers/
+    train_worker.py              → [NEW 2024-04-12] スタンドアロン学習プロセス
+                                   params.json 読み込み → workspace_dir から project path 動的決定
+                                   backend/workspaces/{user_id}/{workspace_id}/models/ 出力
 
   data/
     jobs.json                    → ジョブレコード永続化ファイル（起動時に自動ロード）

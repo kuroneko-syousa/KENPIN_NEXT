@@ -17,7 +17,13 @@
   ダッシュボード仕様
 
 * data-model.md
-  データ構造定義
+  データ構造定義（Prisma / Job モデル）
+
+* storage-hierarchy.md
+  **[NEW 2024-04-12]** マルチユーザー対応・ワークスペース別成果物管理
+  - ディレクトリ構造（user_id/workspace_id 階層化）
+  - API フロー
+  - 実装の変更点
 
 * api.md
   API設計

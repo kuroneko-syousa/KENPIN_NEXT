@@ -155,6 +155,12 @@ export const navItems: NavItem[] = [
     label: "データセット",
     description: "学習データと品質確認",
   },
+  {
+    href: "/dashboard/models",
+    icon: "models",
+    label: "カスタムモデル",
+    description: "モデル一覧と状態確認",
+  },
   { href: "/dashboard/jobs", icon: "jobs", label: "ジョブ", description: "キューと進捗の確認" },
   { href: "/dashboard/settings", icon: "settings", label: "設定", description: "全体設定" },
 ];

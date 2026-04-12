@@ -22,12 +22,20 @@ class JobStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    STOPPED = "stopped"
 
 
 class Job(BaseModel):
     """Persistent job record stored in data/jobs.json."""
 
     job_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workspace_id: Optional[str] = Field(default=None, description="Workspace identifier")
+    requested_by: Optional[str] = Field(default=None, description="Requester user id/email")
+    user_id: Optional[str] = Field(default=None, description="User ID for workspace hierarchy")
+    workspace_path: Optional[str] = Field(
+        default=None,
+        description="Workspace work directory: backend/workspaces/{user_id}/{workspace_id}/",
+    )
     dataset_id: str = Field(default="", description="Dataset identifier")
     model: str = Field(default="yolov8n", description="YOLO model key (e.g. yolov8n)")
     yolo_version: str = Field(default="8.0.0", description="Ultralytics YOLO version in the venv")
@@ -48,9 +56,27 @@ class Job(BaseModel):
 
     # Error message (FAILED state only)
     error: Optional[str] = None
+    cancel_requested: bool = Field(
+        default=False,
+        description="True when a user requested graceful stop.",
+    )
+    locked: bool = Field(
+        default=False,
+        description="True when delete operations are protected by user lock.",
+    )
+    queue_position: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Current waiting position when status=queued (1 = next to run)",
+    )
 
     # Append-only recent log lines (last N lines, full log is in logs_path)
     log_lines: List[str] = Field(default_factory=list)
+    log_total_lines: int = Field(
+        default=0,
+        ge=0,
+        description="Monotonic count of all lines emitted for this job.",
+    )
 
     # Training hyperparameters — stored so reruns are reproducible
     data_yaml: str = Field(default="", description="Absolute path to data.yaml (legacy mode)")
@@ -74,6 +100,10 @@ class Job(BaseModel):
 class JobCreate(BaseModel):
     """Request body for POST /jobs."""
 
+    workspace_id: Optional[str] = None
+    requested_by: Optional[str] = None
+    user_id: Optional[str] = None
+    workspace_path: Optional[str] = None
     dataset_id: str
     model: str = Field(default="yolov8n")
     yolo_version: str = Field(default="8.0.0")
@@ -106,6 +136,9 @@ class JobSummary(BaseModel):
     """Lightweight response model for job listings."""
 
     job_id: str
+    workspace_id: Optional[str]
+    requested_by: Optional[str]
+    user_id: Optional[str]
     dataset_id: Optional[str]
     model: str
     yolo_version: str
@@ -115,3 +148,4 @@ class JobSummary(BaseModel):
     logs_path: Optional[str]
     results_path: Optional[str]
     error: Optional[str]
+    locked: bool = False

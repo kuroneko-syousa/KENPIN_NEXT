@@ -1,0 +1,1331 @@
+TRAIN STARTED
+LOG STREAM THREAD STARTED
+TRAIN STARTED
+New https://pypi.org/project/ultralytics/8.4.37 available  Update with 'pip install -U ultralytics'
+C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\.venv\Lib\site-packages\torch\cuda\__init__.py:235: UserWarning: 
+NVIDIA GeForce RTX 5060 Ti with CUDA capability sm_120 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_50 sm_60 sm_61 sm_70 sm_75 sm_80 sm_86 sm_90.
+If you want to use the NVIDIA GeForce RTX 5060 Ti GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
+Ultralytics 8.4.36  Python-3.11.9 torch-2.5.1+cu121 CUDA:0 (NVIDIA GeForce RTX 3060 Ti, 8192MiB)
+[34m[1mengine\trainer: [0magnostic_nms=False, amp=True, angle=1.0, augment=False, auto_augment=randaugment, batch=16, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=10, cls=0.5, compile=False, conf=None, copy_paste=0.0, copy_paste_mode=flip, cos_lr=False, cutmix=0.0, data=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\6457b313-7f86-4f95-86ac-758ddd920d65\runtime.yaml, degrees=0.0, deterministic=True, device=0, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, end2end=None, epochs=100, erasing=0.4, exist_ok=True, fliplr=0.5, flipud=0.0, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.0, mode=train, model=yolov8n.pt, momentum=0.937, mosaic=1.0, multi_scale=0.0, name=train, nbs=64, nms=False, opset=None, optimize=False, optimizer=auto, overlap_mask=True, patience=100, perspective=0.0, plots=True, pose=12.0, pretrained=True, profile=False, project=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train, rect=False, resume=False, retina_masks=False, rle=1.0, save=True, save_conf=False, save_crop=False, save_dir=C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\train, save_frames=False, save_json=False, save_period=-1, save_txt=False, scale=0.5, seed=0, shear=0.0, show=False, show_boxes=True, show_conf=True, show_labels=True, simplify=True, single_cls=False, source=None, split=val, stream_buffer=False, task=detect, time=None, tracker=botsort.yaml, translate=0.1, val=True, verbose=True, vid_stride=1, visualize=False, warmup_bias_lr=0.1, warmup_epochs=3.0, warmup_momentum=0.8, weight_decay=0.0005, workers=8, workspace=None
+Overriding model.yaml nc=80 with nc=1
+
+                   from  n    params  module                                       arguments                     
+  0                  -1  1       464  ultralytics.nn.modules.conv.Conv             [3, 16, 3, 2]                 
+  1                  -1  1      4672  ultralytics.nn.modules.conv.Conv             [16, 32, 3, 2]                
+  2                  -1  1      7360  ultralytics.nn.modules.block.C2f             [32, 32, 1, True]             
+  3                  -1  1     18560  ultralytics.nn.modules.conv.Conv             [32, 64, 3, 2]                
+  4                  -1  2     49664  ultralytics.nn.modules.block.C2f             [64, 64, 2, True]             
+  5                  -1  1     73984  ultralytics.nn.modules.conv.Conv             [64, 128, 3, 2]               
+  6                  -1  2    197632  ultralytics.nn.modules.block.C2f             [128, 128, 2, True]           
+  7                  -1  1    295424  ultralytics.nn.modules.conv.Conv             [128, 256, 3, 2]              
+  8                  -1  1    460288  ultralytics.nn.modules.block.C2f             [256, 256, 1, True]           
+  9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]                 
+ 10                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 12                  -1  1    148224  ultralytics.nn.modules.block.C2f             [384, 128, 1]                 
+ 13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']          
+ 14             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 15                  -1  1     37248  ultralytics.nn.modules.block.C2f             [192, 64, 1]                  
+ 16                  -1  1     36992  ultralytics.nn.modules.conv.Conv             [64, 64, 3, 2]                
+ 17            [-1, 12]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 18                  -1  1    123648  ultralytics.nn.modules.block.C2f             [192, 128, 1]                 
+ 19                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]              
+ 20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]                 
+ 22        [15, 18, 21]  1    751507  ultralytics.nn.modules.head.Detect           [1, 16, None, [64, 128, 256]] 
+Model summary: 130 layers, 3,011,043 parameters, 3,011,027 gradients, 8.2 GFLOPs
+
+Transferred 319/355 items from pretrained weights
+Freezing layer 'model.22.dfl.conv.weight'
+[34m[1mAMP: [0mrunning Automatic Mixed Precision (AMP) checks...
+[34m[1mAMP: [0mchecks passed 
+[34m[1mtrain: [0mFast image access  (ping: 0.00.0 ms, read: 6.42.3 MB/s, size: 3.2 KB)
+
+[K[34m[1mtrain: [0mScanning C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\6457b313-7f86-4f95-86ac-758ddd920d65\dataset\labels\train... 91 images, 0 backgrounds, 0 corrupt: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 91/91 3.2Kit/s 0.0s
+[34m[1mtrain: [0mNew cache created: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\6457b313-7f86-4f95-86ac-758ddd920d65\dataset\labels\train.cache
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 4.00.7 MB/s, size: 3.2 KB)
+
+[K[34m[1mval: [0mScanning C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\6457b313-7f86-4f95-86ac-758ddd920d65\dataset\labels\val... 10 images, 0 backgrounds, 0 corrupt: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 10/10 1.8Kit/s 0.0s
+[34m[1mval: [0mNew cache created: C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\jobs\6457b313-7f86-4f95-86ac-758ddd920d65\dataset\labels\val.cache
+[34m[1moptimizer:[0m 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically... 
+[34m[1moptimizer:[0m AdamW(lr=0.002, momentum=0.9) with parameter groups 57 weight(decay=0.0), 64 weight(decay=0.0005), 63 bias(decay=0.0)
+Plotting labels to C:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\train\labels.jpg... 
+Image sizes 640 train, 640 val
+Using 8 dataloader workers
+Logging results to [1mC:\Users\kuroneko\Desktop\KENPIN_NEXT\backend\runs\train\train[0m
+Starting training for 100 epochs...
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      1/100      1.96G      3.614      4.455      3.218         39        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  2.0s
+[K      1/100      1.96G      3.597      4.485      3.239         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.7it/s 2.2s<2.9s
+[K      1/100      1.96G      3.416      4.335      3.175         45        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.0it/s 2.4s<1.3s
+[K      1/100      1.96G      3.427      4.317      3.193         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.9it/s 2.6s<0.8s
+[K      1/100      1.96G       3.45      4.345       3.25         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.4it/s 2.7s<0.4s
+[K      1/100      1.96G      3.404      4.392      3.222         20        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 5.4it/s 2.9s<0.2s
+[K      1/100      1.96G      3.404      4.392      3.222         20        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 2.1it/s 2.9s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 11.3it/s 0.1s
+                   all         10         10    0.00167        0.5     0.0187    0.00522
+[Epoch 1/100]  GPU=2.10G  box_loss=3.1725  cls_loss=4.6288  dfl_loss=3.0837  P=0.0017  R=0.5000  mAP50=0.0187  mAP50-95=0.0052  lr/pg0=1.00e-04  lr/pg1=1.00e-04  lr/pg2=1.00e-04
+JSON_LOG:{"epoch": 1, "total_epoch": 100, "box_loss": 3.172502, "cls_loss": 4.628767, "dfl_loss": 3.083692, "map50": 0.01867, "map": 0.00522, "precision": 0.00167, "recall": 0.5, "lr": 0.0001}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      2/100      1.96G      3.409      4.399      3.216         29        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      2/100      1.96G      3.421      4.488      3.228         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 3.0it/s 0.2s<1.7s
+[K      2/100      1.98G      3.401      4.435      3.302         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.5it/s 0.5s<0.7s
+[K      2/100      1.98G       3.36      4.364       3.23         48        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.0it/s 0.6s<0.3s
+[K      2/100      1.98G      3.309      4.253      3.166         32        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.7s<0.1s
+[K      2/100      1.98G      3.309      4.253      3.166         32        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 8.9it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.8it/s 0.1s
+                   all         10         10    0.00267        0.8      0.054    0.00682
+[Epoch 2/100]  GPU=2.13G  box_loss=3.0529  cls_loss=3.6951  dfl_loss=2.8471  P=0.0027  R=0.8000  mAP50=0.0540  mAP50-95=0.0068  lr/pg0=2.18e-04  lr/pg1=2.18e-04  lr/pg2=2.18e-04
+JSON_LOG:{"epoch": 2, "total_epoch": 100, "box_loss": 3.052889, "cls_loss": 3.695054, "dfl_loss": 2.847066, "map50": 0.05398, "map": 0.00682, "precision": 0.00267, "recall": 0.8, "lr": 0.00021782}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      3/100      1.99G      2.675      3.511      2.595         49        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      3/100      1.99G      2.487       3.59       2.45         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.5it/s 0.2s<2.0s
+[K      3/100      1.99G      2.467      3.555      2.416         32        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.3it/s 0.3s<0.9s
+[K      3/100      1.99G      2.425      3.572      2.376         28        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.5s<0.5s
+[K      3/100      1.99G      2.349      3.562      2.315         25        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.6s<0.3s
+[K      3/100      1.99G      2.329      3.493      2.291         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.3it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.2it/s 0.1s
+                   all         10         10      0.003        0.9       0.21     0.0589
+[Epoch 3/100]  GPU=2.14G  box_loss=2.2274  cls_loss=3.1457  dfl_loss=2.1714  P=0.0030  R=0.9000  mAP50=0.2102  mAP50-95=0.0589  lr/pg0=3.33e-04  lr/pg1=3.33e-04  lr/pg2=3.33e-04
+JSON_LOG:{"epoch": 3, "total_epoch": 100, "box_loss": 2.227435, "cls_loss": 3.145667, "dfl_loss": 2.171355, "map50": 0.21018, "map": 0.05887, "precision": 0.003, "recall": 0.9, "lr": 0.00033327}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      4/100         2G       2.28      3.269       2.26         32        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      4/100         2G      2.291      3.305      2.243         40        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.0it/s 0.3s<1.4s
+[K      4/100         2G      2.254      3.163      2.233         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 4.8it/s 0.5s<0.4s
+[K      4/100         2G      2.231      3.118      2.231         32        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 19.4it/s 0.1s
+                   all         10         10    0.00233        0.7      0.121      0.016
+[Epoch 4/100]  GPU=2.14G  box_loss=2.1147  cls_loss=2.8928  dfl_loss=2.2225  P=0.0023  R=0.7000  mAP50=0.1211  mAP50-95=0.0160  lr/pg0=4.46e-04  lr/pg1=4.46e-04  lr/pg2=4.46e-04
+JSON_LOG:{"epoch": 4, "total_epoch": 100, "box_loss": 2.114669, "cls_loss": 2.89277, "dfl_loss": 2.22254, "map50": 0.1211, "map": 0.01604, "precision": 0.00233, "recall": 0.7, "lr": 0.00044634}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      5/100         2G      2.242      3.191      2.264         35        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      5/100         2G      2.191      3.125      2.184         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K      5/100         2G       2.17      3.085      2.158         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K      5/100         2G      2.127      3.051      2.154         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.2it/s 0.4s<0.5s
+[K      5/100         2G      2.108      3.082      2.143         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.5s<0.3s
+[K      5/100         2G      2.067      3.031      2.126         30        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.0it/s 0.1s
+                   all         10         10      0.003        0.9      0.312     0.0946
+[Epoch 5/100]  GPU=2.14G  box_loss=1.8596  cls_loss=2.7796  dfl_loss=2.0400  P=0.0030  R=0.9000  mAP50=0.3120  mAP50-95=0.0946  lr/pg0=5.57e-04  lr/pg1=5.57e-04  lr/pg2=5.57e-04
+JSON_LOG:{"epoch": 5, "total_epoch": 100, "box_loss": 1.859568, "cls_loss": 2.779571, "dfl_loss": 2.040003, "map50": 0.31199, "map": 0.0946, "precision": 0.003, "recall": 0.9, "lr": 0.00055703}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      6/100         2G      1.995      3.083      2.193         28        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      6/100         2G      2.016      2.858      2.237         41        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 2.9it/s 0.3s<1.4s
+[K      6/100         2G      2.014      2.849      2.197         35        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.0it/s 0.4s<0.6s
+[K      6/100         2G      2.011      2.852      2.172         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.3it/s 0.5s<0.3s
+[K      6/100         2G      2.026      2.877      2.162         35        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.5it/s 0.1s
+                   all         10         10    0.00333          1      0.232     0.0446
+[Epoch 6/100]  GPU=2.14G  box_loss=2.1016  cls_loss=3.0004  dfl_loss=2.1123  P=0.0033  R=1.0000  mAP50=0.2319  mAP50-95=0.0446  lr/pg0=6.65e-04  lr/pg1=6.65e-04  lr/pg2=6.65e-04
+JSON_LOG:{"epoch": 6, "total_epoch": 100, "box_loss": 2.101576, "cls_loss": 3.000385, "dfl_loss": 2.11227, "map50": 0.23189, "map": 0.04457, "precision": 0.00333, "recall": 1.0, "lr": 0.00066535}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      7/100         2G      1.636       2.88      1.773         30        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      7/100         2G      1.805      2.966       1.91         30        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K      7/100         2G      1.832      2.916      1.934         31        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K      7/100         2G       1.85      2.913       1.97         35        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.3it/s 0.4s<0.5s
+[K      7/100         2G      1.921      2.935      2.007         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.6s<0.3s
+[K      7/100         2G      1.971      2.938      2.031         21        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 19.7it/s 0.1s
+                   all         10         10    0.00333          1      0.487     0.0838
+[Epoch 7/100]  GPU=2.14G  box_loss=2.2166  cls_loss=2.9506  dfl_loss=2.1515  P=0.0033  R=1.0000  mAP50=0.4869  mAP50-95=0.0838  lr/pg0=7.71e-04  lr/pg1=7.71e-04  lr/pg2=7.71e-04
+JSON_LOG:{"epoch": 7, "total_epoch": 100, "box_loss": 2.216558, "cls_loss": 2.950649, "dfl_loss": 2.15146, "map50": 0.48685, "map": 0.0838, "precision": 0.00333, "recall": 1.0, "lr": 0.00077129}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      8/100         2G      2.034       2.73      2.095         38        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      8/100         2G      2.058       2.84      2.087         31        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 2.8it/s 0.3s<1.4s
+[K      8/100         2G       2.05      2.839      2.098         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 4.8it/s 0.6s<0.4s
+[K      8/100         2G      2.074      2.913      2.125         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 18.4it/s 0.1s
+                   all         10         10      0.003        0.9      0.206     0.0332
+[Epoch 8/100]  GPU=2.14G  box_loss=2.1979  cls_loss=3.2850  dfl_loss=2.2583  P=0.0030  R=0.9000  mAP50=0.2062  mAP50-95=0.0332  lr/pg0=8.75e-04  lr/pg1=8.75e-04  lr/pg2=8.75e-04
+JSON_LOG:{"epoch": 8, "total_epoch": 100, "box_loss": 2.197909, "cls_loss": 3.284987, "dfl_loss": 2.258318, "map50": 0.20621, "map": 0.03318, "precision": 0.003, "recall": 0.9, "lr": 0.00087486}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K      9/100         2G      1.995      3.014      2.064         23        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K      9/100         2G      1.982      2.932       2.07         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K      9/100         2G      2.056       2.95      2.122         34        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.4it/s 0.3s<0.9s
+[K      9/100         2G      2.054      2.877      2.134         41        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.1it/s 0.4s<0.5s
+[K      9/100         2G      2.058      2.876       2.17         25        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.5it/s 0.6s<0.1s
+[K      9/100         2G      2.058      2.876       2.17         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.5it/s 0.1s
+                   all         10         10      0.003        0.9      0.157      0.043
+[Epoch 9/100]  GPU=2.14G  box_loss=1.9575  cls_loss=2.8138  dfl_loss=2.1850  P=0.0030  R=0.9000  mAP50=0.1568  mAP50-95=0.0430  lr/pg0=9.76e-04  lr/pg1=9.76e-04  lr/pg2=9.76e-04
+JSON_LOG:{"epoch": 9, "total_epoch": 100, "box_loss": 1.957455, "cls_loss": 2.813784, "dfl_loss": 2.184989, "map50": 0.15681, "map": 0.04299, "precision": 0.003, "recall": 0.9, "lr": 0.00097605}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     10/100         2G      1.944      2.881      2.141         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     10/100         2G      1.926      2.907      2.125         31        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.7it/s 0.3s<1.1s
+[K     10/100         2G      1.974      2.854      2.155         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.7it/s 0.5s<0.3s
+[K     10/100         2G      1.966      2.861      2.154         21        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 10.2it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 19.3it/s 0.1s
+                   all         10         10    0.00333          1      0.162     0.0438
+[Epoch 10/100]  GPU=2.14G  box_loss=1.9228  cls_loss=2.8928  dfl_loss=2.1439  P=0.0033  R=1.0000  mAP50=0.1624  mAP50-95=0.0438  lr/pg0=1.07e-03  lr/pg1=1.07e-03  lr/pg2=1.07e-03
+JSON_LOG:{"epoch": 10, "total_epoch": 100, "box_loss": 1.922839, "cls_loss": 2.892775, "dfl_loss": 2.143885, "map50": 0.1624, "map": 0.04384, "precision": 0.00333, "recall": 1.0, "lr": 0.00107486}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     11/100         2G      1.903      2.765      2.097         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     11/100         2G      1.983      2.766      2.104         39        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.7it/s 0.3s<1.1s
+[K     11/100         2G      2.008      2.831      2.122         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     11/100         2G      2.049      2.854       2.16         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 10.1it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.3it/s 0.1s
+                   all         10         10      0.694        0.3      0.381     0.0984
+[Epoch 11/100]  GPU=2.14G  box_loss=2.2547  cls_loss=2.9649  dfl_loss=2.3518  P=0.6937  R=0.3000  mAP50=0.3809  mAP50-95=0.0984  lr/pg0=1.17e-03  lr/pg1=1.17e-03  lr/pg2=1.17e-03
+JSON_LOG:{"epoch": 11, "total_epoch": 100, "box_loss": 2.25468, "cls_loss": 2.964915, "dfl_loss": 2.351756, "map50": 0.38091, "map": 0.09836, "precision": 0.69366, "recall": 0.3, "lr": 0.0011713}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     12/100         2G      1.875      2.936      2.122         30        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     12/100         2G      1.943      2.828      2.092         40        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 2.8it/s 0.3s<1.4s
+[K     12/100         2G      1.958      2.776      2.103         41        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.9it/s 0.4s<0.6s
+[K     12/100         2G      2.009      2.812      2.107         29        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.3it/s 0.6s<0.2s
+[K     12/100         2G      2.009      2.812      2.107         29        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.5it/s 0.1s
+                   all         10         10       0.16        0.8      0.257      0.072
+[Epoch 12/100]  GPU=2.14G  box_loss=2.1211  cls_loss=2.7644  dfl_loss=2.1368  P=0.1603  R=0.8000  mAP50=0.2568  mAP50-95=0.0720  lr/pg0=1.27e-03  lr/pg1=1.27e-03  lr/pg2=1.27e-03
+JSON_LOG:{"epoch": 12, "total_epoch": 100, "box_loss": 2.121053, "cls_loss": 2.764417, "dfl_loss": 2.136762, "map50": 0.25683, "map": 0.07202, "precision": 0.16031, "recall": 0.8, "lr": 0.00126536}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     13/100         2G      2.031      2.733      2.177         45        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     13/100         2G      2.138      2.853      2.267         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.7it/s 0.2s<1.8s
+[K     13/100         2G      2.207        2.9      2.298         28        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.3it/s 0.3s<0.9s
+[K     13/100         2G      2.138      2.856      2.241         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.9it/s 0.4s<0.5s
+[K     13/100         2G      2.108      2.835      2.201         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.2it/s 0.6s<0.1s
+[K     13/100         2G      2.108      2.835      2.201         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.9it/s 0.1s
+                   all         10         10      0.319        0.5      0.229     0.0643
+[Epoch 13/100]  GPU=2.14G  box_loss=1.9718  cls_loss=2.8962  dfl_loss=2.1589  P=0.3189  R=0.5000  mAP50=0.2288  mAP50-95=0.0643  lr/pg0=1.36e-03  lr/pg1=1.36e-03  lr/pg2=1.36e-03
+JSON_LOG:{"epoch": 13, "total_epoch": 100, "box_loss": 1.971822, "cls_loss": 2.896219, "dfl_loss": 2.158876, "map50": 0.22882, "map": 0.06428, "precision": 0.31894, "recall": 0.5, "lr": 0.00135705}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     14/100         2G      1.969       2.64      1.914         35        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     14/100         2G      2.079      2.733       2.07         50        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 2.8it/s 0.3s<1.4s
+[K     14/100         2G      2.086      2.768      2.079         28        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.8it/s 0.4s<0.6s
+[K     14/100         2G      2.109      2.752      2.111         23        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.6it/s 0.6s<0.2s
+[K     14/100         2G      2.109      2.752      2.111         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 18.7it/s 0.1s
+                   all         10         10      0.115        0.2     0.0368     0.0155
+[Epoch 14/100]  GPU=2.14G  box_loss=2.1374  cls_loss=2.7911  dfl_loss=2.2015  P=0.1151  R=0.2000  mAP50=0.0368  mAP50-95=0.0155  lr/pg0=1.45e-03  lr/pg1=1.45e-03  lr/pg2=1.45e-03
+JSON_LOG:{"epoch": 14, "total_epoch": 100, "box_loss": 2.137389, "cls_loss": 2.791055, "dfl_loss": 2.201486, "map50": 0.03679, "map": 0.01551, "precision": 0.11511, "recall": 0.2, "lr": 0.00144636}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     15/100         2G      2.156      2.761      2.143         42        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.6it/s 0.2s<3.2s
+[K     15/100         2G      2.132      2.723      2.114         33        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.1it/s 0.3s<1.0s
+[K     15/100         2G      2.148      2.745      2.115         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.3it/s 0.4s<0.6s
+[K     15/100         2G      2.132      2.721      2.097         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     15/100         2G      2.118      2.701      2.095         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 10.1it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.2it/s 0.1s
+                   all         10         10      0.293        0.3      0.268     0.0585
+[Epoch 15/100]  GPU=2.14G  box_loss=2.0513  cls_loss=2.6011  dfl_loss=2.0840  P=0.2933  R=0.3000  mAP50=0.2685  mAP50-95=0.0585  lr/pg0=1.53e-03  lr/pg1=1.53e-03  lr/pg2=1.53e-03
+JSON_LOG:{"epoch": 15, "total_epoch": 100, "box_loss": 2.051327, "cls_loss": 2.60114, "dfl_loss": 2.083969, "map50": 0.26845, "map": 0.05854, "precision": 0.29334, "recall": 0.3, "lr": 0.00153329}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     16/100         2G      1.932      2.701      2.002         40        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     16/100         2G      1.959      2.663      2.015         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     16/100         2G      1.962      2.693      2.025         30        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.7it/s 0.4s<0.6s
+[K     16/100         2G      1.961      2.664      2.021         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.5s<0.3s
+[K     16/100         2G      1.978      2.723      2.074         18        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.3it/s 0.6s<0.1s
+[K     16/100         2G      1.978      2.723      2.074         18        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.3it/s 0.1s
+                   all         10         10      0.133          1      0.372      0.124
+[Epoch 16/100]  GPU=2.14G  box_loss=2.0615  cls_loss=3.0150  dfl_loss=2.3400  P=0.1325  R=1.0000  mAP50=0.3716  mAP50-95=0.1240  lr/pg0=1.62e-03  lr/pg1=1.62e-03  lr/pg2=1.62e-03
+JSON_LOG:{"epoch": 16, "total_epoch": 100, "box_loss": 2.061467, "cls_loss": 3.015038, "dfl_loss": 2.340046, "map50": 0.37162, "map": 0.124, "precision": 0.13251, "recall": 1.0, "lr": 0.00161785}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     17/100         2G      2.199      2.718      2.257         46        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     17/100         2G      2.191      2.723      2.222         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     17/100         2G      2.165      2.705      2.223         45        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.9it/s 0.3s<0.8s
+[K     17/100         2G      2.132      2.698      2.214         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.0it/s 0.4s<0.5s
+[K     17/100         2G      2.095      2.672      2.178         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.5s<0.3s
+[K     17/100         2G      2.053      2.689      2.141         18        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.7it/s 0.1s
+                   all         10         10      0.134          1      0.512      0.154
+[Epoch 17/100]  GPU=2.14G  box_loss=1.8444  cls_loss=2.7721  dfl_loss=1.9506  P=0.1338  R=1.0000  mAP50=0.5124  mAP50-95=0.1543  lr/pg0=1.68e-03  lr/pg1=1.68e-03  lr/pg2=1.68e-03
+JSON_LOG:{"epoch": 17, "total_epoch": 100, "box_loss": 1.844408, "cls_loss": 2.772117, "dfl_loss": 1.950555, "map50": 0.51244, "map": 0.15435, "precision": 0.13385, "recall": 1.0, "lr": 0.0016832}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     18/100         2G      1.985      2.747      2.114         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.8s
+[K     18/100         2G      1.984      2.679      2.154         43        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     18/100         2G      1.938      2.652      2.112         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.5it/s 0.4s<0.5s
+[K     18/100         2G      1.961      2.667      2.146         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     18/100         2G      1.999      2.673      2.163         19        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.6it/s 0.1s
+                   all         10         10      0.113        0.9      0.414      0.183
+[Epoch 18/100]  GPU=2.14G  box_loss=2.1916  cls_loss=2.7036  dfl_loss=2.2437  P=0.1129  R=0.9000  mAP50=0.4140  mAP50-95=0.1826  lr/pg0=1.66e-03  lr/pg1=1.66e-03  lr/pg2=1.66e-03
+JSON_LOG:{"epoch": 18, "total_epoch": 100, "box_loss": 2.191644, "cls_loss": 2.703584, "dfl_loss": 2.243702, "map50": 0.41401, "map": 0.18257, "precision": 0.11291, "recall": 0.9, "lr": 0.0016634}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     19/100         2G      2.008      2.842      2.281         26        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     19/100         2G      1.995      2.765      2.224         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.7it/s 0.2s<1.8s
+[K     19/100         2G      1.994      2.697      2.231         49        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.7it/s 0.3s<0.8s
+[K     19/100         2G      2.032      2.688      2.252         40        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.4s<0.5s
+[K     19/100         2G      2.016      2.655      2.229         44        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.5s<0.3s
+[K     19/100         2G      2.021      2.631      2.209         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 12.6it/s 0.1s
+                   all         10         10      0.235      0.863      0.377      0.161
+[Epoch 19/100]  GPU=2.14G  box_loss=2.0481  cls_loss=2.5105  dfl_loss=2.1101  P=0.2354  R=0.8627  mAP50=0.3771  mAP50-95=0.1615  lr/pg0=1.64e-03  lr/pg1=1.64e-03  lr/pg2=1.64e-03
+JSON_LOG:{"epoch": 19, "total_epoch": 100, "box_loss": 2.048081, "cls_loss": 2.510521, "dfl_loss": 2.110134, "map50": 0.37714, "map": 0.16148, "precision": 0.2354, "recall": 0.8627, "lr": 0.0016436}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     20/100         2G      2.034      2.681      2.131         41        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     20/100         2G      2.063      2.689      2.131         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.2s
+[K     20/100         2G      2.012        2.7      2.078         29        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.5it/s 0.3s<0.9s
+[K     20/100         2G      1.988      2.659      2.068         44        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.5s<0.3s
+[K     20/100         2G       1.97      2.631      2.059         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.1it/s 0.6s<0.1s
+[K     20/100         2G       1.97      2.631      2.059         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.2it/s 0.1s
+                   all         10         10      0.176        0.5      0.181     0.0492
+[Epoch 20/100]  GPU=2.14G  box_loss=1.8767  cls_loss=2.4869  dfl_loss=2.0092  P=0.1765  R=0.5000  mAP50=0.1812  mAP50-95=0.0492  lr/pg0=1.62e-03  lr/pg1=1.62e-03  lr/pg2=1.62e-03
+JSON_LOG:{"epoch": 20, "total_epoch": 100, "box_loss": 1.876696, "cls_loss": 2.486942, "dfl_loss": 2.009157, "map50": 0.18124, "map": 0.04923, "precision": 0.1765, "recall": 0.5, "lr": 0.0016238}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     21/100         2G      1.805      2.785      2.037         34        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     21/100         2G       1.84      2.639      2.007         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     21/100         2G       1.95      2.658       2.14         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.0it/s 0.4s<0.6s
+[K     21/100         2G      1.946      2.627      2.137         20        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.4it/s 0.6s<0.2s
+[K     21/100         2G      1.946      2.627      2.137         20        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.8it/s 0.1s
+                   all         10         10     0.0858        0.1      0.205     0.0446
+[Epoch 21/100]  GPU=2.14G  box_loss=1.8301  cls_loss=2.5925  dfl_loss=1.9930  P=0.0858  R=0.1000  mAP50=0.2049  mAP50-95=0.0446  lr/pg0=1.60e-03  lr/pg1=1.60e-03  lr/pg2=1.60e-03
+JSON_LOG:{"epoch": 21, "total_epoch": 100, "box_loss": 1.83006, "cls_loss": 2.592549, "dfl_loss": 1.992984, "map50": 0.20486, "map": 0.04458, "precision": 0.08576, "recall": 0.1, "lr": 0.001604}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     22/100         2G      2.041      2.554      2.152         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.8s
+[K     22/100         2G      1.994      2.559      2.148         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     22/100         2G      1.969      2.523       2.14         40        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.5it/s 0.4s<0.5s
+[K     22/100         2G      1.983      2.555      2.153         30        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.5s<0.3s
+[K     22/100         2G      1.955      2.525       2.13         29        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.8it/s 0.6s<0.1s
+[K     22/100         2G      1.955      2.525       2.13         29        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.1it/s 0.1s
+                   all         10         10    0.00333          1     0.0456    0.00862
+[Epoch 22/100]  GPU=2.14G  box_loss=1.8175  cls_loss=2.3783  dfl_loss=2.0127  P=0.0033  R=1.0000  mAP50=0.0457  mAP50-95=0.0086  lr/pg0=1.58e-03  lr/pg1=1.58e-03  lr/pg2=1.58e-03
+JSON_LOG:{"epoch": 22, "total_epoch": 100, "box_loss": 1.817474, "cls_loss": 2.378296, "dfl_loss": 2.012657, "map50": 0.04565, "map": 0.00862, "precision": 0.00333, "recall": 1.0, "lr": 0.0015842}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     23/100         2G      2.033      2.594      2.116         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     23/100         2G      1.971      2.517      2.091         43        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     23/100         2G      1.943       2.51      2.077         40        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.3it/s 0.4s<0.6s
+[K     23/100         2G       1.95      2.517      2.073         39        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.6it/s 0.5s<0.3s
+[K     23/100         2G      1.964      2.567      2.107         16        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.7it/s 0.1s
+                   all         10         10      0.045        0.1      0.062     0.0123
+[Epoch 23/100]  GPU=2.14G  box_loss=2.0345  cls_loss=2.8200  dfl_loss=2.2781  P=0.0450  R=0.1000  mAP50=0.0620  mAP50-95=0.0123  lr/pg0=1.56e-03  lr/pg1=1.56e-03  lr/pg2=1.56e-03
+JSON_LOG:{"epoch": 23, "total_epoch": 100, "box_loss": 2.034537, "cls_loss": 2.820039, "dfl_loss": 2.278126, "map50": 0.06203, "map": 0.01231, "precision": 0.04499, "recall": 0.1, "lr": 0.0015644}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     24/100         2G      1.932      2.559      2.036         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     24/100         2G      1.931      2.631      2.044         24        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     24/100         2G      1.938      2.569      2.064         45        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     24/100         2G      1.923      2.583      2.067         31        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     24/100         2G      1.931      2.539      2.066         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.2it/s 0.1s
+                   all         10         10      0.105        0.4     0.0858     0.0255
+[Epoch 24/100]  GPU=2.14G  box_loss=1.9734  cls_loss=2.3148  dfl_loss=2.0586  P=0.1047  R=0.4000  mAP50=0.0858  mAP50-95=0.0255  lr/pg0=1.54e-03  lr/pg1=1.54e-03  lr/pg2=1.54e-03
+JSON_LOG:{"epoch": 24, "total_epoch": 100, "box_loss": 1.973356, "cls_loss": 2.314847, "dfl_loss": 2.058572, "map50": 0.08577, "map": 0.02554, "precision": 0.10472, "recall": 0.4, "lr": 0.0015446}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     25/100         2G      2.035      2.532      2.126         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     25/100         2G      2.091      2.508      2.182         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.7it/s 0.4s<0.8s
+[K     25/100         2G      2.081      2.573      2.192         24        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     25/100         2G      2.093      2.571      2.186         31        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.3it/s 0.1s
+                   all         10         10      0.174        0.5      0.267      0.066
+[Epoch 25/100]  GPU=2.14G  box_loss=2.1485  cls_loss=2.5637  dfl_loss=2.1580  P=0.1739  R=0.5000  mAP50=0.2669  mAP50-95=0.0660  lr/pg0=1.52e-03  lr/pg1=1.52e-03  lr/pg2=1.52e-03
+JSON_LOG:{"epoch": 25, "total_epoch": 100, "box_loss": 2.148549, "cls_loss": 2.563708, "dfl_loss": 2.157963, "map50": 0.2669, "map": 0.06602, "precision": 0.17385, "recall": 0.5, "lr": 0.0015248}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     26/100         2G      1.968      2.264      2.004         36        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     26/100         2G      1.927      2.395      2.029         36        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.7it/s 0.2s<1.9s
+[K     26/100         2G      1.934      2.446      2.065         37        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     26/100         2G      1.963      2.441       2.08         32        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.3it/s 0.4s<0.5s
+[K     26/100         2G      1.971      2.429      2.093         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.4it/s 0.5s<0.3s
+[K     26/100         2G      2.009       2.48      2.102         22        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.8it/s 0.6s<0.1s
+[K     26/100         2G      2.009       2.48      2.102         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.2it/s 0.1s
+                   all         10         10      0.295        0.4      0.306     0.0972
+[Epoch 26/100]  GPU=2.14G  box_loss=2.2005  cls_loss=2.7341  dfl_loss=2.1476  P=0.2954  R=0.4000  mAP50=0.3065  mAP50-95=0.0972  lr/pg0=1.50e-03  lr/pg1=1.50e-03  lr/pg2=1.50e-03
+JSON_LOG:{"epoch": 26, "total_epoch": 100, "box_loss": 2.20054, "cls_loss": 2.734057, "dfl_loss": 2.147617, "map50": 0.30649, "map": 0.09721, "precision": 0.29537, "recall": 0.4, "lr": 0.001505}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     27/100         2G      1.895       2.31      2.083         43        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     27/100         2G      1.928      2.394      2.098         31        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.2it/s 0.3s<1.3s
+[K     27/100         2G       1.96      2.405      2.122         35        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.7it/s 0.4s<0.6s
+[K     27/100         2G      1.967      2.392      2.104         45        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.5s<0.3s
+[K     27/100         2G       1.96      2.394      2.092         20        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 10.0it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.8it/s 0.1s
+                   all         10         10      0.421        0.6      0.464      0.131
+[Epoch 27/100]  GPU=2.14G  box_loss=1.9216  cls_loss=2.4087  dfl_loss=2.0296  P=0.4214  R=0.6000  mAP50=0.4643  mAP50-95=0.1310  lr/pg0=1.49e-03  lr/pg1=1.49e-03  lr/pg2=1.49e-03
+JSON_LOG:{"epoch": 27, "total_epoch": 100, "box_loss": 1.921611, "cls_loss": 2.408681, "dfl_loss": 2.029618, "map50": 0.46431, "map": 0.13099, "precision": 0.42145, "recall": 0.6, "lr": 0.0014852}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     28/100         2G      1.944      2.391      2.076         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.5s
+[K     28/100         2G      1.895      2.395      2.068         28        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     28/100         2G      1.908      2.414      2.073         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     28/100         2G      1.939      2.406      2.123         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.5s<0.3s
+[K     28/100         2G      1.987       2.42      2.167         25        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.6it/s 0.6s<0.1s
+[K     28/100         2G      1.987       2.42      2.167         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.0it/s 0.1s
+                   all         10         10      0.464        0.6       0.59      0.174
+[Epoch 28/100]  GPU=2.14G  box_loss=2.2236  cls_loss=2.4882  dfl_loss=2.3880  P=0.4642  R=0.6000  mAP50=0.5896  mAP50-95=0.1744  lr/pg0=1.47e-03  lr/pg1=1.47e-03  lr/pg2=1.47e-03
+JSON_LOG:{"epoch": 28, "total_epoch": 100, "box_loss": 2.223557, "cls_loss": 2.488194, "dfl_loss": 2.388006, "map50": 0.58958, "map": 0.17438, "precision": 0.46415, "recall": 0.6, "lr": 0.0014654}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     29/100         2G      1.992      2.441      2.088         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     29/100         2G      2.022      2.488      2.149         30        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     29/100         2G      1.963      2.461      2.094         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.1it/s 0.4s<0.6s
+[K     29/100         2G      1.952      2.442      2.095         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     29/100         2G       1.96      2.423      2.093         35        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.5it/s 0.1s
+                   all         10         10      0.519        0.4      0.614      0.178
+[Epoch 29/100]  GPU=2.14G  box_loss=1.9981  cls_loss=2.3312  dfl_loss=2.0822  P=0.5192  R=0.4000  mAP50=0.6144  mAP50-95=0.1776  lr/pg0=1.45e-03  lr/pg1=1.45e-03  lr/pg2=1.45e-03
+JSON_LOG:{"epoch": 29, "total_epoch": 100, "box_loss": 1.998079, "cls_loss": 2.331186, "dfl_loss": 2.082199, "map50": 0.61437, "map": 0.17755, "precision": 0.51919, "recall": 0.4, "lr": 0.0014456}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     30/100         2G      2.083      2.349      2.203         43        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     30/100         2G      2.048       2.44      2.156         23        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     30/100         2G      2.029      2.457      2.117         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.8it/s 0.5s<0.3s
+[K     30/100         2G      2.019      2.434      2.105         27        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.7it/s 0.6s<0.1s
+[K     30/100         2G      2.019      2.434      2.105         27        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.2it/s 0.1s
+                   all         10         10       0.32        0.7      0.413     0.0897
+[Epoch 30/100]  GPU=2.14G  box_loss=1.9666  cls_loss=2.3189  dfl_loss=2.0472  P=0.3201  R=0.7000  mAP50=0.4126  mAP50-95=0.0897  lr/pg0=1.43e-03  lr/pg1=1.43e-03  lr/pg2=1.43e-03
+JSON_LOG:{"epoch": 30, "total_epoch": 100, "box_loss": 1.966551, "cls_loss": 2.318893, "dfl_loss": 2.047212, "map50": 0.41264, "map": 0.08975, "precision": 0.32006, "recall": 0.7, "lr": 0.0014258}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     31/100         2G      2.048      2.328      2.029         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     31/100         2G      2.008      2.292      2.002         36        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     31/100         2G      2.049      2.326      2.042         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.1it/s 0.4s<0.6s
+[K     31/100         2G      2.053      2.341      2.062         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     31/100         2G      2.018      2.326      2.033         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.5it/s 0.1s
+                   all         10         10      0.405        0.5      0.436     0.0797
+[Epoch 31/100]  GPU=2.14G  box_loss=1.8424  cls_loss=2.2526  dfl_loss=1.8873  P=0.4051  R=0.5000  mAP50=0.4361  mAP50-95=0.0797  lr/pg0=1.41e-03  lr/pg1=1.41e-03  lr/pg2=1.41e-03
+JSON_LOG:{"epoch": 31, "total_epoch": 100, "box_loss": 1.842375, "cls_loss": 2.252584, "dfl_loss": 1.887342, "map50": 0.43614, "map": 0.07969, "precision": 0.40508, "recall": 0.5, "lr": 0.001406}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     32/100         2G      1.961      2.555      2.042         30        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.8s
+[K     32/100         2G      2.004      2.511      2.027         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.9it/s 0.4s<0.8s
+[K     32/100         2G      2.004      2.497      2.037         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     32/100         2G      1.976      2.447      1.996         22        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.7it/s 0.6s<0.1s
+[K     32/100         2G      1.976      2.447      1.996         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.3it/s 0.1s
+                   all         10         10      0.588        0.8      0.598      0.148
+[Epoch 32/100]  GPU=2.14G  box_loss=1.8366  cls_loss=2.1957  dfl_loss=1.7878  P=0.5878  R=0.8000  mAP50=0.5979  mAP50-95=0.1479  lr/pg0=1.39e-03  lr/pg1=1.39e-03  lr/pg2=1.39e-03
+JSON_LOG:{"epoch": 32, "total_epoch": 100, "box_loss": 1.836613, "cls_loss": 2.195693, "dfl_loss": 1.787818, "map50": 0.59793, "map": 0.14792, "precision": 0.58777, "recall": 0.8, "lr": 0.0013862}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     33/100         2G      1.907      2.333      1.963         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     33/100         2G      1.985      2.315      2.032         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.7it/s 0.3s<1.1s
+[K     33/100         2G      1.986      2.334      2.036         47        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.9it/s 0.4s<0.6s
+[K     33/100         2G      1.996      2.303      2.041         35        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.6it/s 0.6s<0.2s
+[K     33/100         2G      1.996      2.303      2.041         35        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.8it/s 0.1s
+                   all         10         10      0.512      0.527      0.487       0.15
+[Epoch 33/100]  GPU=2.14G  box_loss=1.8966  cls_loss=2.1955  dfl_loss=1.9558  P=0.5124  R=0.5272  mAP50=0.4869  mAP50-95=0.1496  lr/pg0=1.37e-03  lr/pg1=1.37e-03  lr/pg2=1.37e-03
+JSON_LOG:{"epoch": 33, "total_epoch": 100, "box_loss": 1.896638, "cls_loss": 2.195458, "dfl_loss": 1.955832, "map50": 0.48693, "map": 0.1496, "precision": 0.51238, "recall": 0.52723, "lr": 0.0013664}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     34/100         2G      2.059      2.402      2.109         36        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.5s
+[K     34/100         2G       2.06      2.369      2.089         44        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     34/100         2G      2.047      2.381      2.077         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.5it/s 0.4s<0.5s
+[K     34/100         2G      2.029      2.378      2.063         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.5s<0.3s
+[K     34/100         2G      1.994      2.378      2.036         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.3it/s 0.1s
+                   all         10         10      0.331        0.7      0.443      0.121
+[Epoch 34/100]  GPU=2.14G  box_loss=1.8184  cls_loss=2.3788  dfl_loss=1.9055  P=0.3306  R=0.7000  mAP50=0.4425  mAP50-95=0.1215  lr/pg0=1.35e-03  lr/pg1=1.35e-03  lr/pg2=1.35e-03
+JSON_LOG:{"epoch": 34, "total_epoch": 100, "box_loss": 1.818386, "cls_loss": 2.378811, "dfl_loss": 1.905546, "map50": 0.44254, "map": 0.12148, "precision": 0.33064, "recall": 0.7, "lr": 0.0013466}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     35/100         2G      1.922      2.303      1.971         41        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.2s
+[K     35/100         2G      1.909      2.292      1.958         39        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.7it/s 0.4s<0.8s
+[K     35/100         2G      1.893      2.267      1.961         36        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.4it/s 0.5s<0.4s
+[K     35/100         2G      1.944       2.26      1.995         19        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.5it/s 0.1s
+                   all         10         10      0.554        0.4      0.564      0.144
+[Epoch 35/100]  GPU=2.14G  box_loss=2.2034  cls_loss=2.2249  dfl_loss=2.1621  P=0.5539  R=0.4000  mAP50=0.5644  mAP50-95=0.1440  lr/pg0=1.33e-03  lr/pg1=1.33e-03  lr/pg2=1.33e-03
+JSON_LOG:{"epoch": 35, "total_epoch": 100, "box_loss": 2.20345, "cls_loss": 2.224875, "dfl_loss": 2.162116, "map50": 0.56437, "map": 0.14404, "precision": 0.55391, "recall": 0.4, "lr": 0.0013268}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     36/100         2G      1.897      2.458      2.106         27        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     36/100         2G      1.962      2.355      2.076         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.1s
+[K     36/100         2G      1.966      2.303      2.071         40        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K     36/100         2G      1.927      2.367      2.052         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.9it/s 0.4s<0.5s
+[K     36/100         2G      1.928      2.312      2.047         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.1it/s 0.7s<0.1s
+[K     36/100         2G      1.928      2.312      2.047         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 13.8it/s 0.1s
+                   all         10         10      0.701        0.4      0.445      0.117
+[Epoch 36/100]  GPU=2.14G  box_loss=1.8983  cls_loss=2.2400  dfl_loss=2.0288  P=0.7006  R=0.4000  mAP50=0.4452  mAP50-95=0.1174  lr/pg0=1.31e-03  lr/pg1=1.31e-03  lr/pg2=1.31e-03
+JSON_LOG:{"epoch": 36, "total_epoch": 100, "box_loss": 1.898343, "cls_loss": 2.239963, "dfl_loss": 2.028758, "map50": 0.44524, "map": 0.11743, "precision": 0.70063, "recall": 0.4, "lr": 0.001307}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     37/100         2G      2.057      2.293      2.106         40        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     37/100         2G      2.009      2.382      2.109         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.8s
+[K     37/100         2G       1.98      2.363      2.089         37        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 5.0it/s 0.3s<0.8s
+[K     37/100         2G       1.96      2.373      2.054         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.0it/s 0.4s<0.5s
+[K     37/100         2G      1.957       2.35      2.042         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.5s<0.3s
+[K     37/100         2G      1.933      2.337       2.02         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.2it/s 0.1s
+                   all         10         10      0.347        0.3      0.444      0.132
+[Epoch 37/100]  GPU=2.14G  box_loss=1.8174  cls_loss=2.2729  dfl_loss=1.9105  P=0.3466  R=0.3000  mAP50=0.4440  mAP50-95=0.1318  lr/pg0=1.29e-03  lr/pg1=1.29e-03  lr/pg2=1.29e-03
+JSON_LOG:{"epoch": 37, "total_epoch": 100, "box_loss": 1.817423, "cls_loss": 2.272918, "dfl_loss": 1.910456, "map50": 0.44398, "map": 0.13182, "precision": 0.34655, "recall": 0.3, "lr": 0.0012872}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     38/100         2G      1.759      2.235      1.898         38        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     38/100         2G      1.858      2.335      1.976         25        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.2s
+[K     38/100         2G      1.909      2.359      2.022         24        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.5it/s 0.4s<0.7s
+[K     38/100         2G      1.918      2.341      2.025         30        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.8it/s 0.6s<0.3s
+[K     38/100         2G      1.898      2.352      2.017         20        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.7s<0.1s
+[K     38/100         2G      1.898      2.352      2.017         20        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.1it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.6it/s 0.1s
+                   all         10         10      0.306        0.4      0.496      0.135
+[Epoch 38/100]  GPU=2.14G  box_loss=1.7980  cls_loss=2.4085  dfl_loss=1.9773  P=0.3062  R=0.4000  mAP50=0.4960  mAP50-95=0.1347  lr/pg0=1.27e-03  lr/pg1=1.27e-03  lr/pg2=1.27e-03
+JSON_LOG:{"epoch": 38, "total_epoch": 100, "box_loss": 1.797974, "cls_loss": 2.408473, "dfl_loss": 1.977328, "map50": 0.49595, "map": 0.1347, "precision": 0.30619, "recall": 0.4, "lr": 0.0012674}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     39/100         2G      1.863       2.32      1.975         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     39/100         2G      1.844      2.315      1.953         30        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.7it/s 0.4s<0.8s
+[K     39/100         2G       1.84      2.297      1.952         42        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.4it/s 0.5s<0.4s
+[K     39/100         2G      1.861      2.339      1.981         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.8it/s 0.1s
+                   all         10         10      0.517        0.3      0.436      0.122
+[Epoch 39/100]  GPU=2.14G  box_loss=1.9687  cls_loss=2.5511  dfl_loss=2.1230  P=0.5172  R=0.3000  mAP50=0.4360  mAP50-95=0.1221  lr/pg0=1.25e-03  lr/pg1=1.25e-03  lr/pg2=1.25e-03
+JSON_LOG:{"epoch": 39, "total_epoch": 100, "box_loss": 1.968659, "cls_loss": 2.551128, "dfl_loss": 2.123037, "map50": 0.43603, "map": 0.1221, "precision": 0.51724, "recall": 0.3, "lr": 0.0012476}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     40/100         2G       1.91      2.436      2.045         30        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     40/100         2G      1.891      2.409      2.041         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.7it/s 0.2s<1.8s
+[K     40/100         2G      1.886      2.359      2.048         43        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     40/100         2G      1.951      2.355      2.065         42        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.2it/s 0.4s<0.5s
+[K     40/100         2G      1.971      2.372       2.07         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.1it/s 0.5s<0.3s
+[K     40/100         2G      1.939      2.409      2.047         14        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.6it/s 0.1s
+                   all         10         10      0.369        0.4      0.427      0.126
+[Epoch 40/100]  GPU=2.14G  box_loss=1.7808  cls_loss=2.5953  dfl_loss=1.9321  P=0.3688  R=0.4000  mAP50=0.4271  mAP50-95=0.1257  lr/pg0=1.23e-03  lr/pg1=1.23e-03  lr/pg2=1.23e-03
+JSON_LOG:{"epoch": 40, "total_epoch": 100, "box_loss": 1.780792, "cls_loss": 2.595345, "dfl_loss": 1.932106, "map50": 0.42707, "map": 0.12569, "precision": 0.36878, "recall": 0.4, "lr": 0.0012278}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     41/100         2G      1.983      2.401      2.062         43        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     41/100         2G      1.962      2.381      2.059         29        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.0s
+[K     41/100         2G      1.944      2.375      2.038         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.9it/s 0.4s<0.6s
+[K     41/100         2G      1.944      2.361      2.033         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.3it/s 0.5s<0.3s
+[K     41/100         2G      1.974      2.363      2.066         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.9it/s 0.1s
+                   all         10         10      0.334      0.401      0.399      0.102
+[Epoch 41/100]  GPU=2.14G  box_loss=2.1274  cls_loss=2.3740  dfl_loss=2.2325  P=0.3340  R=0.4012  mAP50=0.3988  mAP50-95=0.1021  lr/pg0=1.21e-03  lr/pg1=1.21e-03  lr/pg2=1.21e-03
+JSON_LOG:{"epoch": 41, "total_epoch": 100, "box_loss": 2.127433, "cls_loss": 2.374028, "dfl_loss": 2.232486, "map50": 0.3988, "map": 0.10213, "precision": 0.33397, "recall": 0.40124, "lr": 0.001208}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     42/100         2G      1.953        2.3      1.978         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.9s
+[K     42/100         2G      1.927      2.312      1.992         34        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     42/100         2G       1.93      2.307      1.973         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     42/100         2G      1.958      2.356       2.02         21        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.6it/s 0.7s<0.2s
+[K     42/100         2G      1.958      2.356       2.02         21        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.5it/s 0.1s
+                   all         10         10      0.202      0.381      0.271     0.0724
+[Epoch 42/100]  GPU=2.14G  box_loss=2.1007  cls_loss=2.5991  dfl_loss=2.2552  P=0.2023  R=0.3812  mAP50=0.2713  mAP50-95=0.0724  lr/pg0=1.19e-03  lr/pg1=1.19e-03  lr/pg2=1.19e-03
+JSON_LOG:{"epoch": 42, "total_epoch": 100, "box_loss": 2.100687, "cls_loss": 2.599093, "dfl_loss": 2.255187, "map50": 0.27127, "map": 0.07243, "precision": 0.2023, "recall": 0.38125, "lr": 0.0011882}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     43/100         2G      1.808      2.291      1.913         43        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     43/100         2G      1.858      2.403      1.958         29        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     43/100         2G      1.843      2.321      1.929         41        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     43/100         2G      1.855      2.358      1.945         30        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.4s<0.5s
+[K     43/100         2G      1.861      2.336      1.972         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.6s<0.3s
+[K     43/100         2G      1.892      2.362      1.999         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.2it/s 0.1s
+                   all         10         10      0.168        0.4      0.294     0.0969
+[Epoch 43/100]  GPU=2.14G  box_loss=2.0479  cls_loss=2.4901  dfl_loss=2.1342  P=0.1678  R=0.4000  mAP50=0.2941  mAP50-95=0.0969  lr/pg0=1.17e-03  lr/pg1=1.17e-03  lr/pg2=1.17e-03
+JSON_LOG:{"epoch": 43, "total_epoch": 100, "box_loss": 2.047909, "cls_loss": 2.49015, "dfl_loss": 2.134176, "map50": 0.2941, "map": 0.09685, "precision": 0.16783, "recall": 0.4, "lr": 0.0011684}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     44/100         2G      2.002      2.482      2.096         46        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     44/100         2G      2.007      2.444      2.062         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     44/100         2G      2.016      2.463      2.095         31        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.5it/s 0.3s<0.9s
+[K     44/100         2G      2.011      2.462       2.09         40        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.1it/s 0.5s<0.3s
+[K     44/100         2G      2.005       2.47      2.096         27        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.1it/s 0.6s<0.1s
+[K     44/100         2G      2.005       2.47      2.096         27        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.3it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.5it/s 0.1s
+                   all         10         10      0.353        0.6      0.533      0.157
+[Epoch 44/100]  GPU=2.14G  box_loss=1.9714  cls_loss=2.5079  dfl_loss=2.1282  P=0.3527  R=0.6000  mAP50=0.5335  mAP50-95=0.1572  lr/pg0=1.15e-03  lr/pg1=1.15e-03  lr/pg2=1.15e-03
+JSON_LOG:{"epoch": 44, "total_epoch": 100, "box_loss": 1.971409, "cls_loss": 2.507869, "dfl_loss": 2.128222, "map50": 0.53349, "map": 0.15716, "precision": 0.35267, "recall": 0.6, "lr": 0.0011486}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     45/100         2G      1.947      2.335      2.099         37        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     45/100         2G      2.038      2.396      2.122         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     45/100         2G      2.001      2.411      2.083         29        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.8it/s 0.4s<0.6s
+[K     45/100         2G      1.956      2.382      2.045         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.8it/s 0.6s<0.1s
+[K     45/100         2G      1.956      2.382      2.045         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 10.0it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.2it/s 0.1s
+                   all         10         10      0.353      0.547       0.47      0.119
+[Epoch 45/100]  GPU=2.14G  box_loss=1.8512  cls_loss=2.2468  dfl_loss=1.9492  P=0.3529  R=0.5469  mAP50=0.4702  mAP50-95=0.1186  lr/pg0=1.13e-03  lr/pg1=1.13e-03  lr/pg2=1.13e-03
+JSON_LOG:{"epoch": 45, "total_epoch": 100, "box_loss": 1.851229, "cls_loss": 2.246783, "dfl_loss": 1.949152, "map50": 0.47016, "map": 0.11855, "precision": 0.35286, "recall": 0.54687, "lr": 0.0011288}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     46/100         2G      1.862      2.305      1.936         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.6s
+[K     46/100         2G      1.848       2.33      1.929         28        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.0it/s 0.4s<0.8s
+[K     46/100         2G      1.864      2.319      1.921         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.5it/s 0.5s<0.4s
+[K     46/100         2G      1.862      2.296       1.91         23        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.6it/s 0.6s<0.2s
+[K     46/100         2G      1.862      2.296       1.91         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.2it/s 0.1s
+                   all         10         10      0.711        0.5      0.611      0.132
+[Epoch 46/100]  GPU=2.14G  box_loss=1.8493  cls_loss=2.1772  dfl_loss=1.8547  P=0.7110  R=0.5000  mAP50=0.6109  mAP50-95=0.1316  lr/pg0=1.11e-03  lr/pg1=1.11e-03  lr/pg2=1.11e-03
+JSON_LOG:{"epoch": 46, "total_epoch": 100, "box_loss": 1.849342, "cls_loss": 2.177225, "dfl_loss": 1.854698, "map50": 0.61094, "map": 0.13158, "precision": 0.71097, "recall": 0.5, "lr": 0.001109}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     47/100         2G      1.968      2.228      2.022         38        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     47/100         2G      2.004       2.33      2.034         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.8s
+[K     47/100         2G      2.013      2.294       2.02         36        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 5.0it/s 0.3s<0.8s
+[K     47/100         2G      2.012      2.292      1.999         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.0it/s 0.4s<0.5s
+[K     47/100         2G      1.982      2.277      1.989         36        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.2it/s 0.5s<0.3s
+[K     47/100         2G      1.942      2.257      1.953         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.1it/s 0.1s
+                   all         10         10          1      0.464      0.643      0.137
+[Epoch 47/100]  GPU=2.14G  box_loss=1.7456  cls_loss=2.1574  dfl_loss=1.7703  P=1.0000  R=0.4643  mAP50=0.6426  mAP50-95=0.1372  lr/pg0=1.09e-03  lr/pg1=1.09e-03  lr/pg2=1.09e-03
+JSON_LOG:{"epoch": 47, "total_epoch": 100, "box_loss": 1.745647, "cls_loss": 2.1574, "dfl_loss": 1.77029, "map50": 0.6426, "map": 0.13722, "precision": 1.0, "recall": 0.46434, "lr": 0.0010892}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     48/100         2G      1.943       2.28      2.034         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.9s
+[K     48/100         2G      1.918      2.277      1.987         49        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.0it/s 0.4s<0.8s
+[K     48/100         2G      1.946      2.281      2.015         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.7it/s 0.5s<0.4s
+[K     48/100         2G      1.955      2.275      2.016         22        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.6s<0.1s
+[K     48/100         2G      1.955      2.275      2.016         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.4it/s 0.1s
+                   all         10         10      0.429        0.6      0.512      0.145
+[Epoch 48/100]  GPU=2.14G  box_loss=2.0010  cls_loss=2.2455  dfl_loss=2.0210  P=0.4286  R=0.6000  mAP50=0.5118  mAP50-95=0.1445  lr/pg0=1.07e-03  lr/pg1=1.07e-03  lr/pg2=1.07e-03
+JSON_LOG:{"epoch": 48, "total_epoch": 100, "box_loss": 2.000983, "cls_loss": 2.245527, "dfl_loss": 2.021044, "map50": 0.51181, "map": 0.1445, "precision": 0.42863, "recall": 0.6, "lr": 0.0010694}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     49/100         2G      1.943      2.173      1.987         36        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     49/100         2G      1.947      2.174      1.975         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     49/100         2G      1.939      2.196      1.982         42        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.3it/s 0.4s<0.6s
+[K     49/100         2G      1.948      2.185       1.98         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.9it/s 0.6s<0.1s
+[K     49/100         2G      1.948      2.185       1.98         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 12.7it/s 0.1s
+                   all         10         10      0.699        0.7      0.595      0.156
+[Epoch 49/100]  GPU=2.14G  box_loss=1.8929  cls_loss=2.1031  dfl_loss=1.9085  P=0.6988  R=0.7000  mAP50=0.5951  mAP50-95=0.1557  lr/pg0=1.05e-03  lr/pg1=1.05e-03  lr/pg2=1.05e-03
+JSON_LOG:{"epoch": 49, "total_epoch": 100, "box_loss": 1.892884, "cls_loss": 2.103067, "dfl_loss": 1.908491, "map50": 0.59511, "map": 0.15575, "precision": 0.69877, "recall": 0.7, "lr": 0.0010496}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     50/100         2G      1.984      2.198      1.975         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.5s
+[K     50/100         2G      1.957      2.226      1.943         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     50/100         2G      1.959      2.228      1.955         35        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.4it/s 0.4s<0.6s
+[K     50/100         2G      1.961      2.218      1.954         44        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     50/100         2G      1.983      2.216      1.976         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.5it/s 0.6s<0.1s
+[K     50/100         2G      1.983      2.216      1.976         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.0it/s 0.1s
+                   all         10         10      0.536        0.7      0.506      0.139
+[Epoch 50/100]  GPU=2.14G  box_loss=2.0950  cls_loss=2.2061  dfl_loss=2.0877  P=0.5360  R=0.7000  mAP50=0.5059  mAP50-95=0.1387  lr/pg0=1.03e-03  lr/pg1=1.03e-03  lr/pg2=1.03e-03
+JSON_LOG:{"epoch": 50, "total_epoch": 100, "box_loss": 2.095026, "cls_loss": 2.206137, "dfl_loss": 2.087686, "map50": 0.50593, "map": 0.13867, "precision": 0.53598, "recall": 0.7, "lr": 0.0010298}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     51/100         2G      1.921      2.233      1.941         36        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     51/100         2G      1.883      2.276      1.918         29        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.7it/s 0.3s<1.1s
+[K     51/100         2G      1.859      2.283      1.906         45        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.1it/s 0.4s<0.6s
+[K     51/100         2G      1.869      2.259       1.92         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     51/100         2G      1.881      2.261      1.918         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 13.5it/s 0.1s
+                   all         10         10      0.621      0.657      0.575      0.156
+[Epoch 51/100]  GPU=2.14G  box_loss=1.9421  cls_loss=2.2721  dfl_loss=1.9094  P=0.6209  R=0.6573  mAP50=0.5752  mAP50-95=0.1556  lr/pg0=1.01e-03  lr/pg1=1.01e-03  lr/pg2=1.01e-03
+JSON_LOG:{"epoch": 51, "total_epoch": 100, "box_loss": 1.942074, "cls_loss": 2.272135, "dfl_loss": 1.909417, "map50": 0.57518, "map": 0.15556, "precision": 0.62086, "recall": 0.65735, "lr": 0.00101}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     52/100         2G      1.936      2.254      1.965         46        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.6s
+[K     52/100         2G      1.954      2.279      1.966         34        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     52/100         2G      1.954      2.268      1.957         40        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.7it/s 0.4s<0.5s
+[K     52/100         2G      1.888      2.205      1.926         22        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.6s<0.1s
+[K     52/100         2G      1.888      2.205      1.926         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.6it/s 0.1s
+                   all         10         10      0.675        0.7      0.669      0.187
+[Epoch 52/100]  GPU=2.14G  box_loss=1.8146  cls_loss=2.0469  dfl_loss=1.9405  P=0.6754  R=0.7000  mAP50=0.6691  mAP50-95=0.1866  lr/pg0=9.90e-04  lr/pg1=9.90e-04  lr/pg2=9.90e-04
+JSON_LOG:{"epoch": 52, "total_epoch": 100, "box_loss": 1.814625, "cls_loss": 2.046873, "dfl_loss": 1.940492, "map50": 0.66913, "map": 0.18658, "precision": 0.67535, "recall": 0.7, "lr": 0.0009902}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     53/100         2G      1.892      2.284      1.975         42        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     53/100         2G      1.882      2.247       1.95         30        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     53/100         2G      1.892      2.225      1.956         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.2it/s 0.4s<0.6s
+[K     53/100         2G      1.901      2.252       1.95         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.9it/s 0.6s<0.1s
+[K     53/100         2G      1.901      2.252       1.95         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.3it/s 0.1s
+                   all         10         10      0.671      0.613       0.67      0.186
+[Epoch 53/100]  GPU=2.14G  box_loss=1.7926  cls_loss=2.1145  dfl_loss=1.8226  P=0.6712  R=0.6135  mAP50=0.6696  mAP50-95=0.1858  lr/pg0=9.70e-04  lr/pg1=9.70e-04  lr/pg2=9.70e-04
+JSON_LOG:{"epoch": 53, "total_epoch": 100, "box_loss": 1.792626, "cls_loss": 2.114529, "dfl_loss": 1.822579, "map50": 0.66963, "map": 0.18585, "precision": 0.67116, "recall": 0.61347, "lr": 0.0009704}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     54/100         2G      1.922      2.359      1.974         30        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     54/100         2G      1.822      2.242      1.909         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.5it/s 0.2s<2.0s
+[K     54/100         2G       1.85      2.285      1.931         40        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.7it/s 0.3s<0.8s
+[K     54/100         2G       1.91      2.248      1.972         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.2it/s 0.4s<0.5s
+[K     54/100         2G      1.898      2.261      1.964         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.2it/s 0.5s<0.3s
+[K     54/100         2G      1.904       2.23      1.952         32        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 8.0it/s 0.6s<0.1s
+[K     54/100         2G      1.904       2.23      1.952         32        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 18.6it/s 0.1s
+                   all         10         10       0.72      0.517      0.613      0.165
+[Epoch 54/100]  GPU=2.14G  box_loss=1.9340  cls_loss=2.0745  dfl_loss=1.8916  P=0.7205  R=0.5174  mAP50=0.6131  mAP50-95=0.1646  lr/pg0=9.51e-04  lr/pg1=9.51e-04  lr/pg2=9.51e-04
+JSON_LOG:{"epoch": 54, "total_epoch": 100, "box_loss": 1.934031, "cls_loss": 2.074504, "dfl_loss": 1.89164, "map50": 0.61307, "map": 0.16455, "precision": 0.72049, "recall": 0.51736, "lr": 0.0009506}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     55/100         2G      1.991      2.226       2.02         47        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.3s
+[K     55/100         2G      1.973      2.234       2.04         34        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.7it/s 0.3s<1.1s
+[K     55/100         2G      1.978      2.215      2.028         23        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.1it/s 0.4s<0.6s
+[K     55/100         2G      1.983      2.273      2.028         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     55/100         2G      1.957      2.274      1.995         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.6it/s 0.1s
+                   all         10         10      0.651        0.6      0.633      0.181
+[Epoch 55/100]  GPU=2.14G  box_loss=1.8279  cls_loss=2.2780  dfl_loss=1.8344  P=0.6512  R=0.6000  mAP50=0.6333  mAP50-95=0.1806  lr/pg0=9.31e-04  lr/pg1=9.31e-04  lr/pg2=9.31e-04
+JSON_LOG:{"epoch": 55, "total_epoch": 100, "box_loss": 1.827879, "cls_loss": 2.278049, "dfl_loss": 1.834418, "map50": 0.63333, "map": 0.18061, "precision": 0.65123, "recall": 0.6, "lr": 0.0009308}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     56/100         2G      1.844      2.065       1.87         35        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     56/100         2G      1.999      2.256      1.986         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     56/100         2G      1.924      2.177      1.972         45        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.5it/s 0.3s<0.9s
+[K     56/100         2G      1.946      2.169      1.986         36        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 9.1it/s 0.4s<0.2s
+[K     56/100         2G      1.945       2.17      1.981         32        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.4it/s 0.5s<0.3s
+[K     56/100         2G      1.974      2.181      1.998         19        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.2it/s 0.7s<0.1s
+[K     56/100         2G      1.974      2.181      1.998         19        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.9it/s 0.1s
+                   all         10         10      0.465        0.7      0.569      0.172
+[Epoch 56/100]  GPU=2.14G  box_loss=2.1199  cls_loss=2.2328  dfl_loss=2.0845  P=0.4650  R=0.7000  mAP50=0.5695  mAP50-95=0.1720  lr/pg0=9.11e-04  lr/pg1=9.11e-04  lr/pg2=9.11e-04
+JSON_LOG:{"epoch": 56, "total_epoch": 100, "box_loss": 2.119941, "cls_loss": 2.232767, "dfl_loss": 2.084495, "map50": 0.56947, "map": 0.17204, "precision": 0.46502, "recall": 0.7, "lr": 0.000911}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     57/100         2G      1.803      2.221      1.924         36        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     57/100         2G      1.946      2.201      2.009         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     57/100         2G      1.943      2.199      2.009         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     57/100         2G      1.929      2.188      1.967         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.7it/s 0.4s<0.5s
+[K     57/100         2G      1.964      2.256       1.99         33        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.6s<0.3s
+[K     57/100         2G      1.977      2.242      2.009         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.1it/s 0.1s
+                   all         10         10      0.381        0.7      0.657      0.205
+[Epoch 57/100]  GPU=2.14G  box_loss=2.0435  cls_loss=2.1711  dfl_loss=2.1037  P=0.3811  R=0.7000  mAP50=0.6573  mAP50-95=0.2047  lr/pg0=8.91e-04  lr/pg1=8.91e-04  lr/pg2=8.91e-04
+JSON_LOG:{"epoch": 57, "total_epoch": 100, "box_loss": 2.043529, "cls_loss": 2.171073, "dfl_loss": 2.103739, "map50": 0.65735, "map": 0.20471, "precision": 0.38111, "recall": 0.7, "lr": 0.0008912}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     58/100         2G      1.901      2.133       1.92         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.6s
+[K     58/100         2G      1.892      2.221      1.945         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.9it/s 0.4s<0.8s
+[K     58/100         2G      1.893      2.219      1.941         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.4it/s 0.5s<0.4s
+[K     58/100         2G      1.897      2.245      1.941         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.7it/s 0.6s<0.1s
+[K     58/100         2G      1.897      2.245      1.941         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.9it/s 0.1s
+                   all         10         10      0.289        0.8      0.717      0.236
+[Epoch 58/100]  GPU=2.14G  box_loss=1.9157  cls_loss=2.3749  dfl_loss=1.9402  P=0.2890  R=0.8000  mAP50=0.7171  mAP50-95=0.2358  lr/pg0=8.71e-04  lr/pg1=8.71e-04  lr/pg2=8.71e-04
+JSON_LOG:{"epoch": 58, "total_epoch": 100, "box_loss": 1.915672, "cls_loss": 2.374896, "dfl_loss": 1.940167, "map50": 0.71713, "map": 0.23581, "precision": 0.28896, "recall": 0.8, "lr": 0.0008714}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     59/100         2G      1.987       2.26       1.92         46        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     59/100         2G      1.856      2.211      1.864         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 3.0it/s 0.2s<1.7s
+[K     59/100         2G      1.883      2.182      1.884         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 5.1it/s 0.3s<0.8s
+[K     59/100         2G       1.85      2.145      1.853         42        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.4s<0.5s
+[K     59/100         2G      1.835      2.168      1.875         17        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.4it/s 0.6s<0.1s
+[K     59/100         2G      1.835      2.168      1.875         17        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 13.9it/s 0.1s
+                   all         10         10      0.256        0.8      0.614      0.227
+[Epoch 59/100]  GPU=2.14G  box_loss=1.7744  cls_loss=2.2097  dfl_loss=1.8358  P=0.2564  R=0.8000  mAP50=0.6141  mAP50-95=0.2272  lr/pg0=8.52e-04  lr/pg1=8.52e-04  lr/pg2=8.52e-04
+JSON_LOG:{"epoch": 59, "total_epoch": 100, "box_loss": 1.774432, "cls_loss": 2.209737, "dfl_loss": 1.835765, "map50": 0.61412, "map": 0.22719, "precision": 0.25637, "recall": 0.8, "lr": 0.0008516}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     60/100         2G      1.978      2.216       2.02         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.9s
+[K     60/100         2G      1.954      2.194      2.045         30        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     60/100         2G      1.952      2.192      2.052         31        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.2it/s 0.5s<0.6s
+[K     60/100         2G      1.942      2.196      2.038         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.6s<0.3s
+[K     60/100         2G      1.909      2.208      2.001         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.3it/s 0.7s<0.1s
+[K     60/100         2G      1.909      2.208      2.001         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 8.9it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.9it/s 0.1s
+                   all         10         10      0.473        0.8      0.551      0.169
+[Epoch 60/100]  GPU=2.14G  box_loss=1.7472  cls_loss=2.2701  dfl_loss=1.8146  P=0.4732  R=0.8000  mAP50=0.5511  mAP50-95=0.1686  lr/pg0=8.32e-04  lr/pg1=8.32e-04  lr/pg2=8.32e-04
+JSON_LOG:{"epoch": 60, "total_epoch": 100, "box_loss": 1.747248, "cls_loss": 2.270094, "dfl_loss": 1.81457, "map50": 0.55112, "map": 0.16858, "precision": 0.47321, "recall": 0.8, "lr": 0.0008318}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     61/100         2G      1.966      2.062      2.046         38        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     61/100         2G      2.009      2.212       2.07         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     61/100         2G      1.971       2.21      2.003         47        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.7it/s 0.3s<0.9s
+[K     61/100         2G      1.989      2.226      2.009         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.7it/s 0.4s<0.5s
+[K     61/100         2G      1.963      2.214      1.993         44        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.0it/s 0.5s<0.3s
+[K     61/100         2G      1.922       2.23      1.973         27        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.6it/s 0.1s
+                   all         10         10      0.532        0.8      0.604      0.176
+[Epoch 61/100]  GPU=2.14G  box_loss=1.7158  cls_loss=2.3076  dfl_loss=1.8775  P=0.5325  R=0.8000  mAP50=0.6036  mAP50-95=0.1757  lr/pg0=8.12e-04  lr/pg1=8.12e-04  lr/pg2=8.12e-04
+JSON_LOG:{"epoch": 61, "total_epoch": 100, "box_loss": 1.715794, "cls_loss": 2.307589, "dfl_loss": 1.877503, "map50": 0.60359, "map": 0.17569, "precision": 0.53247, "recall": 0.8, "lr": 0.000812}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     62/100         2G      1.812      2.202      1.972         29        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     62/100         2G      1.874      2.255      1.977         48        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.2s
+[K     62/100         2G      1.889      2.235      1.974         46        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.1it/s 0.4s<1.0s
+[K     62/100         2G      1.888      2.189      1.957         41        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.7it/s 0.5s<0.5s
+[K     62/100         2G      1.866       2.17       1.94         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.6s<0.3s
+[K     62/100         2G      1.866       2.17      1.933         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.7it/s 0.7s<0.1s
+[K     62/100         2G      1.866       2.17      1.933         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.0it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 12.7it/s 0.1s
+                   all         10         10      0.607        0.7      0.602       0.16
+[Epoch 62/100]  GPU=2.14G  box_loss=1.8647  cls_loss=2.1724  dfl_loss=1.9005  P=0.6069  R=0.7000  mAP50=0.6015  mAP50-95=0.1601  lr/pg0=7.92e-04  lr/pg1=7.92e-04  lr/pg2=7.92e-04
+JSON_LOG:{"epoch": 62, "total_epoch": 100, "box_loss": 1.864698, "cls_loss": 2.172448, "dfl_loss": 1.900519, "map50": 0.60154, "map": 0.16014, "precision": 0.60688, "recall": 0.7, "lr": 0.0007922}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     63/100         2G       1.91       2.16      1.924         37        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     63/100         2G      1.876      2.146      1.911         35        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.7it/s 0.2s<1.8s
+[K     63/100         2G      1.864      2.149      1.931         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.7it/s 0.3s<0.9s
+[K     63/100         2G        1.9      2.165      1.947         45        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.9it/s 0.4s<0.5s
+[K     63/100         2G      1.879      2.166      1.936         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.0it/s 0.5s<0.3s
+[K     63/100         2G      1.881      2.177      1.923         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.8it/s 0.1s
+                   all         10         10      0.577        0.7      0.627      0.164
+[Epoch 63/100]  GPU=2.14G  box_loss=1.8903  cls_loss=2.2288  dfl_loss=1.8572  P=0.5770  R=0.7000  mAP50=0.6272  mAP50-95=0.1636  lr/pg0=7.72e-04  lr/pg1=7.72e-04  lr/pg2=7.72e-04
+JSON_LOG:{"epoch": 63, "total_epoch": 100, "box_loss": 1.890277, "cls_loss": 2.228757, "dfl_loss": 1.857222, "map50": 0.62717, "map": 0.16355, "precision": 0.57702, "recall": 0.7, "lr": 0.0007724}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     64/100         2G        1.9      2.304      1.934         30        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.7s
+[K     64/100         2G      1.928      2.338       1.98         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     64/100         2G      1.966      2.333      2.001         29        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     64/100         2G      1.937      2.325      1.977         44        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     64/100         2G      1.963       2.38      1.996         21        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.3it/s 0.7s<0.1s
+[K     64/100         2G      1.963       2.38      1.996         21        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.2it/s 0.1s
+                   all         10         10      0.222        0.8      0.486       0.12
+[Epoch 64/100]  GPU=2.14G  box_loss=2.0906  cls_loss=2.6535  dfl_loss=2.0912  P=0.2218  R=0.8000  mAP50=0.4859  mAP50-95=0.1197  lr/pg0=7.53e-04  lr/pg1=7.53e-04  lr/pg2=7.53e-04
+JSON_LOG:{"epoch": 64, "total_epoch": 100, "box_loss": 2.090589, "cls_loss": 2.653482, "dfl_loss": 2.091231, "map50": 0.48595, "map": 0.11973, "precision": 0.22179, "recall": 0.8, "lr": 0.0007526}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     65/100         2G       1.96      2.205      1.955         34        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     65/100         2G      1.931      2.267      1.965         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     65/100         2G      1.954      2.359      2.003         32        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     65/100         2G      1.918       2.31      1.974         35        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.4s<0.5s
+[K     65/100         2G       1.89      2.293      1.941         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.0it/s 0.5s<0.3s
+[K     65/100         2G       1.87      2.234      1.915         35        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.3it/s 0.1s
+                   all         10         10      0.227        0.8      0.526      0.138
+[Epoch 65/100]  GPU=2.14G  box_loss=1.7693  cls_loss=1.9418  dfl_loss=1.7866  P=0.2272  R=0.8000  mAP50=0.5262  mAP50-95=0.1383  lr/pg0=7.33e-04  lr/pg1=7.33e-04  lr/pg2=7.33e-04
+JSON_LOG:{"epoch": 65, "total_epoch": 100, "box_loss": 1.769324, "cls_loss": 1.9418, "dfl_loss": 1.786631, "map50": 0.52615, "map": 0.1383, "precision": 0.22717, "recall": 0.8, "lr": 0.0007328}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     66/100         2G      1.915      2.237      1.995         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.3it/s 0.2s<3.7s
+[K     66/100         2G      1.896      2.248      2.006         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.0s
+[K     66/100         2G      1.889      2.272      1.968         40        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.5it/s 0.4s<0.5s
+[K     66/100         2G      1.867      2.279      1.955         30        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.8it/s 0.5s<0.3s
+[K     66/100         2G       1.86      2.278       1.94         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.6it/s 0.1s
+                   all         10         10      0.294        0.9      0.684      0.153
+[Epoch 66/100]  GPU=2.14G  box_loss=1.8240  cls_loss=2.2698  dfl_loss=1.8698  P=0.2942  R=0.9000  mAP50=0.6844  mAP50-95=0.1534  lr/pg0=7.13e-04  lr/pg1=7.13e-04  lr/pg2=7.13e-04
+JSON_LOG:{"epoch": 66, "total_epoch": 100, "box_loss": 1.82398, "cls_loss": 2.269789, "dfl_loss": 1.869764, "map50": 0.68441, "map": 0.15337, "precision": 0.29423, "recall": 0.9, "lr": 0.000713}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     67/100         2G      1.849      2.309      1.964         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     67/100         2G      1.853      2.288      1.963         43        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.8it/s 0.3s<1.1s
+[K     67/100         2G      1.876      2.251      1.967         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.2it/s 0.4s<0.6s
+[K     67/100         2G       1.88      2.201      1.951         24        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.9it/s 0.6s<0.1s
+[K     67/100         2G       1.88      2.201      1.951         24        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.5it/s 0.1s
+                   all         10         10      0.321        0.8      0.792       0.17
+[Epoch 67/100]  GPU=2.14G  box_loss=1.7542  cls_loss=2.1313  dfl_loss=1.8522  P=0.3211  R=0.8000  mAP50=0.7922  mAP50-95=0.1696  lr/pg0=6.93e-04  lr/pg1=6.93e-04  lr/pg2=6.93e-04
+JSON_LOG:{"epoch": 67, "total_epoch": 100, "box_loss": 1.754235, "cls_loss": 2.131251, "dfl_loss": 1.852185, "map50": 0.79215, "map": 0.1696, "precision": 0.32108, "recall": 0.8, "lr": 0.0006932}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     68/100         2G      1.768      2.237      1.831         43        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     68/100         2G      1.776      2.237      1.899         38        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     68/100         2G      1.815      2.201      1.934         32        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.5it/s 0.4s<0.7s
+[K     68/100         2G       1.81      2.203      1.911         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.1it/s 0.5s<0.3s
+[K     68/100         2G      1.798      2.211      1.909         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 19.0it/s 0.1s
+                   all         10         10      0.392        0.7      0.605      0.163
+[Epoch 68/100]  GPU=2.14G  box_loss=1.7396  cls_loss=2.2483  dfl_loss=1.8992  P=0.3923  R=0.7000  mAP50=0.6050  mAP50-95=0.1628  lr/pg0=6.73e-04  lr/pg1=6.73e-04  lr/pg2=6.73e-04
+JSON_LOG:{"epoch": 68, "total_epoch": 100, "box_loss": 1.7396, "cls_loss": 2.248331, "dfl_loss": 1.899201, "map50": 0.60497, "map": 0.16284, "precision": 0.3923, "recall": 0.7, "lr": 0.0006734}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     69/100         2G      1.841      2.154      1.916         42        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     69/100         2G      1.824      2.196      1.899         42        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     69/100         2G      1.833      2.173      1.916         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     69/100         2G      1.809      2.187       1.93         31        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     69/100         2G      1.824      2.177      1.926         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.5s<0.3s
+[K     69/100         2G       1.81      2.162      1.907         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.8it/s 0.1s
+                   all         10         10      0.467        0.7      0.594       0.17
+[Epoch 69/100]  GPU=2.14G  box_loss=1.7374  cls_loss=2.0915  dfl_loss=1.8094  P=0.4669  R=0.7000  mAP50=0.5941  mAP50-95=0.1698  lr/pg0=6.54e-04  lr/pg1=6.54e-04  lr/pg2=6.54e-04
+JSON_LOG:{"epoch": 69, "total_epoch": 100, "box_loss": 1.737405, "cls_loss": 2.091471, "dfl_loss": 1.809424, "map50": 0.59411, "map": 0.16983, "precision": 0.46687, "recall": 0.7, "lr": 0.0006536}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     70/100         2G      1.866      2.165      1.936         40        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     70/100         2G      1.782      2.159      1.875         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.1s
+[K     70/100         2G      1.832      2.208      1.901         37        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K     70/100         2G       1.83      2.197      1.932         30        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.1it/s 0.4s<0.5s
+[K     70/100         2G      1.849      2.152      1.933         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.2it/s 0.5s<0.3s
+[K     70/100         2G       1.89      2.156      1.967         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 12.3it/s 0.1s
+                   all         10         10      0.386        0.6      0.522      0.149
+[Epoch 70/100]  GPU=2.14G  box_loss=2.0969  cls_loss=2.1758  dfl_loss=2.1333  P=0.3861  R=0.6000  mAP50=0.5218  mAP50-95=0.1490  lr/pg0=6.34e-04  lr/pg1=6.34e-04  lr/pg2=6.34e-04
+JSON_LOG:{"epoch": 70, "total_epoch": 100, "box_loss": 2.096871, "cls_loss": 2.175824, "dfl_loss": 2.133312, "map50": 0.5218, "map": 0.14904, "precision": 0.38609, "recall": 0.6, "lr": 0.0006338}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     71/100         2G      1.903      2.127      1.921         44        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.2s
+[K     71/100         2G       1.88       2.13      1.941         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.0it/s 0.3s<1.0s
+[K     71/100         2G      1.883        2.1      1.944         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.3it/s 0.4s<0.6s
+[K     71/100         2G      1.861      2.116      1.916         38        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.5s<0.3s
+[K     71/100         2G      1.877      2.137      1.936         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.1it/s 0.1s
+                   all         10         10      0.416        0.6      0.503      0.127
+[Epoch 71/100]  GPU=2.14G  box_loss=1.9576  cls_loss=2.2408  dfl_loss=2.0326  P=0.4160  R=0.6000  mAP50=0.5028  mAP50-95=0.1266  lr/pg0=6.14e-04  lr/pg1=6.14e-04  lr/pg2=6.14e-04
+JSON_LOG:{"epoch": 71, "total_epoch": 100, "box_loss": 1.957562, "cls_loss": 2.240817, "dfl_loss": 2.032593, "map50": 0.5028, "map": 0.12656, "precision": 0.41598, "recall": 0.6, "lr": 0.000614}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     72/100         2G      1.866      2.295      2.007         28        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.6s
+[K     72/100         2G      1.931      2.293      2.047         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.9it/s 0.4s<0.8s
+[K     72/100         2G      1.919      2.255      2.035         34        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     72/100         2G      1.903      2.211      2.007         25        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.6it/s 0.6s<0.2s
+[K     72/100         2G      1.903      2.211      2.007         25        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.6it/s 0.1s
+                   all         10         10      0.323        0.8      0.563      0.138
+[Epoch 72/100]  GPU=2.14G  box_loss=1.8242  cls_loss=1.9944  dfl_loss=1.8704  P=0.3233  R=0.8000  mAP50=0.5632  mAP50-95=0.1379  lr/pg0=5.94e-04  lr/pg1=5.94e-04  lr/pg2=5.94e-04
+JSON_LOG:{"epoch": 72, "total_epoch": 100, "box_loss": 1.824191, "cls_loss": 1.994374, "dfl_loss": 1.870425, "map50": 0.5632, "map": 0.13788, "precision": 0.32334, "recall": 0.8, "lr": 0.0005942}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     73/100         2G      1.774      2.162      1.875         31        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     73/100         2G      1.772       2.21      1.888         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     73/100         2G      1.801       2.16      1.897         41        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.9it/s 0.3s<0.8s
+[K     73/100         2G       1.81      2.157      1.904         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     73/100         2G      1.807      2.169      1.906         27        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.5s<0.3s
+[K     73/100         2G      1.783      2.148      1.889         18        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.5it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.1it/s 0.1s
+                   all         10         10      0.333        0.8      0.572      0.146
+[Epoch 73/100]  GPU=2.14G  box_loss=1.6621  cls_loss=2.0423  dfl_loss=1.8042  P=0.3332  R=0.8000  mAP50=0.5717  mAP50-95=0.1459  lr/pg0=5.74e-04  lr/pg1=5.74e-04  lr/pg2=5.74e-04
+JSON_LOG:{"epoch": 73, "total_epoch": 100, "box_loss": 1.662144, "cls_loss": 2.042349, "dfl_loss": 1.804231, "map50": 0.57171, "map": 0.14587, "precision": 0.33315, "recall": 0.8, "lr": 0.0005744}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     74/100         2G      2.045      2.256      2.122         22        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     74/100         2G      1.893      2.183      1.984         36        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.1s
+[K     74/100         2G      1.886      2.151      1.958         45        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K     74/100         2G      1.852      2.138      1.915         39        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.1it/s 0.4s<0.5s
+[K     74/100         2G      1.832      2.104      1.887         41        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.2it/s 0.5s<0.3s
+[K     74/100         2G      1.849      2.098      1.907         23        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.7it/s 0.7s<0.1s
+[K     74/100         2G      1.849      2.098      1.907         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 13.2it/s 0.1s
+                   all         10         10       0.32        0.7      0.603      0.167
+[Epoch 74/100]  GPU=2.14G  box_loss=1.9350  cls_loss=2.0693  dfl_loss=2.0111  P=0.3204  R=0.7000  mAP50=0.6034  mAP50-95=0.1669  lr/pg0=5.55e-04  lr/pg1=5.55e-04  lr/pg2=5.55e-04
+JSON_LOG:{"epoch": 74, "total_epoch": 100, "box_loss": 1.935034, "cls_loss": 2.069305, "dfl_loss": 2.011132, "map50": 0.60337, "map": 0.16693, "precision": 0.32039, "recall": 0.7, "lr": 0.0005546}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     75/100         2G      1.886      2.057      1.888         30        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     75/100         2G      1.811      2.051      1.861         42        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     75/100         2G      1.836      2.052      1.876         37        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     75/100         2G      1.824      2.066       1.87         46        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.8it/s 0.4s<0.5s
+[K     75/100         2G      1.834      2.075      1.881         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.7it/s 0.6s<0.3s
+[K     75/100         2G      1.857      2.089      1.897         27        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.3it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.5it/s 0.1s
+                   all         10         10      0.299        0.8      0.619      0.167
+[Epoch 75/100]  GPU=2.14G  box_loss=1.9716  cls_loss=2.1584  dfl_loss=1.9773  P=0.2994  R=0.8000  mAP50=0.6191  mAP50-95=0.1672  lr/pg0=5.35e-04  lr/pg1=5.35e-04  lr/pg2=5.35e-04
+JSON_LOG:{"epoch": 75, "total_epoch": 100, "box_loss": 1.971557, "cls_loss": 2.158417, "dfl_loss": 1.977328, "map50": 0.61908, "map": 0.16724, "precision": 0.29941, "recall": 0.8, "lr": 0.0005348}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     76/100         2G      1.871      2.275       1.95         43        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     76/100         2G      1.831      2.176      1.891         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.0it/s 0.4s<0.7s
+[K     76/100         2G      1.826      2.153      1.888         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.7it/s 0.5s<0.4s
+[K     76/100         2G      1.823      2.181      1.893         28        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.5it/s 0.6s<0.2s
+[K     76/100         2G      1.823      2.181      1.893         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 13.6it/s 0.1s
+                   all         10         10      0.287        0.6      0.586      0.165
+[Epoch 76/100]  GPU=2.14G  box_loss=1.8070  cls_loss=2.3209  dfl_loss=1.9143  P=0.2874  R=0.6000  mAP50=0.5862  mAP50-95=0.1647  lr/pg0=5.15e-04  lr/pg1=5.15e-04  lr/pg2=5.15e-04
+JSON_LOG:{"epoch": 76, "total_epoch": 100, "box_loss": 1.807004, "cls_loss": 2.320876, "dfl_loss": 1.914335, "map50": 0.5862, "map": 0.16467, "precision": 0.28743, "recall": 0.6, "lr": 0.000515}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     77/100         2G      1.906      2.235      1.866         39        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     77/100         2G        1.9      2.249      1.932         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     77/100         2G      1.889       2.19      1.915         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.7it/s 0.3s<0.9s
+[K     77/100         2G       1.88      2.168      1.918         33        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.9it/s 0.4s<0.5s
+[K     77/100         2G      1.835      2.117      1.881         28        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.3it/s 0.6s<0.1s
+[K     77/100         2G      1.835      2.117      1.881         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.9it/s 0.1s
+                   all         10         10      0.358        0.7       0.69      0.183
+[Epoch 77/100]  GPU=2.14G  box_loss=1.7308  cls_loss=2.1332  dfl_loss=1.7924  P=0.3583  R=0.7000  mAP50=0.6895  mAP50-95=0.1834  lr/pg0=4.95e-04  lr/pg1=4.95e-04  lr/pg2=4.95e-04
+JSON_LOG:{"epoch": 77, "total_epoch": 100, "box_loss": 1.730828, "cls_loss": 2.133215, "dfl_loss": 1.792392, "map50": 0.68953, "map": 0.1834, "precision": 0.35829, "recall": 0.7, "lr": 0.0004952}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     78/100         2G      1.713      1.937      1.787         33        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     78/100         2G      1.821      2.036      1.866         34        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.5it/s 0.2s<2.0s
+[K     78/100         2G      1.838       2.09      1.889         39        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K     78/100         2G      1.881      2.107      1.923         28        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.9it/s 0.4s<0.5s
+[K     78/100         2G      1.858      2.144      1.918         29        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.9it/s 0.6s<0.3s
+[K     78/100         2G      1.863       2.17      1.928         20        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.6it/s 0.7s<0.1s
+[K     78/100         2G      1.863       2.17      1.928         20        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.1it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.9it/s 0.1s
+                   all         10         10      0.526        0.9      0.627      0.194
+[Epoch 78/100]  GPU=2.14G  box_loss=1.8889  cls_loss=2.2999  dfl_loss=1.9755  P=0.5256  R=0.9000  mAP50=0.6273  mAP50-95=0.1939  lr/pg0=4.75e-04  lr/pg1=4.75e-04  lr/pg2=4.75e-04
+JSON_LOG:{"epoch": 78, "total_epoch": 100, "box_loss": 1.888913, "cls_loss": 2.299938, "dfl_loss": 1.975543, "map50": 0.62735, "map": 0.19393, "precision": 0.52563, "recall": 0.9, "lr": 0.0004754}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     79/100         2G      1.913      2.089      1.942         41        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     79/100         2G      1.895      2.191      1.938         26        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.0it/s 0.3s<1.3s
+[K     79/100         2G      1.897      2.191      1.938         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.4it/s 0.4s<0.7s
+[K     79/100         2G      1.897      2.157      1.934         36        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.9it/s 0.5s<0.3s
+[K     79/100         2G      1.903      2.109      1.915         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.6it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 11.6it/s 0.1s
+                   all         10         10       0.68        0.8      0.616      0.188
+[Epoch 79/100]  GPU=2.14G  box_loss=1.9295  cls_loss=1.8682  dfl_loss=1.8178  P=0.6805  R=0.8000  mAP50=0.6159  mAP50-95=0.1878  lr/pg0=4.56e-04  lr/pg1=4.56e-04  lr/pg2=4.56e-04
+JSON_LOG:{"epoch": 79, "total_epoch": 100, "box_loss": 1.929455, "cls_loss": 1.868249, "dfl_loss": 1.817808, "map50": 0.61591, "map": 0.18778, "precision": 0.68048, "recall": 0.8, "lr": 0.0004556}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     80/100         2G      1.998      2.433      1.967         37        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     80/100         2G      1.885      2.257      1.924         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     80/100         2G      1.841       2.21      1.895         37        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.7it/s 0.4s<0.6s
+[K     80/100         2G      1.797      2.221      1.875         28        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.0it/s 0.5s<0.3s
+[K     80/100         2G      1.818      2.226      1.889         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.9it/s 0.7s<0.1s
+[K     80/100         2G      1.818      2.226      1.889         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.9it/s 0.1s
+                   all         10         10       0.69        0.7      0.566      0.192
+[Epoch 80/100]  GPU=2.14G  box_loss=1.9200  cls_loss=2.2512  dfl_loss=1.9607  P=0.6901  R=0.7000  mAP50=0.5658  mAP50-95=0.1924  lr/pg0=4.36e-04  lr/pg1=4.36e-04  lr/pg2=4.36e-04
+JSON_LOG:{"epoch": 80, "total_epoch": 100, "box_loss": 1.919997, "cls_loss": 2.251166, "dfl_loss": 1.960685, "map50": 0.5658, "map": 0.1924, "precision": 0.69007, "recall": 0.7, "lr": 0.0004358}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     81/100         2G      1.782      2.118      1.819         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     81/100         2G      1.801      2.089       1.83         38        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     81/100         2G      1.784      2.157      1.847         38        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.2it/s 0.4s<0.6s
+[K     81/100         2G      1.789      2.119      1.852         46        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     81/100         2G      1.773      2.086      1.832         28        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 14.0it/s 0.1s
+                   all         10         10      0.614        0.7      0.559      0.169
+[Epoch 81/100]  GPU=2.14G  box_loss=1.6909  cls_loss=1.9190  dfl_loss=1.7298  P=0.6139  R=0.7000  mAP50=0.5592  mAP50-95=0.1691  lr/pg0=4.16e-04  lr/pg1=4.16e-04  lr/pg2=4.16e-04
+JSON_LOG:{"epoch": 81, "total_epoch": 100, "box_loss": 1.690902, "cls_loss": 1.919015, "dfl_loss": 1.729761, "map50": 0.5592, "map": 0.16905, "precision": 0.6139, "recall": 0.7, "lr": 0.000416}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     82/100         2G      1.775      2.061      1.883         26        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     82/100         2G      1.828      2.146      1.902         45        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     82/100         2G      1.848      2.203      1.935         28        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.8it/s 0.4s<0.6s
+[K     82/100         2G      1.833      2.208      1.914         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.5s<0.3s
+[K     82/100         2G      1.847       2.21      1.916         14        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.7it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.9it/s 0.1s
+                   all         10         10      0.557        0.7      0.561      0.182
+[Epoch 82/100]  GPU=2.14G  box_loss=1.9164  cls_loss=2.2190  dfl_loss=1.9250  P=0.5570  R=0.7000  mAP50=0.5610  mAP50-95=0.1816  lr/pg0=3.96e-04  lr/pg1=3.96e-04  lr/pg2=3.96e-04
+JSON_LOG:{"epoch": 82, "total_epoch": 100, "box_loss": 1.916436, "cls_loss": 2.218973, "dfl_loss": 1.924991, "map50": 0.56097, "map": 0.18161, "precision": 0.55699, "recall": 0.7, "lr": 0.0003962}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     83/100         2G      1.708      2.053      1.782         38        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     83/100         2G      1.664          2      1.718         39        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.6it/s 0.2s<1.9s
+[K     83/100         2G      1.763       2.05      1.806         35        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.6it/s 0.3s<0.9s
+[K     83/100         2G      1.802      2.123      1.855         30        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.6it/s 0.4s<0.5s
+[K     83/100         2G      1.802      2.093      1.878         22        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.1it/s 0.6s<0.1s
+[K     83/100         2G      1.802      2.093      1.878         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.4it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 12.1it/s 0.1s
+                   all         10         10      0.555        0.7      0.543      0.173
+[Epoch 83/100]  GPU=2.14G  box_loss=1.8104  cls_loss=1.9843  dfl_loss=1.9325  P=0.5546  R=0.7000  mAP50=0.5429  mAP50-95=0.1731  lr/pg0=3.76e-04  lr/pg1=3.76e-04  lr/pg2=3.76e-04
+JSON_LOG:{"epoch": 83, "total_epoch": 100, "box_loss": 1.810441, "cls_loss": 1.984265, "dfl_loss": 1.932521, "map50": 0.5429, "map": 0.17309, "precision": 0.55463, "recall": 0.7, "lr": 0.0003764}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     84/100         2G      1.841      2.401      1.985         33        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     84/100         2G      1.848      2.246       1.91         31        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.2s
+[K     84/100         2G      1.792       2.19      1.864         36        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.5it/s 0.3s<0.9s
+[K     84/100         2G      1.795      2.165      1.848         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.1it/s 0.5s<0.3s
+[K     84/100         2G      1.776      2.144      1.826         21        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.7s<0.1s
+[K     84/100         2G      1.776      2.144      1.826         21        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.7s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.5it/s 0.1s
+                   all         10         10      0.583      0.699      0.543       0.19
+[Epoch 84/100]  GPU=2.14G  box_loss=1.6776  cls_loss=2.0383  dfl_loss=1.7173  P=0.5830  R=0.6993  mAP50=0.5431  mAP50-95=0.1896  lr/pg0=3.57e-04  lr/pg1=3.57e-04  lr/pg2=3.57e-04
+JSON_LOG:{"epoch": 84, "total_epoch": 100, "box_loss": 1.677612, "cls_loss": 2.038347, "dfl_loss": 1.717287, "map50": 0.54306, "map": 0.18958, "precision": 0.58305, "recall": 0.69926, "lr": 0.0003566}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     85/100         2G      1.739       2.18      1.885         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     85/100         2G      1.817      2.132      1.895         27        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 3.7it/s 0.4s<0.8s
+[K     85/100         2G      1.804       2.12      1.889         39        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.6it/s 0.5s<0.4s
+[K     85/100         2G      1.783      2.077      1.868         32        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 16.8it/s 0.1s
+                   all         10         10      0.432        0.7      0.553      0.183
+[Epoch 85/100]  GPU=2.14G  box_loss=1.6769  cls_loss=1.8597  dfl_loss=1.7631  P=0.4316  R=0.7000  mAP50=0.5533  mAP50-95=0.1831  lr/pg0=3.37e-04  lr/pg1=3.37e-04  lr/pg2=3.37e-04
+JSON_LOG:{"epoch": 85, "total_epoch": 100, "box_loss": 1.676856, "cls_loss": 1.859749, "dfl_loss": 1.763133, "map50": 0.55326, "map": 0.18312, "precision": 0.43162, "recall": 0.7, "lr": 0.0003368}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     86/100         2G      1.704      2.088      1.899         41        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     86/100         2G      1.714      2.201      1.882         32        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.3it/s 0.2s<2.2s
+[K     86/100         2G      1.739      2.156       1.86         34        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.6it/s 0.4s<0.7s
+[K     86/100         2G      1.751       2.13       1.85         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.1it/s 0.5s<0.3s
+[K     86/100         2G      1.761      2.168      1.866         18        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.0it/s 0.6s<0.1s
+[K     86/100         2G      1.761      2.168      1.866         18        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.3it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.4it/s 0.1s
+                   all         10         10      0.375        0.8      0.498      0.159
+[Epoch 86/100]  GPU=2.14G  box_loss=1.8129  cls_loss=2.3568  dfl_loss=1.9448  P=0.3751  R=0.8000  mAP50=0.4980  mAP50-95=0.1593  lr/pg0=3.17e-04  lr/pg1=3.17e-04  lr/pg2=3.17e-04
+JSON_LOG:{"epoch": 86, "total_epoch": 100, "box_loss": 1.812884, "cls_loss": 2.356845, "dfl_loss": 1.944844, "map50": 0.49798, "map": 0.15932, "precision": 0.37515, "recall": 0.8, "lr": 0.000317}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     87/100         2G      1.828      2.066      1.868         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 0.2s<3.4s
+[K     87/100         2G      1.853      2.106      1.897         32        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     87/100         2G      1.825      2.106       1.89         36        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.1it/s 0.4s<0.6s
+[K     87/100         2G      1.818      2.103      1.887         26        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 6.9it/s 0.6s<0.1s
+[K     87/100         2G      1.818      2.103      1.887         26        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.9it/s 0.1s
+                   all         10         10      0.361      0.793      0.506      0.161
+[Epoch 87/100]  GPU=2.14G  box_loss=1.8328  cls_loss=2.1689  dfl_loss=1.8792  P=0.3615  R=0.7928  mAP50=0.5060  mAP50-95=0.1605  lr/pg0=2.97e-04  lr/pg1=2.97e-04  lr/pg2=2.97e-04
+JSON_LOG:{"epoch": 87, "total_epoch": 100, "box_loss": 1.832781, "cls_loss": 2.16886, "dfl_loss": 1.879177, "map50": 0.50603, "map": 0.16055, "precision": 0.36146, "recall": 0.79281, "lr": 0.0002972}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     88/100         2G      1.788      2.004      1.873         40        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.7s
+[K     88/100         2G      1.798      2.103      1.886         48        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.0it/s 0.4s<0.7s
+[K     88/100         2G      1.798      2.091      1.878         49        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 5.8it/s 0.5s<0.3s
+[K     88/100         2G      1.797      2.074      1.865         27        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.2it/s 0.1s
+                   all         10         10      0.381        0.5      0.489      0.145
+[Epoch 88/100]  GPU=2.14G  box_loss=1.7939  cls_loss=1.9871  dfl_loss=1.7977  P=0.3809  R=0.5000  mAP50=0.4895  mAP50-95=0.1447  lr/pg0=2.77e-04  lr/pg1=2.77e-04  lr/pg2=2.77e-04
+JSON_LOG:{"epoch": 88, "total_epoch": 100, "box_loss": 1.793876, "cls_loss": 1.987087, "dfl_loss": 1.797664, "map50": 0.48948, "map": 0.14474, "precision": 0.38089, "recall": 0.5, "lr": 0.0002774}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     89/100         2G      1.762      2.093      1.862         27        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     89/100         2G      1.846      2.086      1.887         37        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.8it/s 0.2s<1.8s
+[K     89/100         2G      1.834       2.09      1.879         42        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 4.7it/s 0.4s<0.6s
+[K     89/100         2G      1.817      2.082       1.87         37        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.2it/s 0.5s<0.3s
+[K     89/100         2G      1.791      2.104      1.863         22        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 20.5it/s 0.0s
+                   all         10         10      0.437        0.5      0.468      0.121
+[Epoch 89/100]  GPU=2.14G  box_loss=1.6569  cls_loss=2.2149  dfl_loss=1.8254  P=0.4372  R=0.5000  mAP50=0.4684  mAP50-95=0.1213  lr/pg0=2.58e-04  lr/pg1=2.58e-04  lr/pg2=2.58e-04
+JSON_LOG:{"epoch": 89, "total_epoch": 100, "box_loss": 1.656915, "cls_loss": 2.214869, "dfl_loss": 1.825357, "map50": 0.4684, "map": 0.12131, "precision": 0.43723, "recall": 0.5, "lr": 0.0002576}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     90/100         2G      1.919      2.056      1.948         33        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.4it/s 0.2s<3.6s
+[K     90/100         2G      1.862      2.108      1.936         37        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 3.9it/s 0.3s<1.0s
+[K     90/100         2G      1.855      2.116       1.92         32        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 5.4it/s 0.4s<0.6s
+[K     90/100         2G       1.84       2.09      1.908         35        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 6.5it/s 0.5s<0.3s
+[K     90/100         2G      1.831      2.079      1.889         23        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.5it/s 0.6s<0.1s
+[K     90/100         2G      1.831      2.079      1.889         23        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.3it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.2it/s 0.1s
+                   all         10         10       0.33        0.4      0.452      0.116
+[Epoch 90/100]  GPU=2.14G  box_loss=1.7848  cls_loss=2.0231  dfl_loss=1.7963  P=0.3304  R=0.4000  mAP50=0.4516  mAP50-95=0.1162  lr/pg0=2.38e-04  lr/pg1=2.38e-04  lr/pg2=2.38e-04
+JSON_LOG:{"epoch": 90, "total_epoch": 100, "box_loss": 1.784762, "cls_loss": 2.023105, "dfl_loss": 1.796335, "map50": 0.45158, "map": 0.11617, "precision": 0.33044, "recall": 0.4, "lr": 0.0002378}
+Closing dataloader mosaic
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     91/100         2G       2.08      2.163      2.045         19        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.8s
+[K     91/100         2G      1.979      2.377      1.973         16        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 1.5it/s 1.0s<3.3s
+[K     91/100         2G      2.056      2.362      2.041         16        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 2.4it/s 1.2s<1.7s
+[K     91/100         2G      2.018      2.369      2.026         17        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 2.7it/s 1.5s<1.1s
+[K     91/100         2G      1.975      2.333      1.982         17        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 3.6it/s 1.7s<0.6s
+[K     91/100         2G      1.926       2.32      1.947         11        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 5.0it/s 1.8s<0.2s
+[K     91/100         2G      1.926       2.32      1.947         11        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 3.3it/s 1.8s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 9.7it/s 0.1s
+                   all         10         10      0.322        0.4       0.45      0.108
+[Epoch 91/100]  GPU=2.14G  box_loss=1.6823  cls_loss=2.2497  dfl_loss=1.7747  P=0.3223  R=0.4000  mAP50=0.4501  mAP50-95=0.1077  lr/pg0=2.18e-04  lr/pg1=2.18e-04  lr/pg2=2.18e-04
+JSON_LOG:{"epoch": 91, "total_epoch": 100, "box_loss": 1.682271, "cls_loss": 2.249704, "dfl_loss": 1.774732, "map50": 0.45005, "map": 0.10775, "precision": 0.32228, "recall": 0.4, "lr": 0.000218}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     92/100         2G      1.901      2.271       1.93         16        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     92/100         2G      1.851      2.184      1.856         16        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.4it/s 0.2s<2.1s
+[K     92/100         2G      1.873      2.202      1.883         17        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.5it/s 0.3s<0.9s
+[K     92/100         2G      1.895      2.198      1.916         17        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.0it/s 0.4s<0.5s
+[K     92/100         2G      1.894      2.243      1.916         18        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.1it/s 0.6s<0.3s
+[K     92/100         2G       1.92      2.239      1.955         12        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.2it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.4it/s 0.1s
+                   all         10         10      0.306        0.7      0.407       0.11
+[Epoch 92/100]  GPU=2.14G  box_loss=2.0464  cls_loss=2.2217  dfl_loss=2.1491  P=0.3064  R=0.7000  mAP50=0.4072  mAP50-95=0.1096  lr/pg0=1.98e-04  lr/pg1=1.98e-04  lr/pg2=1.98e-04
+JSON_LOG:{"epoch": 92, "total_epoch": 100, "box_loss": 2.046368, "cls_loss": 2.221743, "dfl_loss": 2.149118, "map50": 0.40715, "map": 0.10957, "precision": 0.30644, "recall": 0.7, "lr": 0.0001982}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     93/100         2G      1.943      2.287      1.908         16        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     93/100         2G      1.947      2.277      1.945         17        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.9it/s 0.2s<1.7s
+[K     93/100         2G      1.913      2.236      1.936         18        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 5.0it/s 0.3s<0.8s
+[K     93/100         2G      1.922      2.232      1.974         16        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.0it/s 0.4s<0.5s
+[K     93/100         2G      1.906      2.251      1.965         17        640: 67% 笏≫煤笏≫煤笏≫煤笏≫煤笏笏笏笏 4/6 7.2it/s 0.5s<0.3s
+[K     93/100         2G      1.919      2.245      1.958         12        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.9it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 17.4it/s 0.1s
+                   all         10         10      0.361        0.3      0.427      0.141
+[Epoch 93/100]  GPU=2.14G  box_loss=1.9853  cls_loss=2.2163  dfl_loss=1.9213  P=0.3610  R=0.3000  mAP50=0.4267  mAP50-95=0.1411  lr/pg0=1.78e-04  lr/pg1=1.78e-04  lr/pg2=1.78e-04
+JSON_LOG:{"epoch": 93, "total_epoch": 100, "box_loss": 1.985302, "cls_loss": 2.21626, "dfl_loss": 1.921335, "map50": 0.42672, "map": 0.14109, "precision": 0.36099, "recall": 0.3, "lr": 0.0001784}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+
+[K     94/100         2G      1.926      2.413      2.024         16        640: 0% 笏笏笏笏笏笏笏笏笏笏笏笏 0/6  0.1s
+[K     94/100         2G      1.885      2.269      1.959         17        640: 17% 笏≫煤笏笏笏笏笏笏笏笏笏笏 1/6 2.6it/s 0.2s<1.9s
+[K     94/100         2G      1.784      2.191      1.895         16        640: 33% 笏≫煤笏≫煤笏笏笏笏笏笏笏笏 2/6 4.8it/s 0.3s<0.8s
+[K     94/100         2G      1.801      2.177      1.903         18        640: 50% 笏≫煤笏≫煤笏≫煤笏笏笏笏笏笏 3/6 6.3it/s 0.4s<0.5s
+[K     94/100         2G      1.822      2.247      1.928         13        640: 83% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏笏 5/6 7.5it/s 0.6s<0.1s
+[K     94/100         2G      1.822      2.247      1.928         13        640: 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 6/6 9.8it/s 0.6s
+
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% 笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤笏≫煤 1/1 15.7it/s 0.1s
+                   all         10         10      0.475        0.4      0.475      0.165
+[Epoch 94/100]  GPU=2.14G  box_loss=1.9290  cls_loss=2.2130  dfl_loss=2.0630  P=0.4752  R=0.4000  mAP50=0.4752  mAP50-95=0.1648  lr/pg0=1.59e-04  lr/pg1=1.59e-04  lr/pg2=1.59e-04
+JSON_LOG:{"epoch": 94, "total_epoch": 100, "box_loss": 1.928982, "cls_loss": 2.212985, "dfl_loss": 2.063001, "map50": 0.47523, "map": 0.16482, "precision": 0.47518, "recall": 0.4, "lr": 0.0001586}
+
+      Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size

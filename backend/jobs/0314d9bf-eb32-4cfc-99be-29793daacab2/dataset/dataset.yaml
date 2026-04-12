@@ -1,0 +1,6 @@
+path: C:/Users/kuroneko/Desktop/KENPIN_NEXT/tmp/workspaces/cmnvajnlv0031p0uqyuqp1e5n/dataset
+train: images/train
+val: images/val
+
+nc: 1
+names: ['object']

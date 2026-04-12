@@ -17,12 +17,14 @@ const BACKEND_URL =
 // 型定義
 // ---------------------------------------------------------------------------
 
-export type JobStatus = "queued" | "running" | "completed" | "failed";
+export type JobStatus = "queued" | "running" | "completed" | "failed" | "stopped";
 
 /** GET /jobs/{job_id} レスポンス（必要フィールドのみ） */
 export interface JobDetail {
   job_id: string;
   status: JobStatus;
+  /** queued 時の待機順（1 = 次に実行） */
+  queue_position?: number | null;
   /** 学習進捗 0–100 */
   progress: number;
   model: string;
@@ -150,4 +152,16 @@ export async function fetchJobResults(jobId: string): Promise<JobResults> {
  */
 export function jobImageUrl(jobId: string, filename: string): string {
   return `${BACKEND_URL}/jobs/${encodeURIComponent(jobId)}/images/${encodeURIComponent(filename)}`;
+}
+
+/**
+ * Request graceful stop for a running job.
+ */
+export async function stopJob(jobId: string): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/jobs/${encodeURIComponent(jobId)}/stop`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`POST /jobs/${jobId}/stop failed: ${res.status} ${res.statusText}`);
+  }
 }
