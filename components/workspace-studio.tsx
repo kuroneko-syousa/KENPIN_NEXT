@@ -720,6 +720,7 @@ function TrainingTab({
   const [valRatio, setValRatio] = useState(20); // val の割合 (%)
   const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
   const [isSubmittingJob, setIsSubmittingJob] = useState(false); // ロック機構: ジョブ投入中フラグ
+  const [modelDisplayName, setModelDisplayName] = useState("");
 
   // phase が変わるたびに親コンポーネントへ通知
   useEffect(() => {
@@ -892,7 +893,7 @@ function TrainingTab({
       const res = await fetch(`/api/workspaces/${workspace.id}/start-training`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: savedModelKey.replace(/\.pt$/i, ""), params: savedParams, device }),
+        body: JSON.stringify({ model: savedModelKey.replace(/\.pt$/i, ""), params: savedParams, device, display_name: modelDisplayName.trim() || null }),
       });
       const json = await res.json();
       if (!res.ok || !json.jobId) {
@@ -1262,14 +1263,40 @@ function TrainingTab({
       {/* 学習実行 */}
       <div className="workflow-actions" style={{ marginTop: "0.75rem" }}>
         {phase === "idle" && (
-          <button
-            type="button"
-            onClick={handleStartTraining}
-            disabled={prepareState === "running" || isSubmittingJob}
-            title={isSubmittingJob ? "学習ジョブを投入中です..." : prepareState === "running" ? "学習データ準備が完了するまでお待ちください" : ""}
-          >
-            {isSubmittingJob ? "⏳ 投入中..." : "🚀 学習を開始"}
-          </button>
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              <label style={{ fontSize: "0.82rem", color: "var(--muted)", whiteSpace: "nowrap" }}>
+                モデル名（任意）
+              </label>
+              <input
+                type="text"
+                value={modelDisplayName}
+                onChange={(e) => setModelDisplayName(e.target.value)}
+                maxLength={200}
+                placeholder="例: 検出モデル v1"
+                disabled={isSubmittingJob}
+                style={{
+                  flex: 1,
+                  fontSize: "0.85rem",
+                  padding: "0.25rem 0.5rem",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "inherit",
+                  outline: "none",
+                  minWidth: 0,
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleStartTraining}
+              disabled={prepareState === "running" || isSubmittingJob}
+              title={isSubmittingJob ? "学習ジョブを投入中です..." : prepareState === "running" ? "学習データ準備が完了するまでお待ちください" : ""}
+            >
+              {isSubmittingJob ? "⏳ 投入中..." : "🚀 学習を開始"}
+            </button>
+          </>
         )}
         {(phase === "running" || phase === "queued") && (
           <button type="button" className="ghost-button" onClick={handleStopTraining}>

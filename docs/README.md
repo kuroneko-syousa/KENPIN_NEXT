@@ -15,9 +15,11 @@
 
 * dashboard.md
   ダッシュボード仕様
+  - **[NEW 2026-04-12]** 学習済みモデルの命名・改名（display_name）
 
 * data-model.md
   データ構造定義（Prisma / Job モデル）
+  - **[NEW 2026-04-12]** Job.display_name 追加
 
 * storage-hierarchy.md
   **[NEW 2024-04-12]** マルチユーザー対応・ワークスペース別成果物管理
@@ -27,6 +29,7 @@
 
 * api.md
   API設計
+  - **[NEW 2026-04-12]** `PATCH /jobs/{job_id}/rename` 追加
 
 * roadmap.md
   今後の開発計画

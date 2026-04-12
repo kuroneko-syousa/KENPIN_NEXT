@@ -3,10 +3,6 @@ import { DashboardOverview } from "@/components/dashboard-overview";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
-type AnnotationImage = {
-  regions?: unknown;
-};
-
 const workspaceGenreLabels: Record<string, string> = {
   "object-detection": "物体検出",
   "anomaly-detection": "異常検知",
@@ -15,31 +11,30 @@ const workspaceGenreLabels: Record<string, string> = {
   "pose-keypoint": "姿勢推定・キーポイント",
 };
 
-function parseAnnotationProgress(annotationData: string, fallbackAnnotated: number) {
+function getAnnotationProgress(
+  entries: { regions: string }[],
+  annotationData: string
+) {
+  // 新方式: AnnotationEntry テーブルを優先
+  if (entries.length > 0) {
+    const total = entries.length;
+    const annotated = entries.filter((e) => {
+      try { return (JSON.parse(e.regions) as unknown[]).length > 0; } catch { return false; }
+    }).length;
+    return { total, annotated };
+  }
+  // 旧方式フォールバック: annotationData JSON blob
   try {
     const parsed = JSON.parse(annotationData) as unknown;
-    if (!Array.isArray(parsed)) {
-      return {
-        total: fallbackAnnotated,
-        annotated: fallbackAnnotated,
-      };
-    }
-
-    const images = parsed as AnnotationImage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return { total: 0, annotated: 0 };
+    const images = parsed as { regions?: unknown[] }[];
     const total = images.length;
-    const annotated = images.filter((image) => {
-      return Array.isArray(image.regions) && image.regions.length > 0;
-    }).length;
-
-    return {
-      total,
-      annotated,
-    };
+    const annotated = images.filter(
+      (img) => Array.isArray(img.regions) && img.regions.length > 0
+    ).length;
+    return { total, annotated };
   } catch {
-    return {
-      total: fallbackAnnotated,
-      annotated: fallbackAnnotated,
-    };
+    return { total: 0, annotated: 0 };
   }
 }
 
@@ -62,10 +57,8 @@ export default async function DashboardPage() {
           name: true,
           target: true,
           annotationData: true,
-          _count: {
-            select: {
-              annotationEntries: true,
-            },
+          annotationEntries: {
+            select: { regions: true },
           },
         },
       })
@@ -73,9 +66,9 @@ export default async function DashboardPage() {
 
   const annotationProgress = ownWorkspaces
     .map((workspace) => {
-      const progress = parseAnnotationProgress(
-        workspace.annotationData,
-        workspace._count.annotationEntries
+      const progress = getAnnotationProgress(
+        workspace.annotationEntries,
+        workspace.annotationData
       );
 
       const total = progress.total;

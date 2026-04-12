@@ -88,6 +88,7 @@ class Job(BaseModel):
     workspace_path: Optional[str]      # ワークスペース作業ディレクトリ
                                        # 例: /path/to/backend/workspaces/{user_id}/{workspace_id}/
     dataset_id: str                    # 使用データセット ID
+  display_name: Optional[str]        # 学習済みモデルの表示名（ユーザー編集可能）
     model: str                         # YOLO モデルキー（例: "yolov8n"）
     yolo_version: str                  # venv内 YOLO バージョン
     env_path: str                      # venv ルートパス
@@ -118,6 +119,12 @@ class Job(BaseModel):
     cancel_requested: bool             # ユーザー停止リクエスト
     locked: bool                       # 削除操作保護
 ```
+
+### display_name の運用ルール
+
+- 学習開始時に `display_name` を任意で保存可能
+- 学習済みモデル画面から `PATCH /jobs/{job_id}/rename` で後から変更可能
+- 既存ジョブで未設定の場合はモデルキー（例: `YOLOV8N`）をUI側の仮表示名として利用
 
 ### 出力構造（2024年4月12日更新）
 

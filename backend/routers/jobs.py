@@ -54,6 +54,10 @@ class JobLockRequest(BaseModel):
     locked: bool = Field(..., description="True to lock, false to unlock")
 
 
+class JobRenameRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=200, description="New display name")
+
+
 class JobQueueStatus(BaseModel):
     job_id: str
     status: JobStatus
@@ -331,7 +335,9 @@ def list_jobs(
             job_id=j.job_id,
             workspace_id=j.workspace_id,
             requested_by=j.requested_by,
+            user_id=j.user_id,
             dataset_id=j.dataset_id,
+            display_name=j.display_name,
             model=j.model,
             yolo_version=j.yolo_version,
             status=j.status,
@@ -683,6 +689,24 @@ def stop_job(job_id: str) -> Job:
 def lock_job(job_id: str, req: JobLockRequest) -> Job:
     """Toggle delete protection for a job."""
     updated = job_manager.set_job_locked(job_id, req.locked)
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return updated
+
+
+# ---------------------------------------------------------------------------
+# PATCH /jobs/{job_id}/rename  — update user-facing display name
+# ---------------------------------------------------------------------------
+
+
+@router.patch(
+    "/{job_id}/rename",
+    response_model=Job,
+    summary="Rename a job (set display_name)",
+)
+def rename_job(job_id: str, req: JobRenameRequest) -> Job:
+    """Set or update the user-facing display name for any job."""
+    updated = job_manager.rename_job(job_id, req.display_name)
     if updated is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
     return updated

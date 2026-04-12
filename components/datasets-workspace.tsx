@@ -25,13 +25,11 @@ interface WorkspaceOption {
   resourceId: string | null;
 }
 
-type DatasetPreviewTile = {
+type DatasetSampleImage = {
   id: string;
-  label: string;
-  annotated: boolean;
-  state: string;
-  quality: string;
-  hue: number;
+  file_name: string;
+  image_path: string;
+  split: string | null;
 };
 
 function formatDate(iso: string): string {
@@ -75,23 +73,51 @@ function getResourceLabel(
   return "-";
 }
 
-function buildDatasetPreviewTiles(ds: DatasetInfo): DatasetPreviewTile[] {
-  const baseSeed = Array.from(ds.dataset_id).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const labels = ["原画像", "アノテーション", "学習入力"];
+function buildDatasetImageUrl(datasetId: string, imagePath: string): string {
+  const encodedDatasetId = encodeURIComponent(datasetId);
+  const encodedPath = imagePath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${API_BASE}/datasets/${encodedDatasetId}/images/${encodedPath}`;
+}
 
-  return labels.map((label, index) => {
-    const hue = (baseSeed + index * 43) % 360;
-    const annotated = index !== 0 && ds.classes.length > 0 && ds.image_count > 0;
-
-    return {
-      id: `${ds.dataset_id}-${label}`,
-      label,
-      annotated,
-      state: ds.locked ? "固定" : "編集中",
-      quality: ds.source === "workspace" ? "自動生成" : "アップロード",
-      hue,
-    };
-  });
+function ActionIconButton({
+  title,
+  onClick,
+  disabled,
+  children,
+}: {
+  title: string;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={title}
+      title={title}
+      style={{
+        width: 26,
+        height: 26,
+        borderRadius: 999,
+        border: "1px solid rgba(255,255,255,0.2)",
+        background: "rgba(255,255,255,0.06)",
+        color: "rgba(245,247,251,0.92)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
+        padding: 0,
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
 type DatasetsWorkspaceProps = {
@@ -152,33 +178,38 @@ export function DatasetsWorkspace({
   const selectedDataset =
     filtered.find((ds) => ds.dataset_id === selectedId) ?? filtered[0] ?? null;
 
-  const previewTiles = useMemo(
-    () => (selectedDataset ? buildDatasetPreviewTiles(selectedDataset) : []),
-    [selectedDataset]
-  );
+  const {
+    data: sampleImages = [],
+    isFetching: sampleFetching,
+  } = useQuery<DatasetSampleImage[]>({
+    queryKey: ["dataset-samples", selectedDataset?.dataset_id],
+    enabled: Boolean(selectedDataset?.dataset_id),
+    queryFn: async () => {
+      if (!selectedDataset?.dataset_id) return [];
+      const res = await fetch(
+        `${API_BASE}/datasets/${encodeURIComponent(selectedDataset.dataset_id)}/samples?limit=1`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as DatasetSampleImage[];
+    },
+    refetchInterval: 15000,
+  });
 
   const detailItems = useMemo(
     () =>
       selectedDataset
         ? [
-            { label: "データセットID", value: selectedDataset.dataset_id, mono: true },
-            {
-              label: "種別",
-              value: selectedDataset.source === "workspace" ? "ワークスペース生成" : "アップロード",
-              mono: false,
-            },
             {
               label: "ワークスペース",
               value: getWorkspaceLabel(selectedDataset.workspace_id, workspaceNameMap),
               mono: false,
             },
-            { label: "ワークスペースID", value: selectedDataset.workspace_id ?? "-", mono: true },
             {
-              label: "使用リソース名",
+              label: "リソース",
               value: getResourceLabel(selectedDataset.workspace_id, workspaceOptionMap),
               mono: false,
             },
-            { label: "保存先", value: selectedDataset.path, mono: true },
           ]
         : [],
     [selectedDataset, workspaceNameMap, workspaceOptionMap]
@@ -306,9 +337,7 @@ export function DatasetsWorkspace({
                 ↻
               </button>
             </div>
-            <p className="muted">
-              ワークスペースごとに生成されたデータセットも一覧表示します。
-            </p>
+            <p className="muted">生成されたデータセットの一覧を表示します。</p>
           </div>
 
           <div
@@ -368,19 +397,64 @@ export function DatasetsWorkspace({
           <article className="panel">
             <div className="selection-list">
               {filtered.map((ds) => (
-                <button
+                <div
                   key={ds.dataset_id}
-                  type="button"
                   className={
                     selectedDataset?.dataset_id === ds.dataset_id
                       ? "selection-card workspace-selection-card active"
                       : "selection-card workspace-selection-card"
                   }
                   onClick={() => setSelectedId(ds.dataset_id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedId(ds.dataset_id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <strong style={{ fontSize: "0.9rem", wordBreak: "break-word" }}>
-                    {getDatasetTitle(ds, workspaceNameMap)}
-                  </strong>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+                    <strong style={{ fontSize: "0.9rem", wordBreak: "break-word" }}>
+                      {getDatasetTitle(ds, workspaceNameMap)}
+                    </strong>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                      <ActionIconButton
+                        title={ds.locked ? "ロック解除" : "ロック"}
+                        disabled={busyId === ds.dataset_id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleLockToggle(ds);
+                        }}
+                      >
+                        {ds.locked ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <rect x="4" y="11" width="16" height="9" rx="2" />
+                            <path d="M8 11V8a4 4 0 1 1 8 0" />
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <rect x="4" y="11" width="16" height="9" rx="2" />
+                            <path d="M9 11V8a3 3 0 0 1 6 0" />
+                          </svg>
+                        )}
+                      </ActionIconButton>
+                      <ActionIconButton
+                        title={ds.locked ? "ロック中は削除できません" : "削除"}
+                        disabled={busyId === ds.dataset_id || !!ds.locked}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDelete(ds);
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4h8v2" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                        </svg>
+                      </ActionIconButton>
+                    </div>
+                  </div>
                   <span>
                     {ds.source === "workspace"
                       ? `データセットID: ${ds.dataset_id}`
@@ -389,7 +463,7 @@ export function DatasetsWorkspace({
                   <span>
                     画像 {ds.image_count.toLocaleString()} 枚 / クラス {ds.classes.length} 件
                   </span>
-                </button>
+                </div>
               ))}
             </div>
           </article>
@@ -406,219 +480,191 @@ export function DatasetsWorkspace({
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                    gap: "0.4rem",
-                    margin: "0.55rem 0 0.65rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      borderRadius: 10,
-                      border: "1px solid transparent",
-                      padding: "0.4rem 0.55rem",
-                      background: "transparent",
-                    }}
-                  >
-                    <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>画像数</p>
-                    <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
-                      {selectedDataset.image_count.toLocaleString()} 枚
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      borderRadius: 10,
-                      border: "1px solid transparent",
-                      padding: "0.4rem 0.55rem",
-                      background: "transparent",
-                    }}
-                  >
-                    <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>クラス数</p>
-                    <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
-                      {selectedDataset.classes.length} 件
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      borderRadius: 10,
-                      border: "1px solid transparent",
-                      padding: "0.4rem 0.55rem",
-                      background: "transparent",
-                    }}
-                  >
-                    <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>ロック</p>
-                    <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
-                      {selectedDataset.locked ? "有効" : "無効"}
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      borderRadius: 10,
-                      border: "1px solid transparent",
-                      padding: "0.4rem 0.55rem",
-                      background: "transparent",
-                    }}
-                  >
-                    <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>作成日時</p>
-                    <p style={{ margin: "0.08rem 0 0", fontSize: "0.76rem", fontWeight: 700 }}>
-                      {formatDate(selectedDataset.created_at)}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "0.45rem",
-                    marginBottom: "0.7rem",
-                  }}
-                >
-                  {detailItems.map((item) => (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: "0.75rem" }}>
+                  <div>
                     <div
-                      key={item.label}
                       style={{
-                        borderRadius: 10,
-                        border: "1px solid transparent",
-                        background: "transparent",
-                        padding: "0.42rem 0.55rem",
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                        gap: "0.4rem",
+                        marginBottom: "0.6rem",
                       }}
                     >
-                      <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>{item.label}</p>
-                      <p
-                        style={{
-                          margin: "0.08rem 0 0",
-                          fontSize: "0.76rem",
-                          wordBreak: "break-all",
-                          fontFamily: item.mono ? "monospace" : "inherit",
-                        }}
-                      >
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="panel" style={{ padding: "0.55rem", marginBottom: "0.65rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
-                    <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.8rem" }}>サンプル画像（状態プレビュー）</p>
-                    <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>コンパクト表示</span>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: "0.45rem",
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
-                      gap: "0.4rem",
-                    }}
-                  >
-                    {previewTiles.map((tile) => (
                       <div
-                        key={tile.id}
                         style={{
                           borderRadius: 10,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: `linear-gradient(140deg, hsla(${tile.hue}, 88%, 68%, 0.22), rgba(12,18,29,0.94))`,
-                          padding: "0.34rem",
+                          border: "1px solid transparent",
+                          padding: "0.4rem 0.55rem",
+                          background: "transparent",
                         }}
                       >
+                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>画像数</p>
+                        <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
+                          {selectedDataset.image_count.toLocaleString()} 枚
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          borderRadius: 10,
+                          border: "1px solid transparent",
+                          padding: "0.4rem 0.55rem",
+                          background: "transparent",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>クラス数</p>
+                        <p style={{ margin: "0.08rem 0 0", fontSize: "0.86rem", fontWeight: 700 }}>
+                          {selectedDataset.classes.length} 件
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          borderRadius: 10,
+                          border: "1px solid transparent",
+                          padding: "0.4rem 0.55rem",
+                          background: "transparent",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>作成日時</p>
+                        <p style={{ margin: "0.08rem 0 0", fontSize: "0.76rem", fontWeight: 700 }}>
+                          {formatDate(selectedDataset.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: "0.45rem",
+                        marginBottom: "0.6rem",
+                      }}
+                    >
+                      {detailItems.map((item) => (
                         <div
+                          key={item.label}
                           style={{
-                            position: "relative",
-                            borderRadius: 7,
-                            aspectRatio: "4 / 3",
-                            overflow: "hidden",
-                            background: "linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
-                            border: "1px solid rgba(255,255,255,0.08)",
+                            borderRadius: 10,
+                            border: "1px solid transparent",
+                            background: "transparent",
+                            padding: "0.42rem 0.55rem",
                           }}
                         >
-                          <div
+                          <p style={{ margin: 0, fontSize: "0.66rem", color: "var(--muted)" }}>{item.label}</p>
+                          <p
                             style={{
-                              position: "absolute",
-                              left: "11%",
-                              top: "16%",
-                              width: "34%",
-                              height: "30%",
-                              border: tile.annotated
-                                ? "1.5px solid rgba(124,240,186,0.85)"
-                                : "1px dashed rgba(255,255,255,0.38)",
-                              borderRadius: 5,
+                              margin: "0.08rem 0 0",
+                              fontSize: "0.76rem",
+                              wordBreak: "break-all",
+                              fontFamily: item.mono ? "monospace" : "inherit",
                             }}
-                          />
-                          <div
+                          >
+                            {item.value}
+                          </p>
+                        </div>
+                      ))}
+                      <div style={{ borderRadius: 10, padding: "0.42rem 0.55rem" }} />
+                    </div>
+
+                    {selectedDataset.classes.length > 0 && (
+                      <div>
+                        <p style={{ color: "var(--muted)", fontSize: "0.66rem", margin: "0 0 0.3rem" }}>
+                          クラス一覧
+                        </p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", justifyContent: "flex-start" }}>
+                          {selectedDataset.classes.map((cls, i) => (
+                            <span
+                              key={`${cls}-${i}`}
+                              style={{
+                                padding: "1px 6px",
+                                borderRadius: 999,
+                                fontSize: "0.65rem",
+                                background: "rgba(124,240,186,0.12)",
+                                color: "#7cf0ba",
+                                border: "1px solid rgba(124,240,186,0.25)",
+                              }}
+                            >
+                              {cls}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                      }}
+                    >
+                      <p style={{ margin: "0 0 0.25rem", fontSize: "0.66rem", color: "var(--muted)" }}>サンプル画像</p>
+                      {sampleImages.length === 0 ? (
+                        <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.65rem" }}>
+                          なし
+                        </p>
+                      ) : (
+                        <div
+                          key={sampleImages[0].id}
+                          style={{
+                            position: "relative",
+                            borderRadius: 4,
+                            aspectRatio: "1 / 1",
+                            overflow: "hidden",
+                            background: "rgba(255,255,255,0.03)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            width: "100%",
+                            maxWidth: "120px",
+                          }}
+                        >
+                          <img
+                            src={buildDatasetImageUrl(selectedDataset.dataset_id, sampleImages[0].image_path)}
+                            alt={sampleImages[0].file_name}
+                            loading="lazy"
                             style={{
-                              position: "absolute",
-                              right: "14%",
-                              bottom: "18%",
-                              width: "28%",
-                              height: "24%",
-                              border: tile.annotated
-                                ? "1.5px solid rgba(115,217,255,0.85)"
-                                : "1px dashed rgba(255,255,255,0.28)",
-                              borderRadius: 5,
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
                             }}
                           />
                           <span
                             style={{
                               position: "absolute",
-                              left: 6,
-                              top: 6,
-                              padding: "1px 7px",
+                              left: 3,
+                              top: 3,
+                              padding: "0px 4px",
                               borderRadius: 999,
-                              fontSize: "0.65rem",
-                              color: tile.annotated ? "#7cf0ba" : "rgba(244,246,252,0.86)",
-                              background: tile.annotated ? "rgba(124,240,186,0.18)" : "rgba(255,255,255,0.12)",
-                              border: tile.annotated
-                                ? "1px solid rgba(124,240,186,0.32)"
-                                : "1px solid rgba(255,255,255,0.18)",
+                              fontSize: "0.5rem",
+                              color: "rgba(244,246,252,0.9)",
+                              background: "rgba(0,0,0,0.5)",
+                              border: "1px solid rgba(255,255,255,0.18)",
                             }}
                           >
-                            {tile.annotated ? "Annot済" : "未Annot"}
+                            {sampleImages[0].split ?? "sample"}
                           </span>
                         </div>
-                        <p style={{ margin: "0.25rem 0 0", fontSize: "0.7rem", fontWeight: 600 }}>{tile.label}</p>
-                        <p style={{ margin: "0.1rem 0 0", color: "var(--muted)", fontSize: "0.64rem" }}>
-                          {tile.state} / {tile.quality}
-                        </p>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap", marginBottom: "0.65rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => void handleLockToggle(selectedDataset)}
-                    disabled={busyId === selectedDataset.dataset_id}
-                  >
-                    {selectedDataset.locked ? "ロック解除" : "ロック"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(selectedDataset)}
-                    disabled={busyId === selectedDataset.dataset_id || !!selectedDataset.locked}
-                    title={selectedDataset.locked ? "削除前にロックを解除してください" : ""}
-                  >
-                    削除
-                  </button>
                 </div>
 
                 <div className="panel" style={{ padding: "0.55rem", marginBottom: "0.65rem" }}>
                   <p style={{ margin: "0 0 0.45rem", color: "var(--muted)", fontSize: "0.8rem" }}>共有ユーザー</p>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
                     <input
                       type="email"
                       value={shareEmail}
                       onChange={(e) => setShareEmail(e.target.value)}
                       placeholder="user@example.com"
-                      style={{ minWidth: 220 }}
+                      style={{ minWidth: 180, fontSize: "0.85rem", padding: "0.4rem 0.5rem" }}
                     />
                     <button
                       type="button"
                       onClick={() => void handleShare(selectedDataset, false)}
                       disabled={busyId === selectedDataset.dataset_id}
+                      style={{ fontSize: "0.75rem", padding: "0.35rem 0.7rem", minHeight: "auto" }}
                     >
                       共有追加
                     </button>
@@ -626,11 +672,12 @@ export function DatasetsWorkspace({
                       type="button"
                       onClick={() => void handleShare(selectedDataset, true)}
                       disabled={busyId === selectedDataset.dataset_id}
+                      style={{ fontSize: "0.75rem", padding: "0.35rem 0.7rem", minHeight: "auto" }}
                     >
                       共有解除
                     </button>
                   </div>
-                  <div style={{ marginTop: "0.45rem", fontSize: "0.76rem" }}>
+                  <div style={{ marginTop: "0.35rem", fontSize: "0.72rem" }}>
                     {(selectedDataset.shared_with ?? []).length === 0 ? (
                       <span style={{ color: "var(--muted)" }}>共有ユーザーはいません</span>
                     ) : (
@@ -642,31 +689,6 @@ export function DatasetsWorkspace({
                     )}
                   </div>
                 </div>
-
-                {selectedDataset.classes.length > 0 && (
-                  <div>
-                    <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.2rem 0 0.4rem" }}>
-                      クラス一覧
-                    </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                      {selectedDataset.classes.map((cls, i) => (
-                        <span
-                          key={`${cls}-${i}`}
-                          style={{
-                            padding: "1px 8px",
-                            borderRadius: 999,
-                            fontSize: "0.74rem",
-                            background: "rgba(124,240,186,0.12)",
-                            color: "#7cf0ba",
-                            border: "1px solid rgba(124,240,186,0.25)",
-                          }}
-                        >
-                          {cls}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </>
             ) : (
               <p style={{ color: "var(--muted)", padding: "1rem" }}>データセットを選択してください</p>

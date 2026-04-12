@@ -26,7 +26,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import yaml
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,13 @@ class DatasetLockRequest(BaseModel):
 class DatasetShareRequest(BaseModel):
     email: str
     revoke: bool = False
+
+
+class DatasetSampleImage(BaseModel):
+    id: str
+    file_name: str
+    image_path: str
+    split: Optional[str] = None
 
 
 def _load_meta() -> Dict[str, Dict[str, object]]:
@@ -235,6 +243,54 @@ def _resolve_dataset(dataset_id: str) -> Tuple[Path, Optional[str], str]:
     raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found")
 
 
+def _collect_sample_images(dataset_dir: Path, limit: int) -> List[DatasetSampleImage]:
+    rows: List[DatasetSampleImage] = []
+
+    def append_from_dir(base: Path, split: Optional[str]) -> None:
+        if not base.is_dir() or len(rows) >= limit:
+            return
+        for p in sorted(base.iterdir(), key=lambda v: v.name.lower()):
+            if len(rows) >= limit:
+                return
+            if not p.is_file() or p.suffix.lower() not in _IMAGE_SUFFIXES:
+                continue
+            rel = p.relative_to(dataset_dir).as_posix()
+            rows.append(
+                DatasetSampleImage(
+                    id=f"{split or 'root'}:{rel}",
+                    file_name=p.name,
+                    image_path=rel,
+                    split=split,
+                )
+            )
+
+    # Prefer train/val splits first for stable and representative preview.
+    append_from_dir(dataset_dir / "images" / "train", "train")
+    append_from_dir(dataset_dir / "images" / "val", "val")
+    append_from_dir(dataset_dir / "images" / "test", "test")
+
+    if len(rows) < limit:
+        # Fallback: scan the dataset root recursively.
+        for p in sorted(dataset_dir.rglob("*"), key=lambda v: str(v).lower()):
+            if len(rows) >= limit:
+                break
+            if not p.is_file() or p.suffix.lower() not in _IMAGE_SUFFIXES:
+                continue
+            rel = p.relative_to(dataset_dir).as_posix()
+            if any(r.image_path == rel for r in rows):
+                continue
+            rows.append(
+                DatasetSampleImage(
+                    id=f"scan:{rel}",
+                    file_name=p.name,
+                    image_path=rel,
+                    split=None,
+                )
+            )
+
+    return rows
+
+
 @router.post("/upload", summary="Upload a YOLO-format dataset as a ZIP file")
 async def upload_dataset(
     file: UploadFile = File(
@@ -362,6 +418,51 @@ def get_dataset(dataset_id: str) -> DatasetInfo:
     except Exception as exc:
         logger.error("Failed to parse dataset %s: %s", dataset_id, exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to read dataset")
+
+
+@router.get(
+    "/{dataset_id}/samples",
+    response_model=List[DatasetSampleImage],
+    summary="List sample images for dataset preview",
+)
+def list_dataset_samples(
+    dataset_id: str,
+    limit: int = Query(6, ge=1, le=30),
+) -> List[DatasetSampleImage]:
+    dataset_dir, _workspace_id, _source = _resolve_dataset(dataset_id)
+    return _collect_sample_images(dataset_dir, limit)
+
+
+@router.get(
+    "/{dataset_id}/images/{image_path:path}",
+    response_class=FileResponse,
+    summary="Serve one dataset image",
+)
+def get_dataset_image(dataset_id: str, image_path: str) -> FileResponse:
+    if not image_path or ".." in image_path:
+        raise HTTPException(status_code=400, detail="Invalid image path")
+
+    dataset_dir, _workspace_id, _source = _resolve_dataset(dataset_id)
+    target = (dataset_dir / image_path).resolve()
+    dataset_root = dataset_dir.resolve()
+
+    if not target.is_relative_to(dataset_root):
+        raise HTTPException(status_code=400, detail="Invalid image path")
+    if not target.is_file() or target.suffix.lower() not in _IMAGE_SUFFIXES:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    suffix = target.suffix.lower()
+    media_type = "image/jpeg"
+    if suffix == ".png":
+        media_type = "image/png"
+    elif suffix == ".webp":
+        media_type = "image/webp"
+    elif suffix in {".bmp"}:
+        media_type = "image/bmp"
+    elif suffix in {".tif", ".tiff"}:
+        media_type = "image/tiff"
+
+    return FileResponse(path=str(target), media_type=media_type)
 
 
 @router.post(

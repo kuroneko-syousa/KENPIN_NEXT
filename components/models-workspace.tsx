@@ -7,6 +7,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import JobResultsViewer from "@/components/studio/training/JobResultsViewer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -14,7 +15,9 @@ type JobStatus = "queued" | "running" | "completed" | "failed";
 
 interface TrainedModel {
   job_id: string;
+  workspace_id: string | null;
   dataset_id: string;
+  display_name: string | null;
   model: string;
   yolo_version: string;
   status: JobStatus;
@@ -53,6 +56,11 @@ export function ModelsWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renameMode, setRenameMode] = useState(false);
 
   const fetchModels = useCallback(async () => {
     setLoading(true);
@@ -78,6 +86,50 @@ export function ModelsWorkspace() {
   }, [fetchModels]);
 
   const selected = models.find((m) => m.job_id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selected?.workspace_id) {
+      setWorkspaceName(null);
+      return;
+    }
+    fetch(`/api/workspaces/${selected.workspace_id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setWorkspaceName(data?.name ?? null))
+      .catch(() => setWorkspaceName(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  // selectedId が変わったらリネームモードをリセット
+  useEffect(() => {
+    setRenameMode(false);
+    setRenameValue("");
+    setRenameError(null);
+  }, [selectedId]);
+
+  const handleRename = useCallback(async () => {
+    if (!selected || !renameValue.trim()) return;
+    setRenaming(true);
+    setRenameError(null);
+    try {
+      const res = await fetch(`${API_BASE}/jobs/${selected.job_id}/rename`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name: renameValue.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // ローカルの models リストを更新
+      setModels((prev) =>
+        prev.map((m) =>
+          m.job_id === selected.job_id ? { ...m, display_name: renameValue.trim() } : m
+        )
+      );
+      setRenameMode(false);
+    } catch (e) {
+      setRenameError(e instanceof Error ? e.message : "変更に失敗しました");
+    } finally {
+      setRenaming(false);
+    }
+  }, [selected, renameValue]);
 
   const handleDownloadWeights = useCallback(async () => {
     if (!selected) return;
@@ -143,9 +195,7 @@ export function ModelsWorkspace() {
               ↻
             </button>
           </div>
-          <p className="muted">
-            完了した学習ジョブの重みファイルと学習パラメータを確認できます。
-          </p>
+          <p className="muted">作成したモデルの学習結果とパラメータを確認できます。</p>
         </div>
       </section>
 
@@ -186,8 +236,8 @@ export function ModelsWorkspace() {
                   className={selectedId === m.job_id ? "selection-card model-selection-card active" : "selection-card model-selection-card"}
                   onClick={() => setSelectedId(m.job_id)}
                 >
-                  <strong>{m.model.toUpperCase()}</strong>
-                  <span className="model-selection-dataset">{m.dataset_id}</span>
+                  <strong>{m.display_name || m.model.toUpperCase()}</strong>
+                  <span className="model-selection-dataset">{m.model}</span>
                   <span className="model-selection-date">{formatDate(m.created_at)}</span>
                 </button>
               ))}
@@ -201,76 +251,108 @@ export function ModelsWorkspace() {
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Detail</p>
-                    <h3>{selected.model.toUpperCase()}</h3>
+                    {renameMode ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                        <input
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setRenameMode(false); }}
+                          maxLength={200}
+                          autoFocus
+                          style={{
+                            fontSize: "1rem",
+                            fontWeight: 600,
+                            padding: "0.15rem 0.4rem",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(255,255,255,0.3)",
+                            background: "rgba(255,255,255,0.08)",
+                            color: "inherit",
+                            outline: "none",
+                            minWidth: 0,
+                            flex: 1,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                          onClick={handleRename}
+                          disabled={renaming || !renameValue.trim()}
+                        >
+                          {renaming ? "保存中…" : "保存"}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                          onClick={() => setRenameMode(false)}
+                          disabled={renaming}
+                        >
+                          キャンセル
+                        </button>
+                        {renameError && <span style={{ fontSize: "0.75rem", color: "#f87171" }}>{renameError}</span>}
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <h3 style={{ margin: 0 }}>{selected.display_name || selected.model.toUpperCase()}</h3>
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          style={{ fontSize: "0.72rem", padding: "0.15rem 0.4rem", opacity: 0.7 }}
+                          onClick={() => { setRenameValue(selected.display_name || ""); setRenameMode(true); }}
+                          title="名前を変更"
+                        >
+                          ✎
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <span className="status ready">completed</span>
                 </div>
 
-                <div className="model-quick-metrics">
-                  <span className="metric-chip">YOLO {selected.yolo_version}</span>
-                  <span className="metric-chip">Epoch {selected.epochs}</span>
-                  <span className="metric-chip">img {selected.imgsz}px</span>
-                  <span className="metric-chip">batch {selected.batch}</span>
-                  <span className="metric-chip">progress {selected.progress}%</span>
-                </div>
-
+                {/* メタデータ */}
                 <dl className="model-detail-grid">
                   <div className="model-detail-item">
-                    <dt>ジョブID</dt>
-                    <dd className="mono">{selected.job_id}</dd>
+                    <dt>ワークスペース</dt>
+                    <dd>{workspaceName ?? selected.workspace_id ?? "—"}</dd>
                   </div>
                   <div className="model-detail-item">
-                    <dt>YOLOバージョン</dt>
-                    <dd>{selected.yolo_version}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>データセット</dt>
-                    <dd>{selected.dataset_id}</dd>
+                    <dt>モデル</dt>
+                    <dd>{selected.model} (YOLO {selected.yolo_version})</dd>
                   </div>
                   <div className="model-detail-item">
                     <dt>作成日時</dt>
                     <dd>{formatDate(selected.created_at)}</dd>
                   </div>
-                  <div className="model-detail-item">
-                    <dt>エポック数</dt>
-                    <dd>{selected.epochs}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>画像サイズ</dt>
-                    <dd>{selected.imgsz} px</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>バッチサイズ</dt>
-                    <dd>{selected.batch}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>オプティマイザ</dt>
-                    <dd>{selected.optimizer}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>初期学習率 (lr0)</dt>
-                    <dd>{selected.lr0}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>最終学習率 (lrf)</dt>
-                    <dd>{selected.lrf}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>デバイス</dt>
-                    <dd>{selected.device}</dd>
-                  </div>
-                  <div className="model-detail-item">
-                    <dt>進捗</dt>
-                    <dd>{selected.progress}%</dd>
-                  </div>
                   <div className="model-detail-item full-span">
-                    <dt>重みファイル</dt>
-                    <dd className="mono">{selected.results_path ?? "best.pt の場所をサーバーで探索します"}</dd>
+                    <dt>パラメーター</dt>
+                    <dd>
+                      <div className="model-quick-metrics" style={{ marginTop: "0.25rem" }}>
+                        <span className="metric-chip">epochs: {selected.epochs}</span>
+                        <span className="metric-chip">imgsz: {selected.imgsz}px</span>
+                        <span className="metric-chip">batch: {selected.batch}</span>
+                        <span className="metric-chip">optimizer: {selected.optimizer}</span>
+                        <span className="metric-chip">lr0: {selected.lr0}</span>
+                        <span className="metric-chip">lrf: {selected.lrf}</span>
+                        <span className="metric-chip">device: {selected.device}</span>
+                      </div>
+                    </dd>
                   </div>
                 </dl>
 
+                {/* 学習進捗グラフ */}
+                <JobResultsViewer jobId={selected.job_id} />
+
+                {/* ダウンロード */}
                 <div className="form-actions model-detail-actions">
-                  <button type="button" className="ghost-button" onClick={handleDownloadWeights} disabled={downloading}>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    style={{ fontSize: "0.78rem", padding: "0.25rem 0.65rem" }}
+                    onClick={handleDownloadWeights}
+                    disabled={downloading}
+                  >
                     {downloading ? "ダウンロード中…" : "重みをダウンロード"}
                   </button>
                   {downloadError && <span className="model-download-error">{downloadError}</span>}

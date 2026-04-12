@@ -212,6 +212,7 @@ export async function POST(
   const body = (await request.json().catch(() => ({}))) as {
     model?: string;
     device?: string;
+    display_name?: string;
     params?: {
       epochs?: string;
       batch?: string;
@@ -226,6 +227,8 @@ export async function POST(
   const model = (body.model || "yolov8n")
     .replace(/[^a-zA-Z0-9._-]/g, "")
     .replace(/\.pt$/i, "");
+  const rawDisplayName = typeof body.display_name === "string" ? body.display_name.trim() : "";
+  const displayName = rawDisplayName.slice(0, 200) || null;
   const VALID_DEVICES = new Set(["auto", "cpu", "cuda"]);
   const device = VALID_DEVICES.has((body.device ?? "").toLowerCase())
     ? (body.device as string).toLowerCase()
@@ -283,6 +286,7 @@ export async function POST(
         lrf,
         device,
         name: "train",
+        display_name: displayName,
       }),
     });
     if (!res.ok) {

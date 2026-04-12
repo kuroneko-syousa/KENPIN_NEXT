@@ -12,9 +12,13 @@
 | `DELETE` | `/api/workspaces/[id]` | ワークスペース削除 |
 | `GET` | `/api/workspaces/[id]/images` | ワークスペース関連画像一覧 |
 | `POST` | `/api/workspaces/[id]/prepare-training` | dataset.yaml 生成（学習前準備） |
-| `POST` | `/api/workspaces/[id]/start-training` | 学習開始（FastAPI バックエンドへ委譲）→ `{ jobId, model, epochs }` |
+| `POST` | `/api/workspaces/[id]/start-training` | 学習開始（FastAPI バックエンドへ委譲）→ `{ jobId, fastapiJobId, model, epochs, backendStatus, queuePosition }` |
 | `GET` | `/api/workspaces/[id]/start-training?jobId=xxx` | 学習進捗 SSE ストリーム（ログ・エポック・完了イベント） |
 | `DELETE` | `/api/workspaces/[id]/start-training?jobId=xxx` | 学習中断 |
+
+**POST `/api/workspaces/[id]/start-training` 補足:**
+
+- `display_name` を任意で指定可能（学習済みモデルの表示名として保存）
 
 ### Image Databases
 
@@ -47,9 +51,10 @@
 | `GET` | `/jobs/{job_id}` | ジョブ詳細取得 → `Job` |
 | `GET` | `/jobs/{job_id}/logs` | ジョブログ取得（プレーンテキスト） |
 | `GET` | `/jobs/{job_id}/results` | 学習結果取得 → `JobResults`（メトリクス・画像パス等） |
-| `GET` | `/jobs/{job_id}/image` | 結果画像ファイル取得 |
+| `GET` | `/jobs/{job_id}/images/{filename}` | 結果画像ファイル取得 |
 | `GET` | `/jobs/{job_id}/weights` | 学習済みウェイトファイル取得 |
 | `POST` | `/jobs/{job_id}/cancel` | ジョブのキャンセル |
+| `PATCH` | `/jobs/{job_id}/rename` | 学習済みモデルの表示名更新（`display_name`） |
 | `DELETE` | `/jobs/{job_id}` | ジョブレコード削除（ファイルは残す） |
 
 **POST `/jobs` リクエストボディ:**
@@ -57,6 +62,7 @@
 ```json
 {
   "dataset_id": "string",
+  "display_name": "検査モデル v1",
   "model": "yolov8n",
   "epochs": 50,
   "imgsz": 640,
@@ -69,7 +75,15 @@
 }
 ```
 
-**ジョブステータス値:** `queued` → `running` → `completed` / `failed` / `cancelled`
+**ジョブステータス値:** `queued` → `running` → `completed` / `failed` / `stopped`
+
+**PATCH `/jobs/{job_id}/rename` リクエストボディ:**
+
+```json
+{
+  "display_name": "検査モデル v2"
+}
+```
 
 **`JobResults` レスポンス:**
 

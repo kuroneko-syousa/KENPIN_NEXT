@@ -148,7 +148,7 @@ export const navItems: NavItem[] = [
     label: "ワークスペース",
     description: "作成と実行フロー管理",
   },
-  { href: "/dashboard/image-db", icon: "image-db", label: "リソースアクセス", description: "接続先と画像閲覧" },
+  { href: "/dashboard/image-db", icon: "image-db", label: "リソースアクセス", description: "接続先の設定" },
   {
     href: "/dashboard/datasets",
     icon: "datasets",

@@ -176,7 +176,7 @@ export function JobsWorkspace() {
         <div>
           <p className="eyebrow">ジョブ</p>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <h2 style={{ margin: 0 }}>ジョブモニター</h2>
+            <h2 style={{ margin: 0 }}>ジョブ履歴</h2>
             <button
               type="button"
               onClick={() => void refetch()}

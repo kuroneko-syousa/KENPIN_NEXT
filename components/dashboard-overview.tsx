@@ -91,19 +91,6 @@ function formatDate(isoString: string): string {
 
 // ─── ローディングスケルトン ────────────────────────────────────────────────
 
-function SkeletonChip() {
-  return (
-    <div
-      className="overview-stat-chip"
-      style={{ opacity: 0.4 }}
-      aria-hidden="true"
-    >
-      <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: 4, display: "block", height: "0.9rem", width: "5rem" }} />
-      <strong style={{ background: "rgba(255,255,255,0.2)", borderRadius: 4, display: "block", height: "1.4rem", width: "2rem" }} />
-    </div>
-  );
-}
-
 function SkeletonCard() {
   return (
     <div
@@ -181,7 +168,6 @@ function DonutChart({
     <article className="panel overview-donut-card">
       <div className="panel-heading compact">
         <div>
-          <p className="eyebrow">集計</p>
           <h3>{title}</h3>
         </div>
       </div>
@@ -328,19 +314,11 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
     };
   }, []);
 
-  const dateStr = new Date().toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  });
-
   return (
     <div className="workspace-content">
       {/* ─── グリーティングヒーロー ─── */}
       <section className="overview-hero panel">
         <div className="overview-greeting">
-          <p className="eyebrow">ダッシュボード · {dateStr}</p>
           <h2>おかえり、{userName} さん</h2>
           <p className="muted">
             {userEmail}
@@ -352,40 +330,6 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
               </>
             )}
           </p>
-        </div>
-
-        <div className="overview-stats">
-          {loading ? (
-            <>
-              <SkeletonChip />
-              <SkeletonChip />
-              <SkeletonChip />
-              <SkeletonChip />
-            </>
-          ) : error ? (
-            <p className="muted" style={{ fontSize: "0.85rem" }}>
-              統計の読み込みに失敗しました
-            </p>
-          ) : summary ? (
-            <>
-              <div className="overview-stat-chip">
-                <span>実行中ジョブ</span>
-                <strong>{summary.jobs.running}</strong>
-              </div>
-              <div className="overview-stat-chip">
-                <span>待機中ジョブ</span>
-                <strong>{summary.jobs.queued}</strong>
-              </div>
-              <div className="overview-stat-chip">
-                <span>データセット件数</span>
-                <strong>{summary.datasets.total}</strong>
-              </div>
-              <div className="overview-stat-chip">
-                <span>作成ワークスペース</span>
-                <strong>{workspaceStats.own}</strong>
-              </div>
-            </>
-          ) : null}
         </div>
       </section>
 
@@ -467,12 +411,41 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
         )}
       </section>
 
-      {/* ─── 実行中ジョブ ─── */}
-      <section className="detail-grid single-column">
+      {/* ─── アノテーション進捗 + 実行中ジョブ ─── */}
+      <section className="detail-grid two-column">
+        <article className="panel">
+          <div className="panel-heading compact">
+            <div>
+              <h3>アノテーション進捗</h3>
+            </div>
+          </div>
+          <div className="metric-stack overview-card-stack">
+            {annotationProgress.length === 0 ? (
+              <p className="muted">表示可能なアノテーション進捗データがありません</p>
+            ) : (
+              <div className="overview-bar-list">
+                {annotationProgress.map((dataset) => (
+                  <div key={dataset.id} className="overview-bar-item">
+                    <div className="overview-bar-label-row">
+                      <span>{dataset.name}</span>
+                      <span className="muted">{dataset.annotated}/{dataset.total}</span>
+                    </div>
+                    <div className="progress-bar large overview-annotation-bar">
+                      <div style={{ width: `${dataset.completionRate}%` }} />
+                    </div>
+                    <div className="overview-bar-footnote">
+                      <span>{dataset.completionRate}% 完了</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </article>
+
         <article className="panel overview-running-panel">
           <div className="panel-heading compact">
             <div>
-              <p className="eyebrow">優先表示</p>
               <h3>実行中ジョブ</h3>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
@@ -518,46 +491,11 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
         </article>
       </section>
 
-      {/* ─── アノテーション進捗 ─── */}
-      <section className="detail-grid single-column">
-        <article className="panel">
-          <div className="panel-heading compact">
-            <div>
-              <p className="eyebrow">進捗</p>
-              <h3>要アノテーション完了率</h3>
-            </div>
-          </div>
-          <div className="metric-stack overview-card-stack">
-            {annotationProgress.length === 0 ? (
-              <p className="muted">表示可能なアノテーション進捗データがありません</p>
-            ) : (
-              <div className="overview-bar-list">
-                {annotationProgress.map((dataset) => (
-                  <div key={dataset.id} className="overview-bar-item">
-                    <div className="overview-bar-label-row">
-                      <span>{dataset.name}</span>
-                      <span className="muted">{dataset.annotated}/{dataset.total}</span>
-                    </div>
-                    <div className="progress-bar large overview-annotation-bar">
-                      <div style={{ width: `${dataset.completionRate}%` }} />
-                    </div>
-                    <div className="overview-bar-footnote">
-                      <span>{dataset.completionRate}% 完了</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </article>
-      </section>
-
       {/* ─── 最近のジョブ一覧 ─── */}
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">履歴</p>
-            <h3>最近のジョブ</h3>
+            <h3>完了ジョブ</h3>
           </div>
           {!loading && summary && (
             <span className="muted">直近 {summary.recent_jobs.length} 件</span>

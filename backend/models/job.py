@@ -37,6 +37,7 @@ class Job(BaseModel):
         description="Workspace work directory: backend/workspaces/{user_id}/{workspace_id}/",
     )
     dataset_id: str = Field(default="", description="Dataset identifier")
+    display_name: Optional[str] = Field(default=None, description="User-defined display name for this model")
     model: str = Field(default="yolov8n", description="YOLO model key (e.g. yolov8n)")
     yolo_version: str = Field(default="8.0.0", description="Ultralytics YOLO version in the venv")
     env_path: str = Field(
@@ -105,6 +106,7 @@ class JobCreate(BaseModel):
     user_id: Optional[str] = None
     workspace_path: Optional[str] = None
     dataset_id: str
+    display_name: Optional[str] = None
     model: str = Field(default="yolov8n")
     yolo_version: str = Field(default="8.0.0")
     env_path: str = Field(
@@ -140,6 +142,7 @@ class JobSummary(BaseModel):
     requested_by: Optional[str]
     user_id: Optional[str]
     dataset_id: Optional[str]
+    display_name: Optional[str] = None
     model: str
     yolo_version: str
     status: JobStatus

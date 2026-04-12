@@ -611,6 +611,15 @@ class JobManager:
         self._store.save(job)
         return job
 
+    def rename_job(self, job_id: str, display_name: str) -> Optional[Job]:
+        """Set the user-facing display_name for a job. Returns updated job or None."""
+        job = self._store.get(job_id)
+        if job is None:
+            return None
+        job.display_name = display_name.strip()
+        self._store.save(job)
+        return job
+
     # ------------------------------------------------------------------
     # Legacy API — kept for routers/train.py backward compatibility
     # ------------------------------------------------------------------
