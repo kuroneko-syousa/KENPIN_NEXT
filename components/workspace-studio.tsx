@@ -719,6 +719,7 @@ function TrainingTab({
 
   const [valRatio, setValRatio] = useState(20); // val の割合 (%)
   const [device, setDevice] = useState<"auto" | "cpu" | "cuda">("auto");
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false); // ロック機構: ジョブ投入中フラグ
 
   // phase が変わるたびに親コンポーネントへ通知
   useEffect(() => {
@@ -871,6 +872,10 @@ function TrainingTab({
   };
 
   const handleStartTraining = async () => {
+    // ロック機構: 既に投入中の場合はスキップ
+    if (isSubmittingJob) return;
+    
+    setIsSubmittingJob(true);
     setSuppressRestore(false);
     lastLogSeqRef.current = 0;
     setPhase("queued");
@@ -894,6 +899,7 @@ function TrainingTab({
         setTrainError(json.error ?? "学習の開始に失敗しました");
         setQueuePosition(null);
         setPhase("error");
+        setIsSubmittingJob(false);
         return;
       }
       id = json.jobId;
@@ -911,6 +917,7 @@ function TrainingTab({
       setTrainError("サーバーへの接続に失敗しました");
       setQueuePosition(null);
       setPhase("error");
+      setIsSubmittingJob(false);
       return;
     }
 
@@ -943,12 +950,14 @@ function TrainingTab({
       setQueuePosition(null);
       setPhase(success ? "done" : "error");
       if (!success) setTrainError(stopped ? "学習を停止しました。" : "学習が異常終了しました。ログを確認してください。");
+      setIsSubmittingJob(false);
       evtSource.close();
     });
     evtSource.onerror = () => {
       setQueuePosition(null);
       setPhase("error");
       setTrainError("サーバーとの接続が切れました。");
+      setIsSubmittingJob(false);
       evtSource.close();
     };
   };
@@ -961,6 +970,7 @@ function TrainingTab({
     setPhase("idle");
     setQueuePosition(null);
     setJobId(null);
+    setIsSubmittingJob(false);
     localStorage.removeItem(`jobId_${workspace.id}`);
   };
 
@@ -975,6 +985,7 @@ function TrainingTab({
     setEpoch(0);
     setTrainError("");
     setJobId(null);
+    setIsSubmittingJob(false);
     localStorage.removeItem(`jobId_${workspace.id}`);
   };
 
@@ -1254,10 +1265,10 @@ function TrainingTab({
           <button
             type="button"
             onClick={handleStartTraining}
-            disabled={prepareState === "running"}
-            title={prepareState === "running" ? "学習データ準備が完了するまでお待ちください" : ""}
+            disabled={prepareState === "running" || isSubmittingJob}
+            title={isSubmittingJob ? "学習ジョブを投入中です..." : prepareState === "running" ? "学習データ準備が完了するまでお待ちください" : ""}
           >
-            🚀 学習を開始
+            {isSubmittingJob ? "⏳ 投入中..." : "🚀 学習を開始"}
           </button>
         )}
         {(phase === "running" || phase === "queued") && (

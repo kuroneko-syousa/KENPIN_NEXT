@@ -475,6 +475,7 @@ def _train(params: dict) -> None:
             lrf=lrf,
             exist_ok=True,
             verbose=True,
+            amp=False,  # Windows + CUDA で AMP チェックがクラッシュする問題を回避
         )
     except StopTraining:
         print("TRAINING STOPPED BY USER", flush=True)

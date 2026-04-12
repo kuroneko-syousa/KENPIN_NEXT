@@ -289,8 +289,11 @@ export async function POST(
       const err = (await res.json().catch(() => ({ detail: res.statusText }))) as {
         detail?: string;
       };
+      const errorMsg = res.status === 409 
+        ? `このワークスペースで既に学習が実行中です。${err.detail || ""}`
+        : err.detail ?? "Backend error";
       return NextResponse.json(
-        { error: err.detail ?? "Backend error" },
+        { error: errorMsg },
         { status: res.status }
       );
     }

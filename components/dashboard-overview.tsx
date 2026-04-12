@@ -252,16 +252,17 @@ function DonutChart({
 
 // ─── コンポーネント ────────────────────────────────────────────────────────
 
-export function DashboardOverview({ userName, userEmail, userRole, workspaceStats, annotationProgress }: Props) {
+export function DashboardOverview({ userName, userEmail, userRole, workspaceStats, annotationProgress: initialAnnotationProgress }: Props) {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [annotationProgress, setAnnotationProgress] = useState<AnnotationProgress[]>(initialAnnotationProgress);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchSummary() {
-      setLoading(true);
+    async function fetchSummary(isInitial: boolean) {
+      if (isInitial) setLoading(true);
       setError(null);
       try {
         const res = await fetch(`${API_BASE}/dashboard/summary`, {
@@ -283,15 +284,47 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
           );
         }
       } finally {
-        if (!cancelled) {
+        if (isInitial && !cancelled) {
           setLoading(false);
         }
       }
     }
 
-    fetchSummary();
+    fetchSummary(true);
+
+    // 実行中ジョブがある間は 3 秒ごとにポーリングして進捗を同期する
+    const timerId = setInterval(() => {
+      void fetchSummary(false);
+    }, 3000);
+
     return () => {
       cancelled = true;
+      clearInterval(timerId);
+    };
+  }, []);
+
+  // アノテーション進捗を 15 秒ごとに同期
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchAnnotationProgress() {
+      try {
+        const res = await fetch("/api/dashboard/annotation-progress", { cache: "no-store" });
+        if (!res.ok) return;
+        const data: AnnotationProgress[] = await res.json();
+        if (!cancelled) setAnnotationProgress(data);
+      } catch {
+        // サイレントに失敗（UI に影響しない）
+      }
+    }
+
+    const timerId = setInterval(() => {
+      void fetchAnnotationProgress();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timerId);
     };
   }, []);
 
@@ -434,7 +467,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
         )}
       </section>
 
-      {/* ─── 実行中優先表示 ─── */}
+      {/* ─── 実行中ジョブ ─── */}
       <section className="detail-grid single-column">
         <article className="panel overview-running-panel">
           <div className="panel-heading compact">
@@ -442,9 +475,14 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
               <p className="eyebrow">優先表示</p>
               <h3>実行中ジョブ</h3>
             </div>
-            {!loading && summary && (
-              <span className="status training">{summary.jobs.running} 件</span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              {!loading && summary && (
+                <span className="status training">{summary.jobs.running} 件</span>
+              )}
+              {!loading && summary && (
+                <span className="status draft">待機中 {summary.jobs.queued} 件</span>
+              )}
+            </div>
           </div>
 
           <div className="metric-stack overview-card-stack">
@@ -456,7 +494,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
               <>
                 {summary.recent_jobs
                   .filter((job) => job.status === "running")
-                  .slice(0, 2)
+                  .slice(0, 3)
                   .map((job) => (
                     <div key={job.job_id} className="job-card compact">
                       <div className="job-header">
@@ -464,7 +502,7 @@ export function DashboardOverview({ userName, userEmail, userRole, workspaceStat
                         <span className="status training">実行中</span>
                       </div>
                       <div className="progress-bar large" style={{ marginTop: "0.65rem" }}>
-                        <div style={{ width: `${job.progress}%` }} />
+                        <div style={{ width: `${job.progress}%`, transition: "width 0.6s ease" }} />
                       </div>
                       <div className="job-footer">
                         <span>{job.progress}%</span>

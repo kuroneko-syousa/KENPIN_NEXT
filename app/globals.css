@@ -730,6 +730,10 @@ h2 {
   grid-template-columns: 1fr;
 }
 
+.detail-grid.two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .db-toolbar-panel {
   padding: 1rem 1.25rem;
 }
@@ -1302,6 +1306,7 @@ code {
   .login-shell,
   .workspace-shell,
   .detail-grid,
+  .detail-grid.two-column,
   .db-toolbar,
   .editor-form,
   .workflow-editor-grid,

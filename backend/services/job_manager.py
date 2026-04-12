@@ -149,7 +149,11 @@ class JobManager:
                 current = self._store.get(job_id)
                 if current is None or current.status != JobStatus.QUEUED:
                     continue
-                job_dir = _JOBS_WORK_DIR / job_id
+                # params.json は workspace_path/jobs/{job_id}/ に書き込まれている
+                if current.workspace_path:
+                    job_dir = Path(current.workspace_path) / "jobs" / job_id
+                else:
+                    job_dir = _JOBS_WORK_DIR / job_id
                 params_path = str(job_dir / "params.json")
                 progress_path = str(job_dir / "progress.json")
                 self._run_subprocess(job_id, params_path, progress_path)
@@ -174,7 +178,32 @@ class JobManager:
                     params.json, progress.json, stop.request
                 logs/{job_id}.log
                 models/          (YOLO output: runs/train/...)
+        
+        Raises:
+            ValueError: If a job is already running or queued for this workspace.
         """
+        # Check for duplicate job in the same workspace
+        if req.workspace_id:
+            with self._lock:
+                existing_jobs = [
+                    j for j in self._store.list_all()
+                    if j.workspace_id == req.workspace_id
+                    and j.status in (JobStatus.QUEUED, JobStatus.RUNNING)
+                ]
+                if existing_jobs:
+                    existing = existing_jobs[0]
+                    queue_pos = None
+                    if existing.status == JobStatus.QUEUED:
+                        try:
+                            queue_pos = self._queue.index(existing.job_id) + 1
+                        except ValueError:
+                            pass
+                    raise ValueError(
+                        f"Job already in progress for workspace {req.workspace_id}. "
+                        f"Job ID: {existing.job_id}, Status: {existing.status.value}, "
+                        f"Queue Position: {queue_pos}"
+                    )
+        
         job = Job(
             workspace_id=req.workspace_id,
             requested_by=req.requested_by,

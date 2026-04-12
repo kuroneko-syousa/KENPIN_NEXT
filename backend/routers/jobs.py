@@ -261,7 +261,14 @@ def create_job(req: JobCreate) -> Job:
         workspace_id = req.workspace_id or "workspace"
         req.workspace_path = str(backend_dir / "workspaces" / user_id / workspace_id)
 
-    job = job_manager.submit_job(req)
+    try:
+        job = job_manager.submit_job(req)
+    except ValueError as e:
+        # Duplicate job in same workspace
+        raise HTTPException(
+            status_code=409,
+            detail=str(e),
+        )
     logger.info("Job %s submitted", job.job_id)
     return job
 
